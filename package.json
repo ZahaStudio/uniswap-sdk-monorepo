@@ -80,10 +80,7 @@
   },
   "dependencies": {
     "@uniswap/permit2-sdk": "^1.4.0",
-    "@uniswap/router-sdk": "^2.0.4",
     "@uniswap/sdk-core": "^7.7.2",
-    "@uniswap/universal-router-sdk": "^4.19.7",
-    "@uniswap/v3-sdk": "^3.25.2",
     "@uniswap/v4-sdk": "^1.21.4",
     "ethers": "^5.7.2",
     "jsbi": "^3.2.5",
@@ -96,7 +93,9 @@
       "jsbi": "3.2.5"
     },
     "peerDependencyRules": {
-      "ignoreMissing": ["@testing-library/dom"]
+      "ignoreMissing": [
+        "@testing-library/dom"
+      ]
     }
   }
 }
