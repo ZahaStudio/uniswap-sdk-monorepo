@@ -21,6 +21,9 @@ importers:
       '@uniswap/sdk-core':
         specifier: ^7.7.2
         version: 7.7.2
+      '@uniswap/v3-sdk':
+        specifier: ^3.25.2
+        version: 3.25.2(hardhat@2.24.0(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10))
       '@uniswap/v4-sdk':
         specifier: ^1.21.4
         version: 1.21.4(hardhat@2.24.0(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10))
