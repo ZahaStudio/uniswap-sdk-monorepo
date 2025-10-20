@@ -8,7 +8,7 @@ import type { TypedDataField } from 'ethers'
 import type { Address, Hex } from 'viem'
 import { zeroAddress } from 'viem'
 import type { UniDevKitV4Instance } from '@/types'
-import type { PreparePermit2DataParams, PreparePermit2DataResult } from '@/types/utils/permit2'
+import type { PreparePermit2DataArgs, PreparePermit2DataResult } from '@/types/utils/permit2'
 
 /**
  * Prepares the permit2  data for a single token
@@ -57,7 +57,7 @@ import type { PreparePermit2DataParams, PreparePermit2DataResult } from '@/types
  * @throws Error if any required dependencies are missing
  */
 export async function preparePermit2Data(
-  params: PreparePermit2DataParams,
+  params: PreparePermit2DataArgs,
   instance: UniDevKitV4Instance,
 ): Promise<PreparePermit2DataResult> {
   const { token, spender, owner, sigDeadline: sigDeadlineParam } = params

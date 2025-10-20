@@ -16,17 +16,17 @@ interface BasePermit2Data {
 }
 
 /**
- * Interface for the parameters required to generate a Permit2 batch signature
+ * Interface for the arguments required to generate a Permit2 batch signature
  */
-export interface PreparePermit2BatchDataParams extends BasePermit2Data {
+export interface PreparePermit2BatchDataArgs extends BasePermit2Data {
   /** Array of token addresses to permit */
   tokens: (Address | string)[]
 }
 
 /**
- * Interface for the parameters required to generate a single Permit2 signature
+ * Interface for the arguments required to generate a single Permit2 signature
  */
-export interface PreparePermit2DataParams extends BasePermit2Data {
+export interface PreparePermit2DataArgs extends BasePermit2Data {
   /** Token address to permit */
   token: Address | string
 }

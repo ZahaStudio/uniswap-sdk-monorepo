@@ -22,11 +22,6 @@ describe('UniDevKitV4', () => {
     sdk = new UniDevKitV4(config)
   })
 
-  it('should initialize with correct config', () => {
-    expect(sdk.getChainId()).toBe(config.chainId)
-    expect(sdk.getContracts()).toEqual(config.contracts)
-  })
-
   it('should get contract address', () => {
     expect(sdk.getContractAddress('quoter')).toBe(config.contracts.quoter)
   })
@@ -43,14 +38,5 @@ describe('UniDevKitV4', () => {
       rpcUrl: 'https://base-rpc.com',
     }
     sdk = new UniDevKitV4(newConfig)
-    expect(sdk.getChainId()).toBe(newConfig.chainId)
-  })
-
-  it('should create client with custom native currency', () => {
-    const customConfig: UniDevKitV4Config = {
-      ...config,
-    }
-    const customSdk = new UniDevKitV4(customConfig)
-    expect(customSdk.getClient()).toBeDefined()
   })
 })

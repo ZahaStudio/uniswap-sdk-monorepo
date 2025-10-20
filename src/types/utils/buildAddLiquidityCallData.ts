@@ -3,7 +3,7 @@ import type { BatchPermitOptions, Pool } from '@uniswap/v4-sdk'
 /**
  * Common base parameters for building add liquidity call data.
  */
-type BaseAddLiquidityParams = {
+type BaseAddLiquidityArgs = {
   /**
    * The Uniswap V4 pool to add liquidity to.
    */
@@ -55,7 +55,7 @@ type BaseAddLiquidityParams = {
   permit2BatchSignature?: BatchPermitOptions
 }
 
-export type BuildAddLiquidityParams = BaseAddLiquidityParams
+export type BuildAddLiquidityArgs = BaseAddLiquidityArgs
 
 /**
  * Result of building add liquidity call data.

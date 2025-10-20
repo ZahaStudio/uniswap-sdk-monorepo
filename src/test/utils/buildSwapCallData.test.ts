@@ -1,11 +1,8 @@
 import { zeroAddress } from 'viem'
 import { describe, expect, it, vi } from 'vitest'
-import { createMockSdkInstance } from '@/test/helpers/sdkInstance'
-import { createTestPool, USDC, WETH } from '@/test/helpers/testFactories'
+import { createTestPool } from '@/test/helpers/testFactories'
 import { buildSwapCallData } from '@/utils/buildSwapCallData'
 import * as getQuoteModule from '@/utils/getQuote'
-
-const sdkInstance = createMockSdkInstance()
 
 // Mock getQuote to return a fixed amount
 vi.spyOn(getQuoteModule, 'getQuote').mockImplementation(async () => ({
@@ -15,36 +12,35 @@ vi.spyOn(getQuoteModule, 'getQuote').mockImplementation(async () => ({
 }))
 
 describe('buildSwapCallData', () => {
-  const mockTokens = [USDC.address as `0x${string}`, WETH.address as `0x${string}`] as const
   const mockPool = createTestPool()
 
   it.each([
-    { tokenIn: mockTokens[0], amountIn: BigInt(1000000), description: 'USDC to WETH' },
-    { tokenIn: mockTokens[1], amountIn: BigInt(1000000000000000000), description: 'WETH to USDC' },
-  ])('should build swap calldata for $description', async ({ tokenIn, amountIn }) => {
+    { amountIn: BigInt(1000000), zeroForOne: true, description: 'USDC to WETH' },
+    { amountIn: BigInt(1000000000000000000), zeroForOne: false, description: 'WETH to USDC' },
+  ])('should build swap calldata for $description', async ({ amountIn, zeroForOne }) => {
     const params = {
-      tokenIn,
       amountIn,
-      slippageTolerance: 50,
+      amountOutMinimum: BigInt(950000000000000000), // 0.95 WETH (5% slippage)
       pool: mockPool,
+      zeroForOne,
       recipient: zeroAddress,
     }
 
-    const calldata = await buildSwapCallData(params, sdkInstance)
+    const calldata = await buildSwapCallData(params)
     expect(calldata).toMatch(/^0x[a-fA-F0-9]+$/)
     expect(calldata.length).toBeGreaterThan(10) // Basic validation it's not empty
   })
 
-  it('should handle different slippage tolerances', async () => {
+  it('should handle different amountOutMinimum values', async () => {
     const params = {
-      tokenIn: mockTokens[0],
       amountIn: BigInt(1000000),
-      slippageTolerance: 100, // 1%
+      amountOutMinimum: BigInt(900000000000000000), // 0.9 WETH (10% slippage)
       pool: mockPool,
+      zeroForOne: true,
       recipient: zeroAddress,
     }
 
-    const calldata = await buildSwapCallData(params, sdkInstance)
+    const calldata = await buildSwapCallData(params)
     expect(calldata).toMatch(/^0x[a-fA-F0-9]+$/)
   })
 })

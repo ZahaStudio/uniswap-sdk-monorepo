@@ -3,7 +3,11 @@ import V4PositionManagerAbi from '@/constants/abis/V4PositionMananger'
 import V4StateViewAbi from '@/constants/abis/V4StateView'
 import { decodePositionInfo } from '@/helpers/positions'
 import type { UniDevKitV4Instance } from '@/types/core'
-import type { GetPositionParams, GetPositionResponse } from '@/types/utils/getPosition'
+import type {
+  GetPositionDetailsResponse,
+  GetPositionParams,
+  GetPositionResponse,
+} from '@/types/utils/getPosition'
 import { getTokens } from '@/utils/getTokens'
 
 /**
@@ -19,28 +23,12 @@ export async function getPosition(
 ): Promise<GetPositionResponse> {
   const { client, contracts } = instance
 
-  const { positionManager, stateView } = contracts
+  const { stateView } = contracts
 
-  // Fetch poolKey and raw position info
-  const [poolAndPositionInfo, liquidity] = await client.multicall({
-    allowFailure: false,
-    contracts: [
-      {
-        address: positionManager,
-        abi: V4PositionManagerAbi,
-        functionName: 'getPoolAndPositionInfo',
-        args: [BigInt(params.tokenId)],
-      },
-      {
-        address: positionManager,
-        abi: V4PositionManagerAbi,
-        functionName: 'getPositionLiquidity',
-        args: [BigInt(params.tokenId)],
-      },
-    ],
-  })
+  // Get position details using the dedicated function
+  const positionDetails = await getPositionDetails(params.tokenId, instance)
 
-  const [poolKey, rawInfo] = poolAndPositionInfo
+  const { poolKey, liquidity, tickLower, tickUpper } = positionDetails
   const { currency0, currency1, fee, tickSpacing, hooks } = poolKey
 
   if (liquidity === 0n) {
@@ -49,7 +37,7 @@ export async function getPosition(
 
   const tokens = await getTokens(
     {
-      addresses: [currency0, currency1],
+      addresses: [currency0 as `0x${string}`, currency1 as `0x${string}`],
     },
     instance,
   )
@@ -93,8 +81,6 @@ export async function getPosition(
     tick,
   )
 
-  const { tickLower, tickUpper } = decodePositionInfo(rawInfo)
-
   const position = new V4Position({
     pool,
     liquidity: liquidity.toString(),
@@ -109,5 +95,49 @@ export async function getPosition(
     token1,
     poolId,
     tokenId: params.tokenId,
+  }
+}
+
+/**
+ * Retrieves a Uniswap V4 position instance for a given token ID.
+ * @param params Position parameters including token ID
+ * @param instance UniDevKitV4Instance
+ * @returns Promise<GetPositionDetailsResponse>
+ */
+export async function getPositionDetails(
+  tokenId: string,
+  instance: UniDevKitV4Instance,
+): Promise<GetPositionDetailsResponse> {
+  const { client, contracts } = instance
+
+  const { positionManager } = contracts
+
+  // Fetch poolKey and raw position info
+  const [poolAndPositionInfo, liquidity] = await client.multicall({
+    allowFailure: false,
+    contracts: [
+      {
+        address: positionManager,
+        abi: V4PositionManagerAbi,
+        functionName: 'getPoolAndPositionInfo',
+        args: [BigInt(tokenId)],
+      },
+      {
+        address: positionManager,
+        abi: V4PositionManagerAbi,
+        functionName: 'getPositionLiquidity',
+        args: [BigInt(tokenId)],
+      },
+    ],
+  })
+
+  const positionInfo = decodePositionInfo(poolAndPositionInfo[1])
+
+  return {
+    tokenId,
+    tickLower: positionInfo.tickLower,
+    tickUpper: positionInfo.tickUpper,
+    liquidity,
+    poolKey: poolAndPositionInfo[0],
   }
 }

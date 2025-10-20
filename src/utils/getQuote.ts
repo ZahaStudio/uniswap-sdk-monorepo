@@ -1,6 +1,6 @@
 import V4QuoterAbi from '@/constants/abis/V4Quoter'
 import type { UniDevKitV4Instance } from '@/types/core'
-import type { QuoteParams, QuoteResponse } from '@/types/utils/getQuote'
+import type { SwapExactInSingle, QuoteResponse } from '@/types/utils/getQuote'
 
 /**
  * Fetches a quote for a token swap using the V4 Quoter contract.
@@ -14,28 +14,26 @@ import type { QuoteParams, QuoteResponse } from '@/types/utils/getQuote'
  * - Contract call reverts
  */
 export async function getQuote(
-  params: QuoteParams,
+  params: SwapExactInSingle,
   instance: UniDevKitV4Instance,
 ): Promise<QuoteResponse> {
   const { client, contracts } = instance
   const { quoter } = contracts
-  const {
-    pool: { poolKey },
-  } = params
 
   try {
     // Build the parameters for quoteExactInputSingle
+    // Using SwapExactInSingle structure directly from Uniswap V4 SDK
     const quoteParams = {
       poolKey: {
-        currency0: poolKey.currency0 as `0x${string}`,
-        currency1: poolKey.currency1 as `0x${string}`,
-        fee: poolKey.fee,
-        tickSpacing: poolKey.tickSpacing,
-        hooks: poolKey.hooks as `0x${string}`,
+        currency0: params.poolKey.currency0 as `0x${string}`,
+        currency1: params.poolKey.currency1 as `0x${string}`,
+        fee: params.poolKey.fee,
+        tickSpacing: params.poolKey.tickSpacing,
+        hooks: params.poolKey.hooks as `0x${string}`,
       },
       zeroForOne: params.zeroForOne,
-      exactAmount: params.amountIn,
-      hookData: params.hookData || '0x',
+      exactAmount: BigInt(params.amountIn),
+      hookData: (params.hookData || '0x') as `0x${string}`,
     }
 
     // Simulate the quote to estimate the amount out
@@ -47,7 +45,7 @@ export async function getQuote(
     })
 
     // Extract the results
-    const [amountOut, gasEstimate] = simulation.result as [bigint, bigint]
+    const [amountOut, gasEstimate] = simulation.result
 
     return {
       amountOut,
