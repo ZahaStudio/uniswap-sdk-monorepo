@@ -10,6 +10,30 @@ import { zeroAddress } from 'viem'
 import type { UniDevKitV4Instance } from '@/types'
 import type { PreparePermit2DataArgs, PreparePermit2DataResult } from '@/types/utils/permit2'
 
+export const allowanceAbi = [
+  {
+    name: 'allowance',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'token', type: 'address' },
+      { name: 'spender', type: 'address' },
+    ],
+    outputs: [
+      {
+        components: [
+          { name: 'amount', type: 'uint160' },
+          { name: 'expiration', type: 'uint48' },
+          { name: 'nonce', type: 'uint48' },
+        ],
+        name: 'details',
+        type: 'tuple',
+      },
+    ],
+  },
+] as const
+
 /**
  * Prepares the permit2  data for a single token
  *
@@ -61,47 +85,23 @@ export async function preparePermit2Data(
   instance: UniDevKitV4Instance,
 ): Promise<PreparePermit2DataResult> {
   const { token, spender, owner, sigDeadline: sigDeadlineParam } = params
-
   const chainId = instance.chain.id
-
-  // calculate sigDeadline if not provided
-  let sigDeadline = sigDeadlineParam
-  if (!sigDeadline) {
-    const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp)
-
-    sigDeadline = Number(blockTimestamp + 60n * 60n) // 30 minutes from current block timestamp
-  }
 
   if (token.toLowerCase() === zeroAddress.toLowerCase()) {
     throw new Error('Native tokens are not supported for permit2')
   }
 
+  // calculate sigDeadline if not provided
+  let sigDeadline = sigDeadlineParam
+  if (!sigDeadline) {
+    const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp)
+    sigDeadline = Number(blockTimestamp + 60n * 60n) // 30 minutes from current block timestamp
+  }
+
   // Fetch allowance details for each token
   const details = await instance.client.readContract({
     address: PERMIT2_ADDRESS as `0x${string}`,
-    abi: [
-      {
-        name: 'allowance',
-        type: 'function',
-        stateMutability: 'view',
-        inputs: [
-          { name: 'owner', type: 'address' },
-          { name: 'token', type: 'address' },
-          { name: 'spender', type: 'address' },
-        ],
-        outputs: [
-          {
-            components: [
-              { name: 'amount', type: 'uint160' },
-              { name: 'expiration', type: 'uint48' },
-              { name: 'nonce', type: 'uint48' },
-            ],
-            name: 'details',
-            type: 'tuple',
-          },
-        ],
-      },
-    ] as const,
+    abi: allowanceAbi,
     functionName: 'allowance',
     args: [owner as `0x${string}`, token as `0x${string}`, spender as `0x${string}`],
   })

@@ -43,21 +43,15 @@ export async function buildRemoveLiquidityCallData(
 
   const deadline = deadlineParam ?? (await getDefaultDeadline(instance)).toString()
 
-  // Build remove liquidity call data
-  try {
-    const { calldata, value } = V4PositionManager.removeCallParameters(positionData.position, {
-      slippageTolerance: percentFromBips(slippageTolerance ?? DEFAULT_SLIPPAGE_TOLERANCE),
-      deadline: deadline,
-      liquidityPercentage: percentFromBips(liquidityPercentage),
-      tokenId: tokenId,
-    })
+  const { calldata, value } = V4PositionManager.removeCallParameters(positionData.position, {
+    slippageTolerance: percentFromBips(slippageTolerance ?? DEFAULT_SLIPPAGE_TOLERANCE),
+    deadline: deadline,
+    liquidityPercentage: percentFromBips(liquidityPercentage),
+    tokenId: tokenId,
+  })
 
-    return {
-      calldata: calldata,
-      value: value,
-    }
-  } catch (error) {
-    console.error(error)
-    throw error
+  return {
+    calldata: calldata,
+    value: value,
   }
 }
