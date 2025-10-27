@@ -2,7 +2,7 @@ import { V4PositionManager } from '@uniswap/v4-sdk'
 import { DEFAULT_SLIPPAGE_TOLERANCE } from '@/constants/common'
 import { percentFromBips } from '@/helpers/percent'
 import type { UniDevKitV4Instance } from '@/types'
-import type { BuildRemoveLiquidityCallDataParams } from '@/types/utils/buildRemoveLiquidityCallData'
+import type { BuildRemoveLiquidityCallDataArgs } from '@/types/utils/buildRemoveLiquidityCallData'
 import { getDefaultDeadline } from '@/utils/getDefaultDeadline'
 import { getPosition } from '@/utils/getPosition'
 
@@ -32,7 +32,7 @@ export async function buildRemoveLiquidityCallData(
     deadline: deadlineParam,
     slippageTolerance,
     tokenId,
-  }: BuildRemoveLiquidityCallDataParams,
+  }: BuildRemoveLiquidityCallDataArgs,
   instance: UniDevKitV4Instance,
 ) {
   // Get position data
@@ -43,21 +43,15 @@ export async function buildRemoveLiquidityCallData(
 
   const deadline = deadlineParam ?? (await getDefaultDeadline(instance)).toString()
 
-  // Build remove liquidity call data
-  try {
-    const { calldata, value } = V4PositionManager.removeCallParameters(positionData.position, {
-      slippageTolerance: percentFromBips(slippageTolerance ?? DEFAULT_SLIPPAGE_TOLERANCE),
-      deadline: deadline,
-      liquidityPercentage: percentFromBips(liquidityPercentage),
-      tokenId: tokenId,
-    })
+  const { calldata, value } = V4PositionManager.removeCallParameters(positionData.position, {
+    slippageTolerance: percentFromBips(slippageTolerance ?? DEFAULT_SLIPPAGE_TOLERANCE),
+    deadline: deadline,
+    liquidityPercentage: percentFromBips(liquidityPercentage),
+    tokenId: tokenId,
+  })
 
-    return {
-      calldata: calldata,
-      value: value,
-    }
-  } catch (error) {
-    console.error(error)
-    throw error
+  return {
+    calldata: calldata,
+    value: value,
   }
 }

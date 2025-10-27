@@ -1,8 +1,7 @@
 import { V4PositionManager } from '@uniswap/v4-sdk'
-import { DEFAULT_SLIPPAGE_TOLERANCE } from '@/constants/common'
 import { percentFromBips } from '@/helpers/percent'
 import type { UniDevKitV4Instance } from '@/types'
-import type { BuildCollectFeesCallDataParams } from '@/types/utils/buildCollectFeesCallData'
+import type { BuildCollectFeesCallDataArgs } from '@/types/utils/buildCollectFeesCallData'
 import { getDefaultDeadline } from '@/utils/getDefaultDeadline'
 import { getPosition } from '@/utils/getPosition'
 
@@ -30,12 +29,7 @@ import { getPosition } from '@/utils/getPosition'
  * ```
  */
 export async function buildCollectFeesCallData(
-  {
-    tokenId,
-    recipient,
-    deadline: deadlineParam,
-    slippageTolerance,
-  }: BuildCollectFeesCallDataParams,
+  { tokenId, recipient, deadline: deadlineParam }: BuildCollectFeesCallDataArgs,
   instance: UniDevKitV4Instance,
 ) {
   const positionData = await getPosition({ tokenId }, instance)
@@ -47,10 +41,11 @@ export async function buildCollectFeesCallData(
 
   try {
     const { calldata, value } = V4PositionManager.collectCallParameters(positionData.position, {
-      recipient,
-      deadline,
       tokenId,
-      slippageTolerance: percentFromBips(slippageTolerance ?? DEFAULT_SLIPPAGE_TOLERANCE),
+      recipient,
+      slippageTolerance: percentFromBips(0),
+      deadline,
+      hookData: positionData.pool.hooks,
     })
 
     return {

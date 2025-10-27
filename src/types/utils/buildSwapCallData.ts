@@ -1,6 +1,7 @@
 import type { PermitSingle } from '@uniswap/permit2-sdk'
 import type { Pool } from '@uniswap/v4-sdk'
 import type { Address, Hex } from 'viem'
+import type { Actions } from '@uniswap/v4-sdk'
 
 /**
  * Command codes for Universal Router operations
@@ -17,21 +18,22 @@ export const COMMANDS = {
 /**
  * Parameters for building a V4 swap
  */
-export type BuildSwapCallDataParams = {
-  /** Input token address */
-  tokenIn: Address
-  /** Amount of input tokens to swap (in token's smallest unit) */
+export type BuildSwapCallDataArgs = {
   amountIn: bigint
-  /** Pool */
+  amountOutMinimum: bigint
   pool: Pool
-  /** Slippage tolerance in basis points (e.g., 50 = 0.5%). Defaults to 50 (0.5%) */
-  slippageTolerance?: number
-  /** Recipient address */
+  /** The direction of the swap, true for currency0 to currency1, false for currency1 to currency0 */
+  zeroForOne: boolean
+  //slippageTolerance?: number
   recipient: Address
-  /** Permit2 signature */
   permit2Signature?: {
     signature: Hex
     owner: Address
     permit: PermitSingle
   }
+  /** Custom actions to override default swap behavior. If not provided, uses default SWAP_EXACT_IN_SINGLE */
+  customActions?: {
+    action: Actions
+    parameters: unknown[]
+  }[]
 }

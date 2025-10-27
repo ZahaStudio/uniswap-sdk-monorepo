@@ -2,12 +2,12 @@ import { encodeSqrtRatioX96, nearestUsableTick, TickMath } from '@uniswap/v3-sdk
 import { Position, V4PositionManager } from '@uniswap/v4-sdk'
 import { DEFAULT_SLIPPAGE_TOLERANCE } from '@/constants/common'
 import { percentFromBips } from '@/helpers/percent'
+import { getDefaultDeadline } from '@/utils/getDefaultDeadline'
 import type { UniDevKitV4Instance } from '@/types'
 import type {
   BuildAddLiquidityCallDataResult,
-  BuildAddLiquidityParams,
+  BuildAddLiquidityArgs,
 } from '@/types/utils/buildAddLiquidityCallData'
-import { getDefaultDeadline } from '@/utils/getDefaultDeadline'
 
 /**
  * Builds the calldata and native value required to add liquidity to a Uniswap V4 pool.
@@ -64,7 +64,7 @@ import { getDefaultDeadline } from '@/utils/getDefaultDeadline'
  */
 
 export async function buildAddLiquidityCallData(
-  params: BuildAddLiquidityParams,
+  params: BuildAddLiquidityArgs,
   instance: UniDevKitV4Instance,
 ): Promise<BuildAddLiquidityCallDataResult> {
   const {
@@ -87,11 +87,6 @@ export async function buildAddLiquidityCallData(
 
     const tickLower = tickLowerParam ?? nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing)
     const tickUpper = tickUpperParam ?? nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing)
-
-    // Validate input
-    if (!amount0 && !amount1) {
-      throw new Error('At least one of amount0 or amount1 must be provided.')
-    }
 
     let sqrtPriceX96: string
     if (createPool) {

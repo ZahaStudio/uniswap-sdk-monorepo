@@ -56,11 +56,11 @@ import { zeroAddress } from 'viem' /**
  */
 import type { UniDevKitV4Instance } from '@/types'
 import type {
-  PreparePermit2BatchDataParams,
+  PreparePermit2BatchDataArgs,
   PreparePermit2BatchDataResult,
 } from '@/types/utils/permit2'
 export async function preparePermit2BatchData(
-  params: PreparePermit2BatchDataParams,
+  params: PreparePermit2BatchDataArgs,
   instance: UniDevKitV4Instance,
 ): Promise<PreparePermit2BatchDataResult> {
   const { tokens, spender, owner, sigDeadline: sigDeadlineParam } = params

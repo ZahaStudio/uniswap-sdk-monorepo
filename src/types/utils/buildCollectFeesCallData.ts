@@ -1,7 +1,7 @@
 /**
  * Parameters required to build the calldata for collecting fees from a Uniswap v4 position.
  */
-export interface BuildCollectFeesCallDataParams {
+export interface BuildCollectFeesCallDataArgs {
   /**
    * The tokenId of the position to collect fees from.
    */
@@ -16,9 +16,4 @@ export interface BuildCollectFeesCallDataParams {
    * Optional deadline for the transaction (default: 5 minutes from now).
    */
   deadline?: string
-
-  /**
-   * The slippage tolerance for the transaction.
-   */
-  slippageTolerance?: number
 }

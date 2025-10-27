@@ -1,38 +1,36 @@
-import type { Currency } from '@uniswap/sdk-core'
-import type { Pool, PoolKey } from '@uniswap/v4-sdk'
-import type { Abi, Address, PublicClient } from 'viem'
-import { createPublicClient, http } from 'viem'
 import { getChainById } from '@/constants/chains'
-import type { BuildSwapCallDataParams } from '@/types'
-import type { UniDevKitV4Config, UniDevKitV4Instance } from '@/types/core'
-import type {
-  BuildAddLiquidityCallDataResult,
-  BuildAddLiquidityParams,
-} from '@/types/utils/buildAddLiquidityCallData'
-import type { BuildCollectFeesCallDataParams } from '@/types/utils/buildCollectFeesCallData'
-import type { BuildRemoveLiquidityCallDataParams } from '@/types/utils/buildRemoveLiquidityCallData'
-import type { PoolParams } from '@/types/utils/getPool'
-import type { GetPoolKeyFromPoolIdParams } from '@/types/utils/getPoolKeyFromPoolId'
-import type { GetPositionParams, GetPositionResponse } from '@/types/utils/getPosition'
-import type { QuoteParams, QuoteResponse } from '@/types/utils/getQuote'
-import type { GetTokensParams } from '@/types/utils/getTokens'
-import type {
-  PreparePermit2BatchDataParams,
-  PreparePermit2BatchDataResult,
-  PreparePermit2DataParams,
-  PreparePermit2DataResult,
-} from '@/types/utils/permit2'
+import { FeeTier } from '@/types/utils/getPool'
 import { buildAddLiquidityCallData } from '@/utils/buildAddLiquidityCallData'
 import { buildCollectFeesCallData } from '@/utils/buildCollectFeesCallData'
 import { buildRemoveLiquidityCallData } from '@/utils/buildRemoveLiquidityCallData'
 import { buildSwapCallData } from '@/utils/buildSwapCallData'
 import { getPool } from '@/utils/getPool'
-import { getPoolKeyFromPoolId } from '@/utils/getPoolKeyFromPoolId'
-import { getPosition } from '@/utils/getPosition'
+import { getPositionDetails } from '@/utils/getPosition'
 import { getQuote } from '@/utils/getQuote'
 import { getTokens } from '@/utils/getTokens'
 import { preparePermit2BatchData } from '@/utils/preparePermit2BatchData'
 import { preparePermit2Data } from '@/utils/preparePermit2Data'
+import type { BuildSwapCallDataArgs } from '@/types'
+import type { UniDevKitV4Config, UniDevKitV4Instance } from '@/types/core'
+import type {
+  BuildAddLiquidityArgs,
+  BuildAddLiquidityCallDataResult,
+} from '@/types/utils/buildAddLiquidityCallData'
+import type { GetPositionDetailsResponse } from '@/types/utils/getPosition'
+import type { QuoteResponse, SwapExactInSingle } from '@/types/utils/getQuote'
+import type { GetTokensArgs } from '@/types/utils/getTokens'
+import type {
+  PreparePermit2BatchDataArgs,
+  PreparePermit2BatchDataResult,
+  PreparePermit2DataArgs,
+  PreparePermit2DataResult,
+} from '@/types/utils/permit2'
+import type { BuildCollectFeesCallDataArgs } from '@/types/utils/buildCollectFeesCallData'
+import type { BuildRemoveLiquidityCallDataArgs } from '@/types/utils/buildRemoveLiquidityCallData'
+import type { PoolArgs } from '@/types/utils/getPool'
+import type { Currency } from '@uniswap/sdk-core'
+import type { Pool } from '@uniswap/v4-sdk'
+import { type Address, createPublicClient, http, type PublicClient } from 'viem'
 
 /**
  * Main class for interacting with Uniswap V4 contracts.
@@ -62,27 +60,11 @@ export class UniDevKitV4 {
   }
 
   /**
-   * Returns the current PublicClient instance.
-   * @returns The current PublicClient.
+   * Returns the FeeTier enum for accessing standard fee tiers.
+   * @returns The FeeTier enum containing LOWEST, LOW, MEDIUM, and HIGH fee tiers
    */
-  getClient(): UniDevKitV4Instance['client'] {
-    return this.instance.client
-  }
-
-  /**
-   * Returns the current chain ID.
-   * @returns The chain ID currently configured.
-   */
-  getChainId(): number {
-    return this.instance.chain.id
-  }
-
-  /**
-   * Returns the current set of contract addresses.
-   * @returns An object containing the configured contract addresses.
-   */
-  getContracts(): UniDevKitV4Config['contracts'] {
-    return this.instance.contracts
+  public getFeeTier(): typeof FeeTier {
+    return FeeTier
   }
 
   /**
@@ -91,7 +73,7 @@ export class UniDevKitV4 {
    * @returns The address of the specified contract.
    * @throws Will throw an error if the contract address is not found.
    */
-  getContractAddress(name: keyof UniDevKitV4Config['contracts']): Address {
+  public getContractAddress(name: keyof UniDevKitV4Config['contracts']): Address {
     const address = this.instance.contracts[name]
     if (!address) {
       throw new Error(`Contract address for ${name} not found.`)
@@ -100,162 +82,162 @@ export class UniDevKitV4 {
   }
 
   /**
-   * Loads the ABI for a specific contract using dynamic imports.
-   * This method is used internally to lazy load ABIs only when needed.
-   * @param name @type {keyof UniDevKitV4Config["contracts"]}
-   * @returns Promise resolving to the contract's ABI
-   * @throws Will throw an error if the contract ABI is not found
-   * @private
+   * Creates a Uniswap V4 Pool instance by fetching real-time pool state from the blockchain.
+   *
+   * This method uses multicall to efficiently fetch pool data from the V4StateView contract,
+   * calling getSlot0() and getLiquidity() in a single transaction. It then uses the Uniswap V4 SDK's
+   * Pool constructor with the live data to create a fully initialized pool instance.
+   *
+   * @param args @type {PoolArgs} - Pool configuration including currencies, fee tier, tick spacing, and hooks
+   * @returns Promise<Pool> - A fully initialized Pool instance with current market state
+   * @throws Error if pool data cannot be fetched or pool doesn't exist
    */
-  private async loadAbi(name: keyof UniDevKitV4Config['contracts']): Promise<Abi> {
-    const abiMap: Record<keyof UniDevKitV4Config['contracts'], () => Promise<Abi> | null> = {
-      poolManager: () => import('@/constants/abis/V4PoolManager').then((m) => m.default),
-      positionManager: () => import('@/constants/abis/V4PositionMananger').then((m) => m.default),
-      positionDescriptor: () => null, // TODO: add position descriptor abi
-      quoter: () => import('@/constants/abis/V4Quoter').then((m) => m.default),
-      stateView: () => import('@/constants/abis/V4StateView').then((m) => m.default),
-      universalRouter: () => import('@/constants/abis/V4UniversalRouter').then((m) => m.default),
-    }
-
-    const loader = abiMap[name]
-    if (!loader) {
-      throw new Error(`Contract abi for ${name} not found.`)
-    }
-    const abi = await loader()
-    if (abi === null) {
-      throw new Error(`Contract abi for ${name} not found.`)
-    }
-    return abi
+  public async getPool(args: PoolArgs): Promise<Pool> {
+    return getPool(args, this.instance)
   }
 
   /**
-   * Retrieves the ABI for a specific contract.
-   * This method uses dynamic imports to load ABIs on demand, reducing the initial bundle size.
-   * @param name @type {keyof UniDevKitV4Config["contracts"]}
-   * @returns Promise resolving to the contract's ABI
-   * @throws Will throw an error if the contract ABI is not found
-   * @example
-   * ```typescript
-   * const poolManagerAbi = await uniDevKit.getContractAbi('poolManager');
-   * ```
+   * Fetches ERC20 token metadata and creates Currency instances using Uniswap SDK-Core.
+   *
+   * This method uses multicall to efficiently fetch symbol(), name(), and decimals() from multiple
+   * ERC20 tokens in a single transaction. For native currency (ETH), it creates an Ether instance
+   * using the chain ID. For ERC20 tokens, it creates Token instances with the fetched metadata.
+   *
+   * @param args @type {GetTokensArgs} - Array of token addresses to fetch
+   * @returns Promise<Currency[]> - Array of Currency instances (Token or Ether)
+   * @throws Error if token data cannot be fetched from the blockchain
    */
-  async getContractAbi(name: keyof UniDevKitV4Config['contracts']): Promise<Abi> {
-    return this.loadAbi(name)
+  public async getTokens(args: GetTokensArgs): Promise<Currency[]> {
+    return getTokens(args, this.instance)
   }
 
   /**
-   * Retrieves a Uniswap V4 pool instance for a given token pair.
-   * @param params @type {PoolParams}
-   * @returns Promise resolving to pool data
-   * @throws Error if pool data cannot be fetched
+   * Simulates a token swap using the V4 Quoter contract to get exact output amounts and gas estimates.
+   *
+   * This method uses client.simulateContract() to call V4Quoter.quoteExactInputSingle() and simulate
+   * the swap without executing it. It provides accurate pricing information and gas estimates for
+   * the transaction without requiring multicall since it's a single contract simulation.
+   *
+   * @param args @type {SwapExactInSingle} - Swap parameters including pool key, amount in, and direction
+   * @returns Promise<QuoteResponse> - Quote data with amount out, gas estimate, and timestamp
+   * @throws Error if simulation fails or contract call reverts
    */
-  async getPool(params: PoolParams): Promise<Pool> {
-    return getPool(params, this.instance)
+  public async getQuote(args: SwapExactInSingle): Promise<QuoteResponse> {
+    return getQuote(args, this.instance)
   }
 
   /**
-   * Retrieves token information for a given array of token addresses.
-   * @param params @type {GetTokensParams}
-   * @returns Promise resolving to Token instances for each token address.
-   * @throws Error if token data cannot be fetched
+   * Fetches detailed position information from the V4 PositionManager contract.
+   *
+   * This method uses multicall to efficiently call V4PositionManager.getPoolAndPositionInfo() and
+   * getPositionLiquidity() in a single transaction. It retrieves the position's tick range, liquidity,
+   * and associated pool key, then decodes the raw position data to provide structured information.
+   *
+   * @param tokenId - The NFT token ID of the position
+   * @returns Promise<GetPositionDetailsResponse> - Position details including tick range, liquidity, and pool key
+   * @throws Error if position data cannot be fetched or position doesn't exist
    */
-  async getTokens(params: GetTokensParams): Promise<Currency[]> {
-    return getTokens(params, this.instance)
+  public async getPositionDetails(tokenId: string): Promise<GetPositionDetailsResponse> {
+    return getPositionDetails(tokenId, this.instance)
   }
 
   /**
-   * Retrieves a Uniswap V4 position information for a given token ID.
-   * @param params @type {GetPositionParams}
-   * @returns Promise resolving to position data including pool, token0, token1, poolId, and tokenId
-   * @throws Error if SDK instance is not found or if position data is invalid
+   * Generates Universal Router calldata for executing token swaps using Uniswap V4.
+   *
+   * This method uses the V4Planner from the Uniswap V4 SDK to build swap actions and parameters.
+   * It creates SWAP_EXACT_IN_SINGLE actions with settle and take operations, and optionally
+   * includes Permit2 signatures for token approvals. No blockchain calls are made - this is
+   * purely a calldata generation method that returns Universal Router calldata.
+   *
+   * @param args @type {BuildSwapCallDataArgs} - Swap configuration including pool, amounts, and recipient
+   * @returns Hex - Encoded Universal Router calldata ready for transaction execution
+   * @throws Error if swap parameters are invalid or calldata generation fails
    */
-  async getPosition(params: GetPositionParams): Promise<GetPositionResponse> {
-    return getPosition(params, this.instance)
+  public buildSwapCallData(args: BuildSwapCallDataArgs) {
+    return buildSwapCallData(args)
   }
 
   /**
-   * Retrieves a Uniswap V4 quote for a given token pair and amount in.
-   * @param params @type {QuoteParams}
-   * @returns Promise resolving to quote data including amount out, estimated gas used, and timestamp
-   * @throws Error if SDK instance is not found or if quote data is invalid
+   * Creates Position instances and generates V4PositionManager calldata for adding liquidity.
+   *
+   * This method uses Uniswap V3 SDK's Position.fromAmounts/fromAmount0/fromAmount1 to create positions,
+   * and V4PositionManager.addCallParameters to generate the mint calldata. It handles both existing
+   * pools and new pool creation, with support for Permit2 batch approvals and native currency handling.
+   * No blockchain calls are made - this is purely a calldata generation method.
+   *
+   * @param args @type {BuildAddLiquidityArgs} - Liquidity parameters including amounts, tick range, and slippage
+   * @returns Promise<BuildAddLiquidityCallDataResult> - Calldata and value for the mint transaction
+   * @throws Error if position creation fails or invalid parameters are provided
    */
-  async getQuote(params: QuoteParams): Promise<QuoteResponse> {
-    return getQuote(params, this.instance)
-  }
-
-  /**
-   * Retrieves a Uniswap V4 pool key from a given pool ID.
-   * @param params @type {GetPoolKeyFromPoolIdParams}
-   * @returns Promise resolving to pool key data including pool address, token0, token1, and fee
-   * @throws Error if SDK instance is not found or if pool key data is invalid
-   */
-  async getPoolKeyFromPoolId(params: GetPoolKeyFromPoolIdParams): Promise<PoolKey> {
-    return getPoolKeyFromPoolId(params, this.instance)
-  }
-
-  /**
-   * Builds a swap call data for a given swap parameters.
-   * @param params @type {BuildSwapCallDataParams}
-   * @returns Promise resolving to swap call data including calldata and value
-   * @throws Error if SDK instance is not found or if swap call data is invalid
-   */
-  async buildSwapCallData(params: BuildSwapCallDataParams) {
-    return buildSwapCallData(params, this.instance)
-  }
-
-  /**
-   * Builds a add liquidity call data for a given add liquidity parameters.
-   * @param params @type {BuildAddLiquidityParams}
-   * @returns Promise resolving to add liquidity call data including calldata and value
-   * @throws Error if SDK instance is not found or if add liquidity call data is invalid
-   */
-  async buildAddLiquidityCallData(
-    params: BuildAddLiquidityParams,
+  public async buildAddLiquidityCallData(
+    args: BuildAddLiquidityArgs,
   ): Promise<BuildAddLiquidityCallDataResult> {
-    return buildAddLiquidityCallData(params, this.instance)
+    return buildAddLiquidityCallData(args, this.instance)
   }
 
   /**
-   * Prepares the permit2 batch data for multiple tokens. (Used to add liquidity)
-   * Use toSign.values to sign the permit2 batch data.
-   * @param params @type {PreparePermit2BatchDataParams}
-   * @returns Promise resolving to permit2 batch data
-   * @throws Error if SDK instance is not found or if permit2 batch data is invalid
+   * Generates V4PositionManager calldata for removing liquidity from existing positions.
+   *
+   * This method uses V4PositionManager.removeCallParameters to create burn calldata for
+   * reducing or completely removing liquidity from a position. It calculates the appropriate
+   * amounts based on the liquidity percentage to remove. No blockchain calls are made -
+   * this is purely a calldata generation method.
+   *
+   * @param args @type {BuildRemoveLiquidityCallDataArgs} - Parameters for liquidity removal
+   * @returns Promise - Calldata and value for the burn transaction
+   * @throws Error if position data is invalid or removal parameters are incorrect
    */
-  async preparePermit2BatchData(
-    params: PreparePermit2BatchDataParams,
+  public async buildRemoveLiquidityCallData(args: BuildRemoveLiquidityCallDataArgs) {
+    return buildRemoveLiquidityCallData(args, this.instance)
+  }
+
+  /**
+   * Generates V4PositionManager calldata for collecting accumulated fees from positions.
+   *
+   * This method uses V4PositionManager.collectCallParameters to create calldata for
+   * collecting fees earned by a liquidity position. It handles both token0 and token1
+   * fee collection with proper recipient addressing. No blockchain calls are made -
+   * this is purely a calldata generation method.
+   *
+   * @param args @type {BuildCollectFeesCallDataArgs} - Fee collection parameters
+   * @returns Promise - Calldata and value for the collect transaction
+   * @throws Error if position data is invalid or collection parameters are incorrect
+   */
+  public async buildCollectFeesCallData(args: BuildCollectFeesCallDataArgs) {
+    return buildCollectFeesCallData(args, this.instance)
+  }
+
+  /**
+   * Prepares Permit2 batch approval data for multiple tokens using the Permit2 SDK.
+   *
+   * This method uses multicall to efficiently fetch allowance() data from the Permit2 contract
+   * for multiple tokens in a single transaction. It creates batch permit structures that allow
+   * the Universal Router to spend multiple tokens. Typically used for adding liquidity where
+   * multiple token approvals are needed. Use the returned toSign.values for signing.
+   *
+   * @param args @type {PreparePermit2BatchDataArgs} - Batch permit parameters for multiple tokens
+   * @returns Promise<PreparePermit2BatchDataResult> - Structured permit data ready for signing
+   * @throws Error if permit data generation fails or parameters are invalid
+   */
+  public async preparePermit2BatchData(
+    args: PreparePermit2BatchDataArgs,
   ): Promise<PreparePermit2BatchDataResult> {
-    return preparePermit2BatchData(params, this.instance)
+    return preparePermit2BatchData(args, this.instance)
   }
 
   /**
-   * Prepares the permit2 simple data for a single token. (Used to swap)
-   * Use toSign.values to sign the permit2 simple data.
-   * @param params @type {PreparePermit2DataParams}
-   * @returns Promise resolving to permit2 simple data
-   * @throws Error if SDK instance is not found or if permit2 simple data is invalid
+   * Prepares Permit2 single token approval data using the Permit2 SDK.
+   *
+   * This method creates a single permit structure that allows the Universal Router to spend
+   * one token. It's typically used for swaps where only one token approval is needed.
+   * No blockchain calls are made - this is purely a permit data generation method.
+   * Use the returned toSign.values for signing the permit data.
+   *
+   * @param args @type {PreparePermit2DataArgs} - Single permit parameters for one token
+   * @returns Promise<PreparePermit2DataResult> - Structured permit data ready for signing
+   * @throws Error if permit data generation fails or parameters are invalid
    */
-  async preparePermit2Data(params: PreparePermit2DataParams): Promise<PreparePermit2DataResult> {
-    return preparePermit2Data(params, this.instance)
-  }
-
-  /**
-   * Builds a remove liquidity call data for a given remove liquidity parameters.
-   * @param params @type {BuildRemoveLiquidityCallDataParams}
-   * @returns Promise resolving to remove liquidity call data including calldata and value
-   * @throws Error if SDK instance is not found or if remove liquidity call data is invalid
-   */
-  async buildRemoveLiquidityCallData(params: BuildRemoveLiquidityCallDataParams) {
-    return buildRemoveLiquidityCallData(params, this.instance)
-  }
-
-  /**
-   * Builds a collect fees call data for a given collect fees parameters.
-   * @param params @type {BuildCollectFeesCallDataParams}
-   * @returns Promise resolving to collect fees call data including calldata and value
-   * @throws Error if SDK instance is not found or if collect fees call data is invalid
-   */
-  async buildCollectFeesCallData(params: BuildCollectFeesCallDataParams) {
-    return buildCollectFeesCallData(params, this.instance)
+  public async preparePermit2Data(args: PreparePermit2DataArgs): Promise<PreparePermit2DataResult> {
+    return preparePermit2Data(args, this.instance)
   }
 }

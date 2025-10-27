@@ -1,5 +1,5 @@
 import type { Currency } from '@uniswap/sdk-core'
-import type { Pool, Position } from '@uniswap/v4-sdk'
+import type { Pool, PoolKey, Position } from '@uniswap/v4-sdk'
 
 /**
  * Parameters required for retrieving a Uniswap V4 position instance.
@@ -7,6 +7,17 @@ import type { Pool, Position } from '@uniswap/v4-sdk'
 export interface GetPositionParams {
   /** The unique identifier of the position */
   tokenId: string
+}
+
+/**
+ * Response structure for retrieving a Uniswap V4 position instance.
+ */
+export interface GetPositionDetailsResponse {
+  tokenId: string
+  tickLower: number
+  tickUpper: number
+  liquidity: bigint
+  poolKey: PoolKey
 }
 
 /**

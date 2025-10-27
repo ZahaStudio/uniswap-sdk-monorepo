@@ -7,9 +7,7 @@ describe('getPoolKeyFromPoolId', () => {
     const mockDeps = createMockSdkInstance()
     mockDeps.client.readContract = vi.fn().mockRejectedValueOnce(new Error('SDK not initialized'))
 
-    await expect(getPoolKeyFromPoolId({ poolId: '0x123' }, mockDeps)).rejects.toThrow(
-      'SDK not initialized',
-    )
+    await expect(getPoolKeyFromPoolId('0x123', mockDeps)).rejects.toThrow('SDK not initialized')
   })
 
   it('should return pool key when SDK instance exists', async () => {
@@ -24,7 +22,7 @@ describe('getPoolKeyFromPoolId', () => {
     const mockDeps = createMockSdkInstance()
     mockDeps.client.readContract = vi.fn().mockResolvedValueOnce(mockPoolKey)
 
-    const result = await getPoolKeyFromPoolId({ poolId: '0x123' }, mockDeps)
+    const result = await getPoolKeyFromPoolId('0x123', mockDeps)
 
     expect(result).toEqual({
       currency0: '0x123',
@@ -45,8 +43,6 @@ describe('getPoolKeyFromPoolId', () => {
     const mockDeps = createMockSdkInstance()
     mockDeps.client.readContract = vi.fn().mockRejectedValueOnce(new Error('Contract read failed'))
 
-    await expect(getPoolKeyFromPoolId({ poolId: '0x123' }, mockDeps)).rejects.toThrow(
-      'Contract read failed',
-    )
+    await expect(getPoolKeyFromPoolId('0x123', mockDeps)).rejects.toThrow('Contract read failed')
   })
 })

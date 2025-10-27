@@ -1,7 +1,7 @@
 /**
  * Parameters required to build the calldata for removing liquidity from a Uniswap v4 position.
  */
-export interface BuildRemoveLiquidityCallDataParams {
+export interface BuildRemoveLiquidityCallDataArgs {
   /**
    * The percentage of liquidity to remove from the position.
    */

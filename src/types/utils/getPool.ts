@@ -23,14 +23,17 @@ export const TICK_SPACING_BY_FEE: Record<FeeTier, number> = {
 
 /**
  * Parameters for retrieving a Uniswap V4 pool instance.
+ * Aligned with Uniswap V4 SDK Pool constructor parameters.
  */
-export interface PoolParams {
-  /** Array of two token addresses representing the pair */
-  tokens: [Address, Address]
-  /** Optional fee tier of the pool (default: FeeTier.MEDIUM) */
-  fee?: FeeTier
-  /** Optional tick spacing for the pool (default: derived from fee tier) */
+export interface PoolArgs {
+  /** First currency in the pool pair */
+  currencyA: Address
+  /** Second currency in the pool pair */
+  currencyB: Address
+  /** Fee tier of the pool (default: FeeTier.MEDIUM) */
+  fee: FeeTier
+  /** Tick spacing for the pool (default: derived from fee tier) */
   tickSpacing?: number
-  /** Optional hooks contract address (default: DEFAULT_HOOKS) */
+  /** Hooks contract address (default: DEFAULT_HOOKS) */
   hooks?: `0x${string}`
 }
