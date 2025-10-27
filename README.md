@@ -1,5 +1,6 @@
 # uniswap-dev-kit
 [![CI](https://github.com/BootNodeDev/uni-dev-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/BootNodeDev/uni-dev-kit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/BootNodeDev/uni-dev-kit/branch/main/graph/badge.svg)](https://codecov.io/gh/BootNodeDev/uni-dev-kit)
 [![Release](https://github.com/BootNodeDev/uni-dev-kit/actions/workflows/release.yml/badge.svg)](https://github.com/BootNodeDev/uni-dev-kit/actions/workflows/release.yml)
 [![Docs](https://img.shields.io/badge/docs-typedoc-blue)](https://bootnodedev.github.io/uni-dev-kit)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/BootNodeDev/uni-dev-kit)
