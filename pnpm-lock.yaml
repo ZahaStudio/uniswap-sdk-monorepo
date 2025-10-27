@@ -13,7 +13,7 @@ importers:
   .:
     dependencies:
       '@tanstack/react-query':
-        specifier: ^5.87.4
+        specifier: ^5
         version: 5.87.4(react@19.1.1)
       '@uniswap/permit2-sdk':
         specifier: ^1.4.0
@@ -34,10 +34,10 @@ importers:
         specifier: 3.2.5
         version: 3.2.5
       react:
-        specifier: ^19.1.1
+        specifier: ^18 || ^19
         version: 19.1.1
       react-dom:
-        specifier: ^19.1.1
+        specifier: ^18 || ^19
         version: 19.1.1(react@19.1.1)
       viem:
         specifier: ^2.37.5
