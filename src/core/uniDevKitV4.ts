@@ -7,6 +7,7 @@ import { buildSwapCallData } from '@/utils/buildSwapCallData'
 import { getPool } from '@/utils/getPool'
 import { getPositionDetails } from '@/utils/getPosition'
 import { getQuote } from '@/utils/getQuote'
+import { getTickInfo } from '@/utils/getTickInfo'
 import { getTokens } from '@/utils/getTokens'
 import { preparePermit2BatchData } from '@/utils/preparePermit2BatchData'
 import { preparePermit2Data } from '@/utils/preparePermit2Data'
@@ -28,6 +29,7 @@ import type {
 import type { BuildCollectFeesCallDataArgs } from '@/types/utils/buildCollectFeesCallData'
 import type { BuildRemoveLiquidityCallDataArgs } from '@/types/utils/buildRemoveLiquidityCallData'
 import type { PoolArgs } from '@/types/utils/getPool'
+import type { GetTickInfoArgs, TickInfoResponse } from '@/types/utils/getTickInfo'
 import type { Currency } from '@uniswap/sdk-core'
 import type { Pool } from '@uniswap/v4-sdk'
 import { type Address, createPublicClient, http, type PublicClient } from 'viem'
@@ -124,6 +126,22 @@ export class UniDevKitV4 {
    */
   public async getQuote(args: SwapExactInSingle): Promise<QuoteResponse> {
     return getQuote(args, this.instance)
+  }
+
+  /**
+   * Fetches tick information for a given pool key and tick from V4 StateView.
+   *
+   * This method uses client.readContract() to call V4StateView.getTickInfo() and retrieve
+   * tick data including liquidity and fee growth information. It first creates Token instances
+   * from the pool key currencies, computes the PoolId, and then reads the tick info from the
+   * blockchain.
+   *
+   * @param args @type {GetTickInfoArgs} - Tick query parameters including pool key and tick index
+   * @returns Promise<TickInfoResponse> - Tick information including liquidity and fee growth data
+   * @throws Error if tick data cannot be fetched or contract call reverts
+   */
+  public async getTickInfo(args: GetTickInfoArgs): Promise<TickInfoResponse> {
+    return getTickInfo(args, this.instance)
   }
 
   /**
