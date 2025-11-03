@@ -1,137 +1,196 @@
+import { Pool, Position as V4Position } from '@uniswap/v4-sdk'
 import { Token } from '@uniswap/sdk-core'
 import type { Address } from 'viem'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockSdkInstance } from '@/test/helpers/sdkInstance'
-import { getPosition } from '@/utils/getPosition'
+import type { GetPositionInfoResponse } from '@/types/utils/getPosition'
+
+const mockGetPositionInfo = vi.fn()
+const mockGetTokens = vi.fn()
 
 vi.mock('@/utils/getTokens', () => ({
-  getTokens: vi.fn(),
+  getTokens: mockGetTokens,
 }))
 
-// Mock decodePositionInfo para devolver ticks válidos
-vi.mock('@/helpers/positions', () => ({
-  decodePositionInfo: () => ({ tickLower: -887220, tickUpper: 887220 }),
+vi.mock('@/utils/getPositionInfo', () => ({
+  getPositionInfo: mockGetPositionInfo,
 }))
+
+// Mock Pool and V4Position constructors
+vi.mock('@uniswap/v4-sdk', () => {
+  const MockPool = vi.fn() as unknown as typeof Pool
+  MockPool.getPoolId = vi.fn()
+
+  const MockPosition = vi.fn() as unknown as typeof V4Position
+
+  return {
+    Pool: MockPool,
+    Position: MockPosition,
+  }
+})
 
 describe('getPosition', () => {
-  // USDC and WETH on Mainnet
-  const mockCurrencies: [Address, Address] = [
-    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-    '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
-  ]
-  const validHooks = '0x000000000000000000000000000000000000dead'
+  const mockTokenId = '1'
+  const mockCurrency0Address = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' as Address // USDC
+  const mockCurrency1Address = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' as Address // WETH
+  const mockFee = 3000
+  const mockTickSpacing = 60
+  const mockHooks = '0x000000000000000000000000000000000000dead' as Address
+  const mockTickLower = -887220
+  const mockTickUpper = 887220
+  const mockLiquidity = 1000000n
+  const mockSqrtPriceX96 = 79228162514264337593543950336n
+  const mockTick = 0
+  const mockProtocolFee = 0
+  const mockLpFee = 0
+  const mockPoolLiquidity = 1000000n
+  const mockPoolId =
+    '0x1234567890123456789012345678901234567890123456789012345678901234' as `0x${string}`
 
-  beforeEach(() => {
+  let mockDeps: ReturnType<typeof createMockSdkInstance>
+  let mockCurrency0: Token
+  let mockCurrency1: Token
+  let mockPositionInfo: GetPositionInfoResponse
+  let mockPool: Pool
+  let mockPosition: V4Position
+  let getPosition: typeof import('@/utils/getPosition').getPosition
+
+  beforeEach(async () => {
     vi.resetAllMocks()
-  })
+    vi.clearAllMocks()
 
-  it('should throw error if SDK instance not found', async () => {
-    const mockDeps = createMockSdkInstance()
-    mockDeps.client.multicall = vi.fn().mockRejectedValueOnce(new Error('SDK not initialized'))
+    // Import getPosition after mocks are set up
+    const positionModule = await import('@/utils/getPosition')
+    getPosition = positionModule.getPosition
 
-    await expect(getPosition('1', mockDeps)).rejects.toThrow('SDK not initialized')
-  })
+    mockDeps = createMockSdkInstance()
+    mockCurrency0 = new Token(1, mockCurrency0Address, 6, 'USDC', 'USD Coin')
+    mockCurrency1 = new Token(1, mockCurrency1Address, 18, 'WETH', 'Wrapped Ether')
 
-  it('should throw error if tokens not found', async () => {
-    const mockDeps = createMockSdkInstance()
-    // First multicall: position info
-    mockDeps.client.multicall = vi
-      .fn()
-      .mockResolvedValueOnce([
-        [
-          {
-            currency0: '0x123',
-            currency1: '0x456',
-            fee: 3000,
-            tickSpacing: 60,
-            hooks: validHooks,
-          },
-          {},
-        ],
-        1000000n,
-      ])
-      // Second multicall: slot0 and poolLiquidity
-      .mockResolvedValueOnce([[79228162514264337593543950336n, 0], 1000000n])
+    mockPositionInfo = {
+      tokenId: mockTokenId,
+      tickLower: mockTickLower,
+      tickUpper: mockTickUpper,
+      liquidity: mockLiquidity,
+      poolKey: {
+        currency0: mockCurrency0Address,
+        currency1: mockCurrency1Address,
+        fee: mockFee,
+        tickSpacing: mockTickSpacing,
+        hooks: mockHooks,
+      },
+      currentTick: mockTick,
+      slot0: [mockSqrtPriceX96, mockTick, mockProtocolFee, mockLpFee],
+      poolLiquidity: mockPoolLiquidity,
+      poolId: mockPoolId,
+      currency0: mockCurrency0,
+      currency1: mockCurrency1,
+    }
 
-    const { getTokens } = await import('@/utils/getTokens')
-    vi.mocked(getTokens).mockResolvedValueOnce([])
+    // Create mock instances
+    mockPool = {
+      currency0: mockCurrency0,
+      currency1: mockCurrency1,
+    } as unknown as Pool
 
-    await expect(getPosition('1', mockDeps)).rejects.toThrow('Failed to fetch token instances')
+    mockPosition = {
+      pool: mockPool,
+      liquidity: mockLiquidity.toString(),
+    } as unknown as V4Position
+
+    // Mock constructors to return our mock instances
+    vi.mocked(Pool).mockReturnValue(mockPool)
+    vi.mocked(V4Position).mockReturnValue(mockPosition)
+
+    // Mock Pool.getPoolId to return our mock pool ID
+    vi.mocked(Pool.getPoolId).mockReturnValue(mockPoolId)
   })
 
   it('should throw error if liquidity is 0', async () => {
-    const mockDeps = createMockSdkInstance()
-    // Use valid addresses for tokens
-    const testCurrency0 = '0x1234567890123456789012345678901234567890'
-    const testCurrency1 = '0x0987654321098765432109876543210987654321'
+    mockGetPositionInfo.mockResolvedValueOnce({
+      ...mockPositionInfo,
+      liquidity: 0n,
+    })
 
-    // First multicall: position info (from getPositionInfo)
-    mockDeps.client.multicall = vi
-      .fn()
-      .mockResolvedValueOnce([
-        [
-          {
-            currency0: testCurrency0,
-            currency1: testCurrency1,
-            fee: 3000,
-            tickSpacing: 60,
-            hooks: validHooks,
-          },
-          {},
-        ],
-        0n,
-      ])
-      // Second multicall: slot0 and poolLiquidity (from getPositionInfo)
-      .mockResolvedValueOnce([[79228162514264337593543950336n, 0], 1000000n])
-
-    // Mock getTokens - called twice: once in getPositionInfo, once in getPosition
-    const mockCurrency0 = new Token(1, testCurrency0, 6, 'USDC', 'USD Coin')
-    const mockCurrency1 = new Token(1, testCurrency1, 18, 'WETH', 'Wrapped Ether')
-    const { getTokens } = await import('@/utils/getTokens')
-    vi.mocked(getTokens)
-      .mockResolvedValueOnce([mockCurrency0, mockCurrency1]) // First call in getPositionInfo
-      .mockResolvedValueOnce([mockCurrency0, mockCurrency1]) // Second call in getPosition
-
-    await expect(getPosition('1', mockDeps)).rejects.toThrow('Position has no liquidity')
+    await expect(getPosition(mockTokenId, mockDeps)).rejects.toThrow('Position has no liquidity')
   })
 
-  it('should return position data when position exists', async () => {
-    const mockDeps = createMockSdkInstance()
-    // First multicall: position info [poolAndPositionInfo, liquidity] (from getPositionInfo)
-    mockDeps.client.multicall = vi
-      .fn()
-      .mockResolvedValueOnce([
-        [
-          {
-            currency0: mockCurrencies[0],
-            currency1: mockCurrencies[1],
-            fee: 3000,
-            tickSpacing: 60,
-            hooks: validHooks,
-          },
-          1n,
-        ],
-        1000000n,
-      ])
-      // Second multicall: pool state [slot0, poolLiquidity] (from getPositionInfo)
-      .mockResolvedValueOnce([[79228162514264337593543950336n, 0], 1000000n])
+  it('should throw error if tokens is null or undefined', async () => {
+    mockGetPositionInfo.mockResolvedValueOnce(mockPositionInfo)
+    mockGetTokens.mockResolvedValueOnce(null as never)
 
-    // Mock getTokens - called twice: once in getPositionInfo, once in getPosition
-    const mockCurrency0 = new Token(1, mockCurrencies[0], 6, 'USDC', 'USD Coin')
-    const mockCurrency1 = new Token(1, mockCurrencies[1], 18, 'WETH', 'Wrapped Ether')
-    const { getTokens } = await import('@/utils/getTokens')
-    vi.mocked(getTokens)
-      .mockResolvedValueOnce([mockCurrency0, mockCurrency1]) // First call in getPositionInfo
-      .mockResolvedValueOnce([mockCurrency0, mockCurrency1]) // Second call in getPosition
+    await expect(getPosition(mockTokenId, mockDeps)).rejects.toThrow(
+      'Failed to fetch token instances',
+    )
+  })
 
-    const result = await getPosition('1', mockDeps)
+  it('should throw error if tokens array length is less than 2', async () => {
+    mockGetPositionInfo.mockResolvedValueOnce(mockPositionInfo)
+    mockGetTokens.mockResolvedValueOnce([mockCurrency0])
 
-    expect(result).toHaveProperty('position')
-    expect(result).toHaveProperty('pool')
-    expect(result).toHaveProperty('currency0')
-    expect(result).toHaveProperty('currency1')
-    expect(result).toHaveProperty('poolId')
-    expect(result).toHaveProperty('tokenId', '1')
-    expect(result).toHaveProperty('currentTick')
+    await expect(getPosition(mockTokenId, mockDeps)).rejects.toThrow(
+      'Failed to fetch token instances',
+    )
+  })
+
+  it('should return correct data when all operations succeed', async () => {
+    mockGetPositionInfo.mockResolvedValueOnce(mockPositionInfo)
+    mockGetTokens.mockResolvedValueOnce([mockCurrency0, mockCurrency1])
+
+    const result = await getPosition(mockTokenId, mockDeps)
+
+    // Verify getPositionInfo was called with correct parameters
+    expect(mockGetPositionInfo).toHaveBeenCalledWith(mockTokenId, mockDeps)
+    expect(mockGetPositionInfo).toHaveBeenCalledTimes(1)
+
+    // Verify getTokens was called with correct parameters
+    expect(mockGetTokens).toHaveBeenCalledWith(
+      {
+        addresses: [mockCurrency0Address, mockCurrency1Address],
+      },
+      mockDeps,
+    )
+    expect(mockGetTokens).toHaveBeenCalledTimes(1)
+
+    // Verify Pool.getPoolId was called with correct parameters
+    expect(Pool.getPoolId).toHaveBeenCalledWith(
+      mockCurrency0,
+      mockCurrency1,
+      mockFee,
+      mockTickSpacing,
+      mockHooks,
+    )
+    expect(Pool.getPoolId).toHaveBeenCalledTimes(1)
+
+    // Verify Pool constructor was called with correct parameters
+    expect(Pool).toHaveBeenCalledWith(
+      mockCurrency0,
+      mockCurrency1,
+      mockFee,
+      mockTickSpacing,
+      mockHooks,
+      mockSqrtPriceX96.toString(),
+      mockPoolLiquidity.toString(),
+      mockTick,
+    )
+
+    // Verify V4Position constructor was called with correct parameters
+    expect(V4Position).toHaveBeenCalledWith({
+      pool: mockPool,
+      liquidity: mockLiquidity.toString(),
+      tickLower: mockTickLower,
+      tickUpper: mockTickUpper,
+    })
+
+    // Verify return value
+    expect(result).toEqual({
+      position: mockPosition,
+      pool: mockPool,
+      currency0: mockCurrency0,
+      currency1: mockCurrency1,
+      poolId: mockPoolId,
+      tokenId: mockTokenId,
+      currentTick: mockTick,
+    })
   })
 })
