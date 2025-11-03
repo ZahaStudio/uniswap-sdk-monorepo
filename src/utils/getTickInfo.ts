@@ -17,15 +17,15 @@ export async function getTickInfo(
   const { poolKey, tick } = args
 
   // Create Token instances for currency0 and currency1 in the provided order
-  const [token0, token1] = await getTokens(
+  const [currency0, currency1] = await getTokens(
     { addresses: [poolKey.currency0 as `0x${string}`, poolKey.currency1 as `0x${string}`] },
     instance,
   )
 
   // Compute PoolId from PoolKey components
   const poolId32Bytes = Pool.getPoolId(
-    token0,
-    token1,
+    currency0,
+    currency1,
     poolKey.fee,
     poolKey.tickSpacing,
     poolKey.hooks as `0x${string}`,

@@ -10,12 +10,12 @@ type BaseAddLiquidityArgs = {
   pool: Pool
 
   /**
-   * Amount of token0 to add.
+   * Amount of currency0 to add.
    */
   amount0?: string
 
   /**
-   * Amount of token1 to add.
+   * Amount of currency1 to add.
    */
   amount1?: string
 

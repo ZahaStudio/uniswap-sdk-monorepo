@@ -45,7 +45,7 @@ export const allowanceAbi = [
  * 1. Prepare the permit data:
  * ```typescript
  * const permitData = await preparePermit2Data({
- *   token: token0,
+ *   token: currency0,
  *   spender: positionManagerAddress,
  *   owner: userAddress
  * }, instance)

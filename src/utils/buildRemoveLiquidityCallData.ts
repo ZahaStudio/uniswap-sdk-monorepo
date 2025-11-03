@@ -36,7 +36,7 @@ export async function buildRemoveLiquidityCallData(
   instance: UniDevKitV4Instance,
 ) {
   // Get position data
-  const positionData = await getPosition({ tokenId }, instance)
+  const positionData = await getPosition(tokenId, instance)
   if (!positionData) {
     throw new Error('Position not found')
   }

@@ -26,10 +26,10 @@ export const TEST_ADDRESSES = {
 } as const
 
 // Factory functions
-export const createTestPool = (token0 = USDC, token1 = WETH) =>
+export const createTestPool = (currency0 = USDC, currency1 = WETH) =>
   new Pool(
-    token0,
-    token1,
+    currency0,
+    currency1,
     3000, // fee
     60, // tickSpacing
     TEST_ADDRESSES.hooks,
@@ -49,11 +49,18 @@ export const createTestPosition = (pool = createTestPool()) =>
 export const createMockPositionData = (
   pool = createTestPool(),
   position = createTestPosition(pool),
-) => ({
-  position,
-  pool,
-  token0: pool.token0,
-  token1: pool.token1,
-  poolId: TEST_ADDRESSES.hooks,
-  tokenId: '1',
-})
+) => {
+  // Extract currencies from pool
+  const currency0 = pool.currency0
+  const currency1 = pool.currency1
+
+  return {
+    position,
+    pool,
+    currency0,
+    currency1,
+    poolId: TEST_ADDRESSES.hooks,
+    tokenId: '1',
+    currentTick: 0, // Mock current tick (matching the test pool's tick parameter)
+  }
+}
