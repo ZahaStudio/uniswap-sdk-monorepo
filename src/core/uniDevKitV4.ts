@@ -137,7 +137,7 @@ export class UniDevKitV4 {
    * from the pool key currencies, computes the PoolId, and then reads the tick info from the
    * blockchain.
    *
-   * @param args @type {GetTickInfoArgs} - Tick query parameters including pool key and tick index
+   * @param args - Tick query parameters including pool key and tick index
    * @returns Promise<TickInfoResponse> - Tick information including liquidity and fee growth data
    * @throws Error if tick data cannot be fetched or contract call reverts
    */
