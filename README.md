@@ -95,14 +95,26 @@ const quote = await uniDevKit.getQuote({
 // Returns { amountOut, estimatedGasUsed, timestamp }
 ```
 
-#### `getPositionDetails`
-Fetches position state from the PositionManager and decodes the tick range, liquidity, and pool key. Uses multicall to batch `V4PositionManager.getPoolAndPositionInfo()` and `V4PositionManager.getPositionLiquidity()` calls, and handles data decoding.
+#### `getPositionInfo`
+Fetches basic position information without creating SDK instances. Returns raw position data from the blockchain including tick range, liquidity, pool key, and current pool state. Uses multicall to efficiently batch contract calls and decodes packed position data.
 
-**Without this SDK:** Call getPoolAndPositionInfo() and getPositionLiquidity() separately, decode packed position data, extract tick bounds and pool key manually.
+Use this when you only need position metadata without SDK operations. For SDK instances (Position, Pool objects), use `getPosition()` instead.
+
+**Without this SDK:** Call getPoolAndPositionInfo() and getPositionLiquidity() separately, decode packed position data, extract tick bounds and pool key manually, fetch slot0 and pool liquidity separately.
 
 ```ts
-const position = await uniDevKit.getPositionDetails("123");
-// Returns { tokenId, tickLower, tickUpper, liquidity, poolKey }
+const positionInfo = await uniDevKit.getPositionInfo("123");
+// Returns { tokenId, tickLower, tickUpper, liquidity, poolKey, currentTick, slot0, poolLiquidity }
+```
+
+#### `getPosition`
+Fetches complete position data with initialized SDK instances. Returns fully usable Position and Pool objects from the Uniswap V4 SDK, ready for swaps, calculations, and other operations. Validates that the position has liquidity.
+
+**Without this SDK:** Do everything from `getPositionInfo()` plus create Position and Pool instances manually using the SDK constructors.
+
+```ts
+const position = await uniDevKit.getPosition("123");
+// Returns { position: Position, pool: Pool, currency0, currency1, poolId, tokenId, currentTick }
 ```
 
 ### Swap Operations

@@ -26,8 +26,8 @@ import type {
  *   both `amount0` and `amount1` are required in order to compute the initial price
  *   (`sqrtPriceX96`) using `encodeSqrtRatioX96(amount1, amount0)`.
  *
- * - The amounts must be matching the pool's token0 and token1.
- * - The amounts must be in the same decimals as the pool's token0 and token1.
+ * - The amounts must be matching the pool's currency0 and currency1.
+ * - The amounts must be in the same decimals as the pool's currency0 and currency1.
  *
  * The function also supports optional parameters for tick range, slippage tolerance,
  * deadline, and Permit2 batch signature for token approvals.
@@ -128,11 +128,13 @@ export async function buildAddLiquidityCallData(
       throw new Error('Invalid input: at least one of amount0 or amount1 must be defined.')
     }
 
-    // Get native currency
-    const nativeCurrency = pool.token0.isNative
-      ? pool.token0
-      : pool.token1.isNative
-        ? pool.token1
+    // Get native currency from pool currencies
+    const currency0 = pool.currency0
+    const currency1 = pool.currency1
+    const nativeCurrency = currency0.isNative
+      ? currency0
+      : currency1.isNative
+        ? currency1
         : undefined
 
     // Build calldata

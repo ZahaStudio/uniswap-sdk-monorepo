@@ -18,7 +18,7 @@ import { zeroAddress } from 'viem' /**
  * 1. Prepare the permit data:
  * ```typescript
  * const permitData = await preparePermit2BatchData({
- *   tokens: [token0, token1],
+ *   tokens: [currency0, currency1],
  *   spender: positionManagerAddress,
  *   owner: userAddress
  * }, instance)

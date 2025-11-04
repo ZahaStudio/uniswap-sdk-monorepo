@@ -32,7 +32,7 @@ export async function buildCollectFeesCallData(
   { tokenId, recipient, deadline: deadlineParam }: BuildCollectFeesCallDataArgs,
   instance: UniDevKitV4Instance,
 ) {
-  const positionData = await getPosition({ tokenId }, instance)
+  const positionData = await getPosition(tokenId, instance)
   if (!positionData) {
     throw new Error('Position not found')
   }

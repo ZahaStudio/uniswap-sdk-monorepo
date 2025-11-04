@@ -24,7 +24,7 @@ vi.mock('wagmi', () => ({
 
 describe('getPool', () => {
   // USDC and WETH on Mainnet
-  const mockTokens: [Address, Address] = [
+  const mockCurrencies: [Address, Address] = [
     '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
     '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
   ]
@@ -36,25 +36,25 @@ describe('getPool', () => {
   })
 
   it('should throw error if pool does not exist', async () => {
-    const mockTokenInstances = [
-      new Token(1, mockTokens[0], 18, 'TOKEN0', 'Token 0'),
-      new Token(1, mockTokens[1], 18, 'TOKEN1', 'Token 1'),
+    const mockCurrencyInstances = [
+      new Token(1, mockCurrencies[0], 18, 'CURRENCY0', 'Currency 0'),
+      new Token(1, mockCurrencies[1], 18, 'CURRENCY1', 'Currency 1'),
     ]
 
     const mockPoolData = [
-      [mockTokens[0], mockTokens[1], FeeTier.MEDIUM, 0, zeroAddress], // poolKeys with 0 tickSpacing
+      [mockCurrencies[0], mockCurrencies[1], FeeTier.MEDIUM, 0, zeroAddress], // poolKeys with 0 tickSpacing
       null, // slot0
       null, // liquidity
     ]
 
-    mockGetTokens.mockResolvedValueOnce(mockTokenInstances)
+    mockGetTokens.mockResolvedValueOnce(mockCurrencyInstances)
     vi.mocked(mockDeps.client.multicall).mockResolvedValueOnce(mockPoolData)
 
     await expect(
       getPool(
         {
-          currencyA: mockTokens[0],
-          currencyB: mockTokens[1],
+          currencyA: mockCurrencies[0],
+          currencyB: mockCurrencies[1],
           fee: FeeTier.MEDIUM,
         },
         mockDeps,
@@ -63,9 +63,9 @@ describe('getPool', () => {
   })
 
   it('should return pool when it exists', async () => {
-    const mockTokenInstances = [
-      new Token(1, mockTokens[0], 6, 'USDC', 'USD Coin'),
-      new Token(1, mockTokens[1], 18, 'WETH', 'Wrapped Ether'),
+    const mockCurrencyInstances = [
+      new Token(1, mockCurrencies[0], 6, 'USDC', 'USD Coin'),
+      new Token(1, mockCurrencies[1], 18, 'WETH', 'Wrapped Ether'),
     ]
 
     // Mock the multicall response with the correct structure
@@ -74,13 +74,13 @@ describe('getPool', () => {
 
     const mockPoolData = [mockSlot0Data, mockLiquidityData]
 
-    mockGetTokens.mockResolvedValueOnce(mockTokenInstances)
+    mockGetTokens.mockResolvedValueOnce(mockCurrencyInstances)
     vi.mocked(mockDeps.client.multicall).mockResolvedValueOnce(mockPoolData)
 
     const result = await getPool(
       {
-        currencyA: mockTokens[0],
-        currencyB: mockTokens[1],
+        currencyA: mockCurrencies[0],
+        currencyB: mockCurrencies[1],
         fee: FeeTier.MEDIUM,
       },
       mockDeps,
@@ -91,25 +91,25 @@ describe('getPool', () => {
   })
 
   it('should throw error if pool creation fails', async () => {
-    const mockTokenInstances = [
-      new Token(1, mockTokens[0], 18, 'TOKEN0', 'Token 0'),
-      new Token(1, mockTokens[1], 18, 'TOKEN1', 'Token 1'),
+    const mockCurrencyInstances = [
+      new Token(1, mockCurrencies[0], 18, 'CURRENCY0', 'Currency 0'),
+      new Token(1, mockCurrencies[1], 18, 'CURRENCY1', 'Currency 1'),
     ]
 
     const mockPoolData = [
-      [mockTokens[0], mockTokens[1], FeeTier.MEDIUM, 60, zeroAddress],
+      [mockCurrencies[0], mockCurrencies[1], FeeTier.MEDIUM, 60, zeroAddress],
       ['invalid', 0, 0, 0, 0, 0], // invalid sqrtPriceX96
       '1000000000000000000',
     ]
 
-    mockGetTokens.mockResolvedValueOnce(mockTokenInstances)
+    mockGetTokens.mockResolvedValueOnce(mockCurrencyInstances)
     vi.mocked(mockDeps.client.multicall).mockResolvedValueOnce(mockPoolData)
 
     await expect(
       getPool(
         {
-          currencyA: mockTokens[0],
-          currencyB: mockTokens[1],
+          currencyA: mockCurrencies[0],
+          currencyB: mockCurrencies[1],
           fee: FeeTier.MEDIUM,
         },
         mockDeps,

@@ -369,9 +369,10 @@ describe('buildAddLiquidityCallData', () => {
   })
 
   it('should call V4PositionManager.addCallParameters with native currency when pool has native token', async () => {
-    // Create a pool with native token (WETH as native)
+    // Create a pool with native token
     const nativePool = createTestPool()
-    Object.defineProperty(nativePool.token0, 'isNative', {
+    const currency0 = nativePool.currency0
+    Object.defineProperty(currency0, 'isNative', {
       value: true,
       writable: true,
     })
@@ -388,7 +389,7 @@ describe('buildAddLiquidityCallData', () => {
     expect(mockAddCallParameters).toHaveBeenCalledTimes(1)
     const [, options] = mockAddCallParameters.mock.calls[0]
 
-    expect(options.useNative).toBe(nativePool.token0)
+    expect(options.useNative).toBe(currency0)
   })
 
   it('should throw error when neither amount0 nor amount1 is provided', async () => {

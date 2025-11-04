@@ -92,7 +92,7 @@ describe('buildRemoveLiquidityCallData', () => {
     const result = await buildRemoveLiquidityCallData(params, instance)
 
     // Verify getPosition was called with correct tokenId
-    expect(mockGetPosition).toHaveBeenCalledWith({ tokenId: MOCK_TOKEN_ID }, instance)
+    expect(mockGetPosition).toHaveBeenCalledWith(MOCK_TOKEN_ID, instance)
 
     // Verify getDefaultDeadline was NOT called since custom deadline was provided
     expect(mockGetDefaultDeadline).not.toHaveBeenCalled()

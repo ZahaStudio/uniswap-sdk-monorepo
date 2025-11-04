@@ -5,8 +5,10 @@ import { buildCollectFeesCallData } from '@/utils/buildCollectFeesCallData'
 import { buildRemoveLiquidityCallData } from '@/utils/buildRemoveLiquidityCallData'
 import { buildSwapCallData } from '@/utils/buildSwapCallData'
 import { getPool } from '@/utils/getPool'
-import { getPositionDetails } from '@/utils/getPosition'
+import { getPosition } from '@/utils/getPosition'
+import { getPositionInfo } from '@/utils/getPositionInfo'
 import { getQuote } from '@/utils/getQuote'
+import { getTickInfo } from '@/utils/getTickInfo'
 import { getTokens } from '@/utils/getTokens'
 import { preparePermit2BatchData } from '@/utils/preparePermit2BatchData'
 import { preparePermit2Data } from '@/utils/preparePermit2Data'
@@ -16,7 +18,7 @@ import type {
   BuildAddLiquidityArgs,
   BuildAddLiquidityCallDataResult,
 } from '@/types/utils/buildAddLiquidityCallData'
-import type { GetPositionDetailsResponse } from '@/types/utils/getPosition'
+import type { GetPositionInfoResponse, GetPositionResponse } from '@/types/utils/getPosition'
 import type { QuoteResponse, SwapExactInSingle } from '@/types/utils/getQuote'
 import type { GetTokensArgs } from '@/types/utils/getTokens'
 import type {
@@ -28,6 +30,7 @@ import type {
 import type { BuildCollectFeesCallDataArgs } from '@/types/utils/buildCollectFeesCallData'
 import type { BuildRemoveLiquidityCallDataArgs } from '@/types/utils/buildRemoveLiquidityCallData'
 import type { PoolArgs } from '@/types/utils/getPool'
+import type { GetTickInfoArgs, TickInfoResponse } from '@/types/utils/getTickInfo'
 import type { Currency } from '@uniswap/sdk-core'
 import type { Pool } from '@uniswap/v4-sdk'
 import { type Address, createPublicClient, http, type PublicClient } from 'viem'
@@ -127,18 +130,57 @@ export class UniDevKitV4 {
   }
 
   /**
-   * Fetches detailed position information from the V4 PositionManager contract.
+   * Fetches tick information for a given pool key and tick from V4 StateView.
    *
-   * This method uses multicall to efficiently call V4PositionManager.getPoolAndPositionInfo() and
-   * getPositionLiquidity() in a single transaction. It retrieves the position's tick range, liquidity,
-   * and associated pool key, then decodes the raw position data to provide structured information.
+   * This method uses client.readContract() to call V4StateView.getTickInfo() and retrieve
+   * tick data including liquidity and fee growth information. It first creates Token instances
+   * from the pool key currencies, computes the PoolId, and then reads the tick info from the
+   * blockchain.
+   *
+   * @param args - Tick query parameters including pool key and tick index
+   * @returns Promise<TickInfoResponse> - Tick information including liquidity and fee growth data
+   * @throws Error if tick data cannot be fetched or contract call reverts
+   */
+  public async getTickInfo(args: GetTickInfoArgs): Promise<TickInfoResponse> {
+    return getTickInfo(args, this.instance)
+  }
+
+  /**
+   * Retrieves a complete Uniswap V4 position instance with pool and token information.
+   *
+   * This method fetches position details and builds a fully initialized Position instance
+   * using the Uniswap V4 SDK. It includes the pool state, token metadata, position
+   * liquidity data, and current pool tick, providing a comprehensive view of the position.
    *
    * @param tokenId - The NFT token ID of the position
-   * @returns Promise<GetPositionDetailsResponse> - Position details including tick range, liquidity, and pool key
+   * @returns Promise<GetPositionResponse> - Complete position data including position instance, pool, tokens, pool ID, and current tick
+   * @throws Error if position data cannot be fetched, position doesn't exist, or liquidity is 0
+   */
+  public async getPosition(tokenId: string): Promise<GetPositionResponse> {
+    return getPosition(tokenId, this.instance)
+  }
+
+  /**
+   * Retrieves basic position information without SDK instances.
+   *
+   * This method fetches raw position data from the blockchain and returns it without creating
+   * SDK instances. It's more efficient when you only need position metadata (tick range, liquidity,
+   * pool key) without requiring Position or Pool objects. Also fetches pool state (slot0 and
+   * liquidity) to avoid redundant calls when building full position instances.
+   *
+   * Use this method when:
+   * - Displaying position information in a UI
+   * - Checking if a position exists
+   * - Getting position metadata without SDK operations
+   *
+   * Use `getPosition()` instead when you need SDK instances for swaps, calculations, or other operations.
+   *
+   * @param tokenId - The NFT token ID of the position
+   * @returns Promise<GetPositionInfoResponse> - Basic position information with pool state
    * @throws Error if position data cannot be fetched or position doesn't exist
    */
-  public async getPositionDetails(tokenId: string): Promise<GetPositionDetailsResponse> {
-    return getPositionDetails(tokenId, this.instance)
+  public async getPositionInfo(tokenId: string): Promise<GetPositionInfoResponse> {
+    return getPositionInfo(tokenId, this.instance)
   }
 
   /**
@@ -195,7 +237,7 @@ export class UniDevKitV4 {
    * Generates V4PositionManager calldata for collecting accumulated fees from positions.
    *
    * This method uses V4PositionManager.collectCallParameters to create calldata for
-   * collecting fees earned by a liquidity position. It handles both token0 and token1
+   * collecting fees earned by a liquidity position. It handles both currency0 and currency1
    * fee collection with proper recipient addressing. No blockchain calls are made -
    * this is purely a calldata generation method.
    *
