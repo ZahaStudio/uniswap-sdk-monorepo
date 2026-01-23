@@ -1,0 +1,23 @@
+{
+  "extends": "@acme/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "#/*": ["./public/*"],
+      "$/*": ["./.source/*"]
+    }
+  },
+  "include": [
+    "**/*.ts", // Includes Next & Cloudflare (.d.ts) types
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next/"]
+}
