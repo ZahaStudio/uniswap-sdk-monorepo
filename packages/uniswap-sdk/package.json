@@ -17,14 +17,18 @@
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
-    "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
     "eslint": "catalog:",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "react": "catalog:"
+    "@uniswap/permit2-sdk": "^1.4.0",
+    "@uniswap/sdk-core": "^7.10.1",
+    "@uniswap/v3-sdk": "^3.27.0",
+    "@uniswap/v4-sdk": "^1.25.6"
+  },
+  "peerDependencies": {
+    "viem": "catalog:"
   },
   "publishConfig": {
     "access": "public"
