@@ -1,21 +1,30 @@
 import type { PermitSingle } from "@uniswap/permit2-sdk";
 import { Actions, V4Planner } from "@uniswap/v4-sdk";
-import { ethers } from "ethers";
-import type { Hex } from "viem";
+import { utility } from "hookmate/abi";
+import { type Hex, encodeAbiParameters, encodeFunctionData, encodePacked, parseAbiParameters } from "viem";
 
 import { type BuildSwapCallDataArgs, COMMANDS } from "@/types";
 
-const buildPermit2StructInput = (permit: PermitSingle, signature: Hex) => {
-  return ethers.utils.defaultAbiCoder.encode(
+const buildPermit2StructInput = (permit: PermitSingle, signature: Hex): Hex => {
+  return encodeAbiParameters(
+    parseAbiParameters([
+      "(((address token, uint160 amount, uint48 expiration, uint48 nonce) details, address spender, uint256 sigDeadline) permit, bytes signature)",
+    ]),
     [
-      "tuple(" +
-        "tuple(address token,uint160 amount,uint48 expiration,uint48 nonce) details," +
-        "address spender," +
-        "uint256 sigDeadline" +
-        ")",
-      "bytes",
+      {
+        permit: {
+          details: {
+            token: permit.details.token as `0x${string}`,
+            amount: BigInt(permit.details.amount.toString()),
+            expiration: Number(permit.details.expiration),
+            nonce: Number(permit.details.nonce),
+          },
+          spender: permit.spender as `0x${string}`,
+          sigDeadline: BigInt(permit.sigDeadline.toString()),
+        },
+        signature,
+      },
     ],
-    [permit, signature],
   );
 };
 
@@ -58,29 +67,31 @@ export function buildSwapCallData(params: BuildSwapCallDataArgs): Hex {
     planner.addTake(currencyOut, recipient);
   }
 
-  let commands = ethers.utils.solidityPack(["uint8"], [COMMANDS.V4_SWAP]);
+  let commands: Hex = encodePacked(["uint8"], [COMMANDS.V4_SWAP]);
 
   if (permit2Signature) {
-    commands = ethers.utils.solidityPack(["uint8", "uint8"], [COMMANDS.PERMIT2_PERMIT, COMMANDS.V4_SWAP]);
+    commands = encodePacked(["uint8", "uint8"], [COMMANDS.PERMIT2_PERMIT, COMMANDS.V4_SWAP]);
   }
 
   // Combine actions and params into a single bytes array to match with V4_SWAP command input
-  let inputs = [ethers.utils.defaultAbiCoder.encode(["bytes", "bytes[]"], [planner.actions, planner.params])];
+  const v4SwapInput = encodeAbiParameters(parseAbiParameters("bytes, bytes[]"), [
+    planner.actions as Hex,
+    planner.params as Hex[],
+  ]);
+
+  let inputs: Hex[] = [v4SwapInput];
 
   // If permit2Signature is provided, add the permit2 struct input to the inputs array in the first position
   if (permit2Signature) {
-    inputs = [
-      buildPermit2StructInput(permit2Signature.permit, permit2Signature.signature),
-      ethers.utils.defaultAbiCoder.encode(["bytes", "bytes[]"], [planner.actions, planner.params]),
-    ];
+    inputs = [buildPermit2StructInput(permit2Signature.permit, permit2Signature.signature), v4SwapInput];
   }
 
   const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 5); // 5 minutes
 
-  const universalRouterInterface = new ethers.utils.Interface([
-    "function execute(bytes commands, bytes[] inputs, uint256 deadline)",
-  ]);
-
   // Encode final calldata
-  return universalRouterInterface.encodeFunctionData("execute", [commands, inputs, deadline]) as Hex;
+  return encodeFunctionData({
+    abi: utility.UniversalRouterArtifact.abi,
+    functionName: "execute",
+    args: [commands, inputs, deadline],
+  });
 }

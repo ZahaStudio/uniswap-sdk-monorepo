@@ -1,7 +1,11 @@
 import type { PermitBatch, PermitSingle } from "@uniswap/permit2-sdk";
 import type { BatchPermitOptions } from "@uniswap/v4-sdk";
-import type { TypedDataField } from "ethers";
 import type { Address, Hex } from "viem";
+
+export interface TypedDataField {
+  name: string;
+  type: string;
+}
 
 /**
  * Base interface for Permit2 data

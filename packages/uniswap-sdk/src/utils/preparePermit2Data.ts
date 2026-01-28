@@ -1,10 +1,9 @@
 import { AllowanceTransfer, MaxUint160, PERMIT2_ADDRESS, type PermitSingle } from "@uniswap/permit2-sdk";
-import type { TypedDataField } from "ethers";
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniDevKitV4Instance } from "@/types";
-import type { PreparePermit2DataArgs, PreparePermit2DataResult } from "@/types/utils/permit2";
+import type { PreparePermit2DataArgs, PreparePermit2DataResult, TypedDataField } from "@/types/utils/permit2";
 
 export const allowanceAbi = [
   {

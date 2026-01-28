@@ -1,8 +1,9 @@
 import { AllowanceTransfer, MaxUint160, PERMIT2_ADDRESS, type PermitBatch } from "@uniswap/permit2-sdk";
 import type { BatchPermitOptions } from "@uniswap/v4-sdk";
-import type { TypedDataField } from "ethers";
 import type { Hex } from "viem";
 import { zeroAddress } from "viem";
+
+import type { TypedDataField } from "@/types/utils/permit2";
 
  /**
  * Prepares the permit2 batch data for multiple tokens

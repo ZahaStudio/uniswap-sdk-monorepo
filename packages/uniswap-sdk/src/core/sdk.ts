@@ -38,7 +38,7 @@ import { preparePermit2Data } from "@/utils/preparePermit2Data";
  * Provides a flexible and scalable way to interact with different chains
  * and contracts without requiring multiple instances.
  */
-export class UniDevKitV4 {
+export class UniswapSDK {
   private instance: UniDevKitV4Instance;
 
   /**
