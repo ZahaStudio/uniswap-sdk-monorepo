@@ -3,9 +3,11 @@ import type { BatchPermitOptions } from "@uniswap/v4-sdk";
 import type { Hex } from "viem";
 import { zeroAddress } from "viem";
 
+import type { UniDevKitV4Instance } from "@/types";
+import type { PreparePermit2BatchDataArgs, PreparePermit2BatchDataResult } from "@/types/utils/permit2";
 import type { TypedDataField } from "@/types/utils/permit2";
 
- /**
+/**
  * Prepares the permit2 batch data for multiple tokens
  *
  * This function creates a batch permit that allows a spender to use multiple tokens
@@ -52,8 +54,6 @@ import type { TypedDataField } from "@/types/utils/permit2";
  * @returns Promise resolving to the permit2 batch data and helper functions
  * @throws Error if any required dependencies are missing
  */
-import type { UniDevKitV4Instance } from "@/types";
-import type { PreparePermit2BatchDataArgs, PreparePermit2BatchDataResult } from "@/types/utils/permit2";
 export async function preparePermit2BatchData(
   params: PreparePermit2BatchDataArgs,
   instance: UniDevKitV4Instance,
