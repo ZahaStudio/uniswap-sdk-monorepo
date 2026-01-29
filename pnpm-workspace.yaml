@@ -15,6 +15,8 @@ catalog:
   tsdown: ^0.20.1
   typescript: ^5.9.3
   viem: ^2.45.0
+  wagmi: ^2.19.5
+  "@tanstack/react-query": ^5.90.20
 
 catalogMode: manual
 

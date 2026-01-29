@@ -1,6 +1,7 @@
 {
   "name": "@zahastudio/uniswap-sdk-react",
   "version": "0.0.0",
+  "type": "module",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "sideEffects": false,
@@ -14,6 +15,9 @@
     "lint": "eslint",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
+  "dependencies": {
+    "@zahastudio/uniswap-sdk": "workspace:*"
+  },
   "devDependencies": {
     "@acme/tsconfig": "workspace:*",
     "@types/react": "catalog:",
@@ -23,8 +27,11 @@
     "tsdown": "catalog:",
     "typescript": "catalog:"
   },
-  "dependencies": {
-    "react": "catalog:"
+  "peerDependencies": {
+    "react": "catalog:",
+    "wagmi": "catalog:",
+    "viem": "catalog:",
+    "@tanstack/react-query": "catalog:"
   },
   "publishConfig": {
     "access": "public"
