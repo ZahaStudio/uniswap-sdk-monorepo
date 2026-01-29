@@ -1,46 +1,11 @@
-import {
-  arbitrum,
-  arbitrumSepolia,
-  avalanche,
-  base,
-  baseSepolia,
-  blast,
-  bsc,
-  type Chain,
-  celo,
-  mainnet,
-  optimism,
-  polygon,
-  sepolia,
-  unichain,
-  unichainSepolia,
-  worldchain,
-  zksync,
-  zora,
-} from "viem/chains";
-
-export const supportedChains = [
-  arbitrum,
-  optimism,
-  polygon,
-  base,
-  bsc,
-  avalanche,
-  celo,
-  blast,
-  zksync,
-  zora,
-  worldchain,
-  unichain,
-  mainnet,
-] as const;
-
-export const testChains = [unichainSepolia, sepolia, baseSepolia, arbitrumSepolia] as const;
+import { getSupportedChains } from "hookmate";
+import type { Chain } from "viem";
 
 export const getChainById = (chainId: number): Chain => {
-  const chain = [...supportedChains, ...testChains].find((chain) => chain.id === chainId);
+  const chain = getSupportedChains().find((chain) => chain.id === chainId);
   if (!chain) {
-    throw new Error(`Chain with id ${chainId} not found`);
+    throw new Error(`Unsupported Chain: ${chainId}`);
   }
+
   return chain;
 };

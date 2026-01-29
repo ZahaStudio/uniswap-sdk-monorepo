@@ -2,7 +2,7 @@ import { Pool } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
 
 import { decodePositionInfo } from "@/helpers/positions";
-import type { UniDevKitV4Instance } from "@/types/core";
+import type { UniswapSDKInstance } from "@/types/core";
 import type { GetPositionInfoResponse } from "@/types/utils/getPosition";
 import { getTokens } from "@/utils/getTokens";
 
@@ -21,14 +21,11 @@ import { getTokens } from "@/utils/getTokens";
  * Use `getPosition()` instead when you need SDK instances for swaps, calculations, or other operations.
  *
  * @param tokenId - The NFT token ID of the position
- * @param instance - UniDevKitV4Instance
+ * @param instance - UniswapSDKInstance
  * @returns Promise<GetPositionInfoResponse> - Basic position information with pool state
  * @throws Error if position data cannot be fetched or position doesn't exist
  */
-export async function getPositionInfo(
-  tokenId: string,
-  instance: UniDevKitV4Instance,
-): Promise<GetPositionInfoResponse> {
+export async function getPositionInfo(tokenId: string, instance: UniswapSDKInstance): Promise<GetPositionInfoResponse> {
   const { client, contracts } = instance;
 
   const { positionManager, stateView } = contracts;

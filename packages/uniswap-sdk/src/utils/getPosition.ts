@@ -1,6 +1,6 @@
 import { Pool, Position as V4Position } from "@uniswap/v4-sdk";
 
-import type { UniDevKitV4Instance } from "@/types/core";
+import type { UniswapSDKInstance } from "@/types/core";
 import type { GetPositionResponse } from "@/types/utils/getPosition";
 import { getPositionInfo } from "@/utils/getPositionInfo";
 import { getTokens } from "@/utils/getTokens";
@@ -13,11 +13,11 @@ import { getTokens } from "@/utils/getTokens";
  * objects ready for use in swaps, calculations, and other SDK operations.
  *
  * @param params Position parameters including token ID
- * @param instance UniDevKitV4Instance
+ * @param instance UniswapSDKInstance
  * @returns Promise<GetPositionResponse> - Complete position with SDK instances
  * @throws Error if position data cannot be fetched, position doesn't exist, or liquidity is 0
  */
-export async function getPosition(tokenId: string, instance: UniDevKitV4Instance): Promise<GetPositionResponse> {
+export async function getPosition(tokenId: string, instance: UniswapSDKInstance): Promise<GetPositionResponse> {
   // Get position info (includes slot0 and poolLiquidity to avoid redundant calls)
   const positionInfo = await getPositionInfo(tokenId, instance);
 
