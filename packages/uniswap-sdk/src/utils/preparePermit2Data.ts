@@ -2,7 +2,7 @@ import { AllowanceTransfer, MaxUint160, PERMIT2_ADDRESS, type PermitSingle } fro
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
-import type { UniDevKitV4Instance } from "@/types";
+import type { UniswapSDKInstance } from "@/types";
 import type { PreparePermit2DataArgs, PreparePermit2DataResult, TypedDataField } from "@/types/utils/permit2";
 
 export const allowanceAbi = [
@@ -77,7 +77,7 @@ export const allowanceAbi = [
  */
 export async function preparePermit2Data(
   params: PreparePermit2DataArgs,
-  instance: UniDevKitV4Instance,
+  instance: UniswapSDKInstance,
 ): Promise<PreparePermit2DataResult> {
   const { token, spender, owner, sigDeadline: sigDeadlineParam } = params;
   const chainId = instance.chain.id;

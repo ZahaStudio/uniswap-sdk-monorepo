@@ -1,7 +1,7 @@
 import type { PoolKey } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
 
-import type { UniDevKitV4Instance } from "@/types/core";
+import type { UniswapSDKInstance } from "@/types/core";
 
 /**
  * Retrieves the pool key information for a given pool ID.
@@ -9,7 +9,7 @@ import type { UniDevKitV4Instance } from "@/types/core";
  * @returns Promise resolving to the pool key containing currency0, currency1, fee, tickSpacing, and hooks
  * @throws Error if SDK instance is not found
  */
-export async function getPoolKeyFromPoolId(poolId: string, instance: UniDevKitV4Instance): Promise<PoolKey> {
+export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKInstance): Promise<PoolKey> {
   const { client, contracts } = instance;
   const { positionManager } = contracts;
 

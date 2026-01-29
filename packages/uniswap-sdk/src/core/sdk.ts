@@ -1,14 +1,14 @@
 import type { Currency } from "@uniswap/sdk-core";
 import type { Pool } from "@uniswap/v4-sdk";
-import { type Address, createPublicClient, http, type PublicClient } from "viem";
+import { getUniswapContracts } from "hookmate";
+import { type Address, type Chain, type PublicClient } from "viem";
 
 import { getChainById } from "@/constants/chains";
 import type { BuildSwapCallDataArgs } from "@/types";
-import type { UniDevKitV4Config, UniDevKitV4Instance } from "@/types/core";
+import type { UniswapSDKInstance, V4Contracts } from "@/types/core";
 import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/types/utils/buildAddLiquidityCallData";
 import type { BuildCollectFeesCallDataArgs } from "@/types/utils/buildCollectFeesCallData";
 import type { BuildRemoveLiquidityCallDataArgs } from "@/types/utils/buildRemoveLiquidityCallData";
-import { FeeTier } from "@/types/utils/getPool";
 import type { PoolArgs } from "@/types/utils/getPool";
 import type { GetPositionInfoResponse, GetPositionResponse } from "@/types/utils/getPosition";
 import type { QuoteResponse, SwapExactInSingle } from "@/types/utils/getQuote";
@@ -39,42 +39,41 @@ import { preparePermit2Data } from "@/utils/preparePermit2Data";
  * and contracts without requiring multiple instances.
  */
 export class UniswapSDK {
-  private instance: UniDevKitV4Instance;
+  private instance: UniswapSDKInstance;
 
-  /**
-   * Creates a new UniDevKitV4 instance.
-   * @param config @type {UniDevKitV4Config}
-   * @throws Will throw an error if the configuration is invalid.
-   */
-  constructor(config: UniDevKitV4Config) {
-    const chain = getChainById(config.chainId);
-    const client = createPublicClient({
-      chain,
-      transport: http(config.rpcUrl || chain.rpcUrls.default.http[0]),
-    });
-
+  private constructor(client: PublicClient, chain: Chain, contracts: V4Contracts) {
     this.instance = {
-      client: client as PublicClient,
+      client,
       chain,
-      contracts: config.contracts,
+      contracts,
     };
   }
 
-  /**
-   * Returns the FeeTier enum for accessing standard fee tiers.
-   * @returns The FeeTier enum containing LOWEST, LOW, MEDIUM, and HIGH fee tiers
-   */
-  public getFeeTier(): typeof FeeTier {
-    return FeeTier;
+  public static async create(client: PublicClient, contracts?: V4Contracts): Promise<UniswapSDK> {
+    const chainId = await client.getChainId();
+    const chain = getChainById(chainId);
+    const uniswapContracts = getUniswapContracts(chainId);
+
+    if (!contracts) {
+      contracts = {
+        poolManager: uniswapContracts.v4.poolManager,
+        positionManager: uniswapContracts.v4.positionManager,
+        quoter: uniswapContracts.v4.quoter,
+        stateView: uniswapContracts.v4.stateView,
+        universalRouter: uniswapContracts.utility.universalRouter,
+      } as V4Contracts;
+    }
+
+    return new UniswapSDK(client, chain, contracts);
   }
 
   /**
    * Returns the address of a specific contract.
-   * @param name @type {keyof UniDevKitV4Config["contracts"]}
+   * @param name @type {keyof V4Contracts}
    * @returns The address of the specified contract.
    * @throws Will throw an error if the contract address is not found.
    */
-  public getContractAddress(name: keyof UniDevKitV4Config["contracts"]): Address {
+  public getContractAddress(name: keyof V4Contracts): Address {
     const address = this.instance.contracts[name];
     if (!address) {
       throw new Error(`Contract address for ${name} not found.`);

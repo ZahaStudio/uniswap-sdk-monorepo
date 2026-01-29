@@ -1,7 +1,7 @@
 import { V4PositionManager } from "@uniswap/v4-sdk";
 
 import { percentFromBips } from "@/helpers/percent";
-import type { UniDevKitV4Instance } from "@/types";
+import type { UniswapSDKInstance } from "@/types";
 import type { BuildCollectFeesCallDataArgs } from "@/types/utils/buildCollectFeesCallData";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { getPosition } from "@/utils/getPosition";
@@ -31,7 +31,7 @@ import { getPosition } from "@/utils/getPosition";
  */
 export async function buildCollectFeesCallData(
   { tokenId, recipient, deadline: deadlineParam }: BuildCollectFeesCallDataArgs,
-  instance: UniDevKitV4Instance,
+  instance: UniswapSDKInstance,
 ) {
   const positionData = await getPosition(tokenId, instance);
   if (!positionData) {

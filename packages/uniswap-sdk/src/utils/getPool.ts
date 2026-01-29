@@ -4,7 +4,7 @@ import { zeroAddress } from "viem";
 
 import { getTickSpacingForFee } from "@/helpers/fees";
 import { sortTokens } from "@/helpers/tokens";
-import type { UniDevKitV4Instance } from "@/types/core";
+import type { UniswapSDKInstance } from "@/types/core";
 import type { PoolArgs } from "@/types/utils/getPool";
 import { getTokens } from "@/utils/getTokens";
 
@@ -13,11 +13,11 @@ export const DEFAULT_HOOKS = zeroAddress;
 /**
  * Retrieves a Uniswap V4 pool instance for a given currency pair, fee tier, tick spacing, and hooks configuration.
  * @param args Pool arguments including currencyA, currencyB, fee tier, tick spacing, and hooks configuration
- * @param instance UniDevKitV4Instance
+ * @param instance UniswapSDKInstance
  * @returns Promise resolving to pool data
  * @throws Error if SDK instance or token instances are not found or if pool data is not found
  */
-export async function getPool(args: PoolArgs, instance: UniDevKitV4Instance): Promise<Pool> {
+export async function getPool(args: PoolArgs, instance: UniswapSDKInstance): Promise<Pool> {
   const { currencyA, currencyB, fee, tickSpacing, hooks = DEFAULT_HOOKS } = args;
 
   const [_currencyA, _currencyB] = sortTokens(currencyA, currencyB);

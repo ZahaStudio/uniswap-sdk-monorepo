@@ -1,17 +1,17 @@
 import { type Currency, Ether, Token } from "@uniswap/sdk-core";
 import { erc20Abi, zeroAddress } from "viem";
 
-import type { UniDevKitV4Instance } from "@/types/core";
+import type { UniswapSDKInstance } from "@/types/core";
 import type { GetTokensArgs } from "@/types/utils/getTokens";
 
 /**
  * Retrieves Token instances for a list of token addresses on a specific chain.
  * @param params Parameters including token addresses
- * @param instance UniDevKitV4Instance
+ * @param instance UniswapSDKInstance
  * @returns Promise resolving to array of Token instances
  * @throws Error if token data cannot be fetched
  */
-export async function getTokens(params: GetTokensArgs, instance: UniDevKitV4Instance): Promise<Currency[]> {
+export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInstance): Promise<Currency[]> {
   const { addresses } = params;
   const { client, chain } = instance;
 

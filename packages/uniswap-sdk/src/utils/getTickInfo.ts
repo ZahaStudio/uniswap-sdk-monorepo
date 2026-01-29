@@ -1,14 +1,14 @@
 import { Pool } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
 
-import type { UniDevKitV4Instance } from "@/types/core";
+import type { UniswapSDKInstance } from "@/types/core";
 import type { GetTickInfoArgs, TickInfoResponse } from "@/types/utils/getTickInfo";
 import { getTokens } from "@/utils/getTokens";
 
 /**
  * Reads tick info for a given pool key and tick from V4 StateView.
  */
-export async function getTickInfo(args: GetTickInfoArgs, instance: UniDevKitV4Instance): Promise<TickInfoResponse> {
+export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKInstance): Promise<TickInfoResponse> {
   const { client, contracts } = instance;
   const { stateView } = contracts;
 

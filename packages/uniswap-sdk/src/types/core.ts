@@ -20,23 +20,10 @@ export type V4Contracts = {
 };
 
 /**
- * Configuration for the UniDevKitV4 SDK.
- * Required for initializing and managing SDK instances.
- */
-export type UniDevKitV4Config = {
-  /** Chain ID */
-  chainId: number;
-  /** RPC URL for the chain (optional) */
-  rpcUrl?: string;
-  /** Contract addresses */
-  contracts: V4Contracts;
-};
-
-/**
- * Internal instance type for UniDevKitV4.
+ * Internal instance type for UniswapSDK.
  * Represents the state of a single SDK instance.
  */
-export type UniDevKitV4Instance = {
+export type UniswapSDKInstance = {
   /** Viem public client */
   client: PublicClient;
   /** Chain */

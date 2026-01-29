@@ -2,7 +2,7 @@ import { V4PositionManager } from "@uniswap/v4-sdk";
 
 import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/constants/common";
 import { percentFromBips } from "@/helpers/percent";
-import type { UniDevKitV4Instance } from "@/types";
+import type { UniswapSDKInstance } from "@/types";
 import type { BuildRemoveLiquidityCallDataArgs } from "@/types/utils/buildRemoveLiquidityCallData";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { getPosition } from "@/utils/getPosition";
@@ -29,7 +29,7 @@ import { getPosition } from "@/utils/getPosition";
  */
 export async function buildRemoveLiquidityCallData(
   { liquidityPercentage, deadline: deadlineParam, slippageTolerance, tokenId }: BuildRemoveLiquidityCallDataArgs,
-  instance: UniDevKitV4Instance,
+  instance: UniswapSDKInstance,
 ) {
   // Get position data
   const positionData = await getPosition(tokenId, instance);

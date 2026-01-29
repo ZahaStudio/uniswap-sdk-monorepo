@@ -1,6 +1,6 @@
 import { v4 } from "hookmate/abi";
 
-import type { UniDevKitV4Instance } from "@/types/core";
+import type { UniswapSDKInstance } from "@/types/core";
 import type { SwapExactInSingle, QuoteResponse } from "@/types/utils/getQuote";
 
 /**
@@ -14,7 +14,7 @@ import type { SwapExactInSingle, QuoteResponse } from "@/types/utils/getQuote";
  * - Simulation fails (e.g., insufficient liquidity, invalid parameters)
  * - Contract call reverts
  */
-export async function getQuote(params: SwapExactInSingle, instance: UniDevKitV4Instance): Promise<QuoteResponse> {
+export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKInstance): Promise<QuoteResponse> {
   const { client, contracts } = instance;
   const { quoter } = contracts;
 

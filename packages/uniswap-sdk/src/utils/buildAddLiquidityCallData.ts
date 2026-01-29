@@ -3,7 +3,7 @@ import { Position, V4PositionManager } from "@uniswap/v4-sdk";
 
 import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/constants/common";
 import { percentFromBips } from "@/helpers/percent";
-import type { UniDevKitV4Instance } from "@/types";
+import type { UniswapSDKInstance } from "@/types";
 import type { BuildAddLiquidityCallDataResult, BuildAddLiquidityArgs } from "@/types/utils/buildAddLiquidityCallData";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
@@ -63,7 +63,7 @@ import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
 export async function buildAddLiquidityCallData(
   params: BuildAddLiquidityArgs,
-  instance: UniDevKitV4Instance,
+  instance: UniswapSDKInstance,
 ): Promise<BuildAddLiquidityCallDataResult> {
   const {
     pool,
