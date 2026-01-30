@@ -6,7 +6,7 @@
     "build": "next build",
     "start": "next start ",
     "dev": "next dev -p 3002",
-    "lint": "next lint",
+    "lint": "eslint .",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf .next"
   },
   "dependencies": {

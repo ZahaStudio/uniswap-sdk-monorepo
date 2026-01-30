@@ -4,8 +4,7 @@ import type { Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/types";
-import type { TypedDataField } from "@/types/utils/permit2";
-import type { PreparePermit2BatchDataArgs, PreparePermit2BatchDataResult } from "@/types/utils/permit2";
+import type { PreparePermit2BatchDataArgs, PreparePermit2BatchDataResult, TypedDataField } from "@/types/utils/permit2";
 
 /**
  * Prepares the permit2 batch data for multiple tokens
