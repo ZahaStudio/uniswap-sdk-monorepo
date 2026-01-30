@@ -15,19 +15,17 @@
     "lint": "eslint",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
-  "dependencies": {
-    "@zahastudio/uniswap-sdk": "workspace:*"
-  },
   "devDependencies": {
+    "@acme/eslint-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
-    "@acme/eslint-config": "workspace:*",
     "tsdown": "catalog:",
     "typescript": "catalog:"
   },
   "peerDependencies": {
+    "@zahastudio/uniswap-sdk": "workspace:*",
     "react": "catalog:",
     "wagmi": "catalog:",
     "viem": "catalog:",
