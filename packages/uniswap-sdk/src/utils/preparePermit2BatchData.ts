@@ -3,7 +3,12 @@ import type { BatchPermitOptions } from "@uniswap/v4-sdk";
 import type { Hex } from "viem";
 import { zeroAddress } from "viem";
 
-import type { TypedDataField } from "@/types/utils/permit2";
+import type { UniswapSDKInstance } from "@/core/sdk";
+import type {
+  TypedDataField,
+  PreparePermit2BatchDataArgs,
+  PreparePermit2BatchDataResult,
+} from "@/utils/preparePermit2Data";
 
 /**
  * Prepares the permit2 batch data for multiple tokens
@@ -52,8 +57,6 @@ import type { TypedDataField } from "@/types/utils/permit2";
  * @returns Promise resolving to the permit2 batch data and helper functions
  * @throws Error if any required dependencies are missing
  */
-import type { UniswapSDKInstance } from "@/types";
-import type { PreparePermit2BatchDataArgs, PreparePermit2BatchDataResult } from "@/types/utils/permit2";
 export async function preparePermit2BatchData(
   params: PreparePermit2BatchDataArgs,
   instance: UniswapSDKInstance,

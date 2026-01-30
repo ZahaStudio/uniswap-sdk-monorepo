@@ -1,11 +1,35 @@
 import { V4PositionManager } from "@uniswap/v4-sdk";
 
 import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/constants/common";
+import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
-import type { UniswapSDKInstance } from "@/types";
-import type { BuildRemoveLiquidityCallDataArgs } from "@/types/utils/buildRemoveLiquidityCallData";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { getPosition } from "@/utils/getPosition";
+
+/**
+ * Parameters required to build the calldata for removing liquidity from a Uniswap v4 position.
+ */
+export interface BuildRemoveLiquidityCallDataArgs {
+  /**
+   * The percentage of liquidity to remove from the position.
+   */
+  liquidityPercentage: number;
+
+  /**
+   * The tokenId of the position to remove liquidity from.
+   */
+  tokenId: string;
+
+  /**
+   * The slippage tolerance for the transaction.
+   */
+  slippageTolerance?: number;
+
+  /**
+   * The deadline for the transaction. (default: 5 minutes from now)
+   */
+  deadline?: string;
+}
 
 /**
  * Builds the calldata and value required to remove liquidity from a Uniswap v4 position.
