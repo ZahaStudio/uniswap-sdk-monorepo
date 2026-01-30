@@ -10,11 +10,14 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf .next"
   },
   "dependencies": {
+    "@tanstack/react-query": "catalog:",
     "@zahastudio/uniswap-sdk": "workspace:*",
     "@zahastudio/uniswap-sdk-react": "workspace:*",
     "next": "^16.1.6",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "viem": "catalog:",
+    "wagmi": "catalog:"
   },
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",

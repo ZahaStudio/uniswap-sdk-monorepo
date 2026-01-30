@@ -4,9 +4,10 @@ packages:
   - tooling/*
 
 catalog:
-  "@types/node": ^24.10.9
-  "@types/react": ^19.2.10
-  "@types/react-dom": ^19.2.3
+  '@tanstack/react-query': ^5.90.20
+  '@types/node': ^24.10.9
+  '@types/react': ^19.2.10
+  '@types/react-dom': ^19.2.3
   eslint: ^9.39.2
   eslint-plugin-react: ^7.37.5
   eslint-plugin-react-hooks: ^7.0.1
@@ -16,15 +17,14 @@ catalog:
   typescript: ^5.9.3
   viem: ^2.45.0
   wagmi: ^2.19.5
-  "@tanstack/react-query": ^5.90.20
 
 catalogMode: manual
 
 overrides:
-  "@types/node": "catalog:"
-  "@types/react": "catalog:"
-  "@types/react-dom": "catalog:"
-  hardhat: "-"
-  react: "catalog:"
-  react-dom: "catalog:"
-  typescript: "catalog:"
+  '@types/node': 'catalog:'
+  '@types/react': 'catalog:'
+  '@types/react-dom': 'catalog:'
+  hardhat: '-'
+  react: 'catalog:'
+  react-dom: 'catalog:'
+  typescript: 'catalog:'
