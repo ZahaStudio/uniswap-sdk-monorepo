@@ -4,6 +4,7 @@ import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
 import { getChainById } from "@/constants/chains";
+import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
 import type { BuildSwapCallDataArgs } from "@/types";
 import type { UniswapSDKInstance, V4Contracts } from "@/types/core";
 import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/types/utils/buildAddLiquidityCallData";
@@ -41,11 +42,15 @@ import { preparePermit2Data } from "@/utils/preparePermit2Data";
 export class UniswapSDK {
   private instance: UniswapSDKInstance;
 
-  private constructor(client: PublicClient, chain: Chain, contracts: V4Contracts) {
+  private constructor(client: PublicClient, chain: Chain, contracts: V4Contracts, cache?: CacheAdapter) {
+    if (!cache) {
+      cache = createDefaultCache();
+    }
     this.instance = {
       client,
       chain,
       contracts,
+      cache
     };
   }
 
