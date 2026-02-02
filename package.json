@@ -1,104 +1,26 @@
 {
-  "name": "uniswap-dev-kit",
-  "version": "2.1.1",
-  "description": "A modern TypeScript library for integrating Uniswap into your dapp.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist/**/*"
-  ],
+  "name": "uniswap-sdk-monorepo",
+  "private": true,
   "scripts": {
-    "dev": "tsc --watch",
-    "build": "npm run clean && tsc && tsc-alias",
-    "format": "biome format",
-    "lint": "biome check",
-    "lint:fix": "biome check --write",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest",
-    "prepublishOnly": "npm run build",
-    "prepare": "husky",
-    "clean": "rimraf dist",
-    "check": "npm run lint && npm run test",
-    "docs": "typedoc --options typedoc.json",
-    "docs:publish": "npm run docs && gh-pages -d docs",
-    "release": "semantic-release"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/BootNodeDev/uni-dev-kit.git"
-  },
-  "keywords": [
-    "uniswap",
-    "typescript",
-    "v4",
-    "hooks",
-    "defi",
-    "crypto",
-    "blockchain"
-  ],
-  "author": "BootNodeDev",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public",
-    "registry": "https://registry.npmjs.org/"
-  },
-  "peerDependencies": {
-    "@tanstack/react-query": "^5",
-    "react": "^18 || ^19",
-    "react-dom": "^18 || ^19"
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "turbo run build --filter=@acme/docs^... && changeset publish"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.4",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^11.0.6",
-    "@semantic-release/npm": "^12.0.2",
-    "@semantic-release/release-notes-generator": "^14.1.0",
-    "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
-    "@types/node": "^24.3.1",
-    "@types/react": "^19.1.13",
-    "@types/react-dom": "^19.1.9",
-    "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
-    "gh-pages": "^6.3.0",
-    "husky": "^9.1.7",
-    "jsdom": "^26.1.0",
-    "rimraf": "^6.0.1",
-    "semantic-release": "^24.2.8",
-    "tsc-alias": "^1.8.16",
-    "typedoc": "^0.28.12",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "@changesets/cli": "^2.29.8",
+    "@changesets/config": "^3.1.2",
+    "eslint": "catalog:",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "turbo": "^2.8.0"
   },
-  "dependencies": {
-    "@uniswap/permit2-sdk": "^1.4.0",
-    "@uniswap/sdk-core": "^7.7.2",
-    "@uniswap/v3-sdk": "^3.25.2",
-    "@uniswap/v4-sdk": "^1.21.4",
-    "ethers": "^5.7.2",
-    "jsbi": "^3.2.5",
-    "viem": "^2.37.5",
-    "wagmi": "^2.16.9"
-  },
-  "pnpm": {
-    "overrides": {
-      "use-sync-external-store": "npm:use-sync-external-store@^1.2.2",
-      "jsbi": "3.2.5"
-    },
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "@testing-library/dom"
-      ]
-    }
+  "packageManager": "pnpm@10.28.2",
+  "engines": {
+    "node": ">=24"
   }
 }
