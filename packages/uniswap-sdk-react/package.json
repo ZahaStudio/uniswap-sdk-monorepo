@@ -1,6 +1,7 @@
 {
   "name": "@zahastudio/uniswap-sdk-react",
   "version": "0.0.0",
+  "type": "module",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "sideEffects": false,
