@@ -1,4 +1,5 @@
 import { type Currency, Ether, Token } from "@uniswap/sdk-core";
+import type { Address } from "viem";
 import { erc20Abi, zeroAddress } from "viem";
 
 import { getFromCache, setToCache } from "@/helpers/cache";
@@ -16,7 +17,7 @@ export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInsta
   const { addresses } = params;
   const { client, chain, cache } = instance;
   const resultByAddress = new Map<string, Currency>();
-  const missingAddresses: string[] = [];
+  const missingAddresses: Address[] = [];
   const normalize = (address: string) => address.toLowerCase();
   const cacheTokenKey = (address: string) => `tokens:${chain.id}:${normalize(address)}`;
 
@@ -79,6 +80,6 @@ export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInsta
       return token;
     });
   } catch (err) {
-    throw new Error(`Failed to fetch token data: ${(err as Error).message}`);
+    throw new Error(`Failed to fetch token data: ${(err as Error).message} `);
   }
 }

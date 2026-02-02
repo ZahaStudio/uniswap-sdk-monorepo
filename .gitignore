@@ -8,6 +8,7 @@ dist-ssr
 *.local
 .env
 .cache
+*.tsbuildinfo
 server/dist
 public/dist
 .turbo

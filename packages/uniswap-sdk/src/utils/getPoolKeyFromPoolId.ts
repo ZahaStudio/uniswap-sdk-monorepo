@@ -1,4 +1,4 @@
-import { PoolKey } from "@uniswap/v4-sdk";
+import type { PoolKey } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
 
 import { getFromCache, setToCache } from "@/helpers/cache";
@@ -36,7 +36,7 @@ export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKI
     hooks,
   };
 
-  await setToCache(cache, cacheKey, poolKey);
+  await setToCache(cache, cachePoolKey, poolKey);
 
   return poolKey;
 }

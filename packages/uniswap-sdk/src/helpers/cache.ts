@@ -6,12 +6,23 @@ export type CacheAdapter = {
 };
 
 export function createDefaultCache() {
-  return new LRUCache({
-    // max allow 1000 entries at a time
+  const cache = new LRUCache<string, object>({
     max: 1000,
-    // 30 days in milliseconds
     ttl: 1000 * 60 * 60 * 24 * 30,
   });
+
+  return {
+    get<T>(key: string) {
+      return cache.get(key) as T | undefined;
+    },
+    set<T>(key: string, value: T, ttlMs?: number) {
+      if (ttlMs) {
+        cache.set(key, value as object, { ttl: ttlMs });
+      } else {
+        cache.set(key, value as object);
+      }
+    },
+  } satisfies CacheAdapter;
 }
 
 export async function getFromCache<T>(cache: CacheAdapter, key: string): Promise<T | undefined> {
