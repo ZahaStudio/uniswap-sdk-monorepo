@@ -1,5 +1,7 @@
 import type { Address, Chain, PublicClient } from "viem";
 
+import type { CacheAdapter } from "@/helpers/cache";
+
 /**
  * Configuration for V4 contracts.
  * Contains addresses for all required Uniswap V4 contracts.
@@ -30,4 +32,6 @@ export type UniswapSDKInstance = {
   chain: Chain;
   /** Contract addresses */
   contracts: V4Contracts;
+  /** Cache adapter */
+  cache: CacheAdapter;
 };
