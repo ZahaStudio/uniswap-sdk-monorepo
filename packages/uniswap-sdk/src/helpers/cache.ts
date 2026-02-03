@@ -24,11 +24,3 @@ export function createDefaultCache() {
     },
   } satisfies CacheAdapter;
 }
-
-export async function getFromCache<T>(cache: CacheAdapter, key: string): Promise<T | undefined> {
-  return cache.get(key);
-}
-
-export async function setToCache<T>(cache: CacheAdapter, key: string, value: T, ttlMs?: number): Promise<void> {
-  await cache.set(key, value, ttlMs);
-}

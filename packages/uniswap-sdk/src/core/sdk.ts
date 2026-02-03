@@ -4,7 +4,6 @@ import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
 import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/positions";
-import { getChainById } from "@/utils/chains";
 import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
 import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/utils/buildAddLiquidityCallData";
 import { buildAddLiquidityCallData } from "@/utils/buildAddLiquidityCallData";
@@ -14,6 +13,7 @@ import type { BuildRemoveLiquidityCallDataArgs } from "@/utils/buildRemoveLiquid
 import { buildRemoveLiquidityCallData } from "@/utils/buildRemoveLiquidityCallData";
 import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import { buildSwapCallData } from "@/utils/buildSwapCallData";
+import { getChainById } from "@/utils/chains";
 import type { PoolArgs } from "@/utils/getPool";
 import { getPool } from "@/utils/getPool";
 import { getPosition } from "@/utils/getPosition";
@@ -88,7 +88,7 @@ export class UniswapSDK {
     };
   }
 
-  public static async create(client: PublicClient, contracts?: V4Contracts): Promise<UniswapSDK> {
+  public static async create(client: PublicClient, contracts?: V4Contracts, cache?: CacheAdapter): Promise<UniswapSDK> {
     const chainId = await client.getChainId();
     const chain = getChainById(chainId);
     const uniswapContracts = getUniswapContracts(chainId);
@@ -103,7 +103,7 @@ export class UniswapSDK {
       } as V4Contracts;
     }
 
-    return new UniswapSDK(client, chain, contracts);
+    return new UniswapSDK(client, chain, contracts, cache);
   }
 
   /**

@@ -1,10 +1,8 @@
 import { type Currency, Ether, Token } from "@uniswap/sdk-core";
 import type { Address } from "viem";
-import { erc20Abi, zeroAddress } from "viem";
+import { erc20Abi, getAddress, zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-import { getFromCache, setToCache } from "@/helpers/cache";
-
 
 /**
  * Arguments for getTokens function
@@ -26,15 +24,17 @@ export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInsta
   const { client, chain, cache } = instance;
   const resultByAddress = new Map<string, Currency>();
   const missingAddresses: Address[] = [];
-  const normalize = (address: string) => address.toLowerCase();
-  const cacheTokenKey = (address: string) => `tokens:${chain.id}:${normalize(address)}`;
+  const normalize = (address: Address) => getAddress(address);
+  const cacheTokenKey = (address: Address) => `tokens:${chain.id}:${normalize(address)}`;
 
   for (const address of addresses) {
     if (address === zeroAddress) {
-      resultByAddress.set(normalize(address), Ether.onChain(chain.id));
+      const nativeCurrency = Ether.onChain(chain.id);
+      resultByAddress.set(normalize(address), nativeCurrency);
+      await cache.set(cacheTokenKey(address), nativeCurrency);
       continue;
     }
-    const cachedCurrency = await getFromCache<Currency>(cache, cacheTokenKey(address));
+    const cachedCurrency = await cache.get<Currency>(cacheTokenKey(address));
     if (cachedCurrency) {
       resultByAddress.set(normalize(address), cachedCurrency);
     } else {
@@ -77,7 +77,7 @@ export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInsta
       const decimals = results[resultIndex++] as number;
       const token = new Token(chain.id, address, decimals, symbol, name);
       resultByAddress.set(normalize(address), token);
-      await setToCache(cache, cacheTokenKey(address), token);
+      await cache.set(cacheTokenKey(address), token);
     }
 
     return addresses.map((address) => {
