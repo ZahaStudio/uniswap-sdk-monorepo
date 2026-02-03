@@ -1,9 +1,10 @@
 import { type Currency, Ether, Token } from "@uniswap/sdk-core";
 import type { Address } from "viem";
 import { erc20Abi, zeroAddress } from "viem";
-import { getFromCache, setToCache } from "@/helpers/cache";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+import { getFromCache, setToCache } from "@/helpers/cache";
+
 
 /**
  * Arguments for getTokens function

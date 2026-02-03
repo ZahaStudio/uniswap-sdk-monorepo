@@ -3,10 +3,9 @@ import type { Pool } from "@uniswap/v4-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
-import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/types/positions";
-import { getChainById } from "@/constants/chains";
+import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/positions";
+import { getChainById } from "@/utils/chains";
 import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
-
 import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/utils/buildAddLiquidityCallData";
 import { buildAddLiquidityCallData } from "@/utils/buildAddLiquidityCallData";
 import type { BuildCollectFeesCallDataArgs } from "@/utils/buildCollectFeesCallData";

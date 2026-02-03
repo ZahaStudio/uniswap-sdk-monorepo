@@ -1,4 +1,4 @@
-import { DEFAULT_DEADLINE } from "@/common/types/common";
+import { DEFAULT_DEADLINE } from "@/common/constants";
 import type { UniswapSDKInstance } from "@/core/sdk";
 
 export async function getDefaultDeadline(

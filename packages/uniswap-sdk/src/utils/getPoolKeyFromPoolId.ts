@@ -1,8 +1,9 @@
 import type { PoolKey } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
-import { getFromCache, setToCache } from "@/helpers/cache";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+import { getFromCache, setToCache } from "@/helpers/cache";
+
 
 /**
  * Parameters required for retrieving pool key information.
