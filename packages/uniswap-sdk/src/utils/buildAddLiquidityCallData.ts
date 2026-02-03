@@ -2,7 +2,7 @@ import { encodeSqrtRatioX96, nearestUsableTick, TickMath } from "@uniswap/v3-sdk
 import type { BatchPermitOptions, Pool } from "@uniswap/v4-sdk";
 import { Position, V4PositionManager } from "@uniswap/v4-sdk";
 
-import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/constants/common";
+import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/common/types/constants";
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
@@ -79,7 +79,6 @@ export interface BuildAddLiquidityCallDataResult {
    */
   value: string;
 }
-
 
 /**
  * Builds the calldata and native value required to add liquidity to a Uniswap V4 pool.
@@ -215,10 +214,10 @@ export async function buildAddLiquidityCallData(
       useNative: nativeCurrency,
       batchPermit: permit2BatchSignature
         ? {
-          owner: permit2BatchSignature.owner,
-          permitBatch: permit2BatchSignature.permitBatch,
-          signature: permit2BatchSignature.signature,
-        }
+            owner: permit2BatchSignature.owner,
+            permitBatch: permit2BatchSignature.permitBatch,
+            signature: permit2BatchSignature.signature,
+          }
         : undefined,
     });
 

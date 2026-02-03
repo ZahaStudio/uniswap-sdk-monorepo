@@ -3,7 +3,7 @@ import { v4 } from "hookmate/abi";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { decodePositionInfo } from "@/helpers/positions";
-import type { GetPositionInfoResponse } from "@/utils/getPosition";
+import type { GetPositionInfoResponse } from "@/common/types/positions";
 import { getTokens } from "@/utils/getTokens";
 
 /**

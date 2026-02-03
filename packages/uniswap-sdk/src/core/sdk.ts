@@ -14,7 +14,7 @@ import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import { buildSwapCallData } from "@/utils/buildSwapCallData";
 import type { PoolArgs } from "@/utils/getPool";
 import { getPool } from "@/utils/getPool";
-import type { GetPositionInfoResponse, GetPositionResponse } from "@/utils/getPosition";
+import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/types/positions";
 import { getPosition } from "@/utils/getPosition";
 import { getPositionInfo } from "@/utils/getPositionInfo";
 import type { QuoteResponse, SwapExactInSingle } from "@/utils/getQuote";

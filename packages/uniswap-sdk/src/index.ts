@@ -1,5 +1,6 @@
 export * from "@/core/sdk";
 export * from "@/errors";
+export * from "@/common/types/positions";
 export * from "@/utils/buildAddLiquidityCallData";
 export * from "@/utils/buildCollectFeesCallData";
 export * from "@/utils/buildRemoveLiquidityCallData";
