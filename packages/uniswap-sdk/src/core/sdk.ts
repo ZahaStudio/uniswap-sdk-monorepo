@@ -3,35 +3,66 @@ import type { Pool } from "@uniswap/v4-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
+import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/types/positions";
 import { getChainById } from "@/constants/chains";
-import type { BuildSwapCallDataArgs } from "@/types";
-import type { UniswapSDKInstance, V4Contracts } from "@/types/core";
-import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/types/utils/buildAddLiquidityCallData";
-import type { BuildCollectFeesCallDataArgs } from "@/types/utils/buildCollectFeesCallData";
-import type { BuildRemoveLiquidityCallDataArgs } from "@/types/utils/buildRemoveLiquidityCallData";
-import type { PoolArgs } from "@/types/utils/getPool";
-import type { GetPositionInfoResponse, GetPositionResponse } from "@/types/utils/getPosition";
-import type { QuoteResponse, SwapExactInSingle } from "@/types/utils/getQuote";
-import type { GetTickInfoArgs, TickInfoResponse } from "@/types/utils/getTickInfo";
-import type { GetTokensArgs } from "@/types/utils/getTokens";
+import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/utils/buildAddLiquidityCallData";
+import { buildAddLiquidityCallData } from "@/utils/buildAddLiquidityCallData";
+import type { BuildCollectFeesCallDataArgs } from "@/utils/buildCollectFeesCallData";
+import { buildCollectFeesCallData } from "@/utils/buildCollectFeesCallData";
+import type { BuildRemoveLiquidityCallDataArgs } from "@/utils/buildRemoveLiquidityCallData";
+import { buildRemoveLiquidityCallData } from "@/utils/buildRemoveLiquidityCallData";
+import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
+import { buildSwapCallData } from "@/utils/buildSwapCallData";
+import type { PoolArgs } from "@/utils/getPool";
+import { getPool } from "@/utils/getPool";
+import { getPosition } from "@/utils/getPosition";
+import { getPositionInfo } from "@/utils/getPositionInfo";
+import type { QuoteResponse, SwapExactInSingle } from "@/utils/getQuote";
+import { getQuote } from "@/utils/getQuote";
+import type { GetTickInfoArgs, TickInfoResponse } from "@/utils/getTickInfo";
+import { getTickInfo } from "@/utils/getTickInfo";
+import type { GetTokensArgs } from "@/utils/getTokens";
+import { getTokens } from "@/utils/getTokens";
+import { preparePermit2BatchData } from "@/utils/preparePermit2BatchData";
 import type {
   PreparePermit2BatchDataArgs,
   PreparePermit2BatchDataResult,
   PreparePermit2DataArgs,
   PreparePermit2DataResult,
-} from "@/types/utils/permit2";
-import { buildAddLiquidityCallData } from "@/utils/buildAddLiquidityCallData";
-import { buildCollectFeesCallData } from "@/utils/buildCollectFeesCallData";
-import { buildRemoveLiquidityCallData } from "@/utils/buildRemoveLiquidityCallData";
-import { buildSwapCallData } from "@/utils/buildSwapCallData";
-import { getPool } from "@/utils/getPool";
-import { getPosition } from "@/utils/getPosition";
-import { getPositionInfo } from "@/utils/getPositionInfo";
-import { getQuote } from "@/utils/getQuote";
-import { getTickInfo } from "@/utils/getTickInfo";
-import { getTokens } from "@/utils/getTokens";
-import { preparePermit2BatchData } from "@/utils/preparePermit2BatchData";
+} from "@/utils/preparePermit2Data";
 import { preparePermit2Data } from "@/utils/preparePermit2Data";
+
+/**
+ * Configuration for V4 contracts.
+ * Contains addresses for all required Uniswap V4 contracts.
+ */
+export type V4Contracts = {
+  /** Address of the pool manager contract */
+  poolManager: Address;
+  /** Address of the position descriptor contract */
+  positionDescriptor: Address;
+  /** Address of the position manager contract */
+  positionManager: Address;
+  /** Address of the quoter contract */
+  quoter: Address;
+  /** Address of the state view contract */
+  stateView: Address;
+  /** Address of the universal router contract */
+  universalRouter: Address;
+};
+
+/**
+ * Internal instance type for UniswapSDK.
+ * Represents the state of a single SDK instance.
+ */
+export type UniswapSDKInstance = {
+  /** Viem public client */
+  client: PublicClient;
+  /** Chain */
+  chain: Chain;
+  /** Contract addresses */
+  contracts: V4Contracts;
+};
 
 /**
  * Main class for interacting with Uniswap V4 contracts.

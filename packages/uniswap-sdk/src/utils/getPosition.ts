@@ -1,9 +1,11 @@
 import { Pool, Position as V4Position } from "@uniswap/v4-sdk";
 
-import type { UniswapSDKInstance } from "@/types/core";
-import type { GetPositionResponse } from "@/types/utils/getPosition";
+import type { GetPositionResponse } from "@/common/types/positions";
+import type { UniswapSDKInstance } from "@/core/sdk";
 import { getPositionInfo } from "@/utils/getPositionInfo";
 import { getTokens } from "@/utils/getTokens";
+
+export type { GetPositionInfoResponse, GetPositionResponse } from "@/common/types/positions";
 
 /**
  * Retrieves a complete Uniswap V4 position with initialized SDK instances.

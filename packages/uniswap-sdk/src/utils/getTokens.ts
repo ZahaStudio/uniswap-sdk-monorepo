@@ -1,8 +1,16 @@
 import { type Currency, Ether, Token } from "@uniswap/sdk-core";
+import type { Address } from "viem";
 import { erc20Abi, zeroAddress } from "viem";
 
-import type { UniswapSDKInstance } from "@/types/core";
-import type { GetTokensArgs } from "@/types/utils/getTokens";
+import type { UniswapSDKInstance } from "@/core/sdk";
+
+/**
+ * Arguments for getTokens function
+ */
+export interface GetTokensArgs {
+  /** Array of token contract addresses (at least one) */
+  addresses: [Address, ...Address[]];
+}
 
 /**
  * Retrieves Token instances for a list of token addresses on a specific chain.
