@@ -1,9 +1,21 @@
+import type { SwapExactInSingle as UniswapSwapExactInSingle } from "@uniswap/v4-sdk";
 import { Pool } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
 
-import type { UniswapSDKInstance } from "@/types/core";
-import type { GetTickInfoArgs, TickInfoResponse } from "@/types/utils/getTickInfo";
+import type { UniswapSDKInstance } from "@/core/sdk";
 import { getTokens } from "@/utils/getTokens";
+
+export interface GetTickInfoArgs {
+  poolKey: UniswapSwapExactInSingle["poolKey"];
+  tick: number;
+}
+
+export interface TickInfoResponse {
+  liquidityGross: bigint;
+  liquidityNet: bigint;
+  feeGrowthOutside0X128: bigint;
+  feeGrowthOutside1X128: bigint;
+}
 
 /**
  * Reads tick info for a given pool key and tick from V4 StateView.
