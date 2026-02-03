@@ -3,6 +3,7 @@ import type { Pool } from "@uniswap/v4-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
+import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/types/positions";
 import { getChainById } from "@/constants/chains";
 import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/utils/buildAddLiquidityCallData";
 import { buildAddLiquidityCallData } from "@/utils/buildAddLiquidityCallData";
@@ -14,7 +15,6 @@ import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import { buildSwapCallData } from "@/utils/buildSwapCallData";
 import type { PoolArgs } from "@/utils/getPool";
 import { getPool } from "@/utils/getPool";
-import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/types/positions";
 import { getPosition } from "@/utils/getPosition";
 import { getPositionInfo } from "@/utils/getPositionInfo";
 import type { QuoteResponse, SwapExactInSingle } from "@/utils/getQuote";

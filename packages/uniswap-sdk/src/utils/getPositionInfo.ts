@@ -1,9 +1,9 @@
 import { Pool } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
 
+import type { GetPositionInfoResponse } from "@/common/types/positions";
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { decodePositionInfo } from "@/helpers/positions";
-import type { GetPositionInfoResponse } from "@/common/types/positions";
 import { getTokens } from "@/utils/getTokens";
 
 /**
