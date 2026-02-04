@@ -2,8 +2,6 @@ import type { PoolKey } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-import { getFromCache, setToCache } from "@/helpers/cache";
-
 
 /**
  * Parameters required for retrieving pool key information.
@@ -23,7 +21,7 @@ export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKI
   const { client, contracts, chain, cache } = instance;
   const { positionManager } = contracts;
   const cachePoolKey = `poolKey:${chain.id}:${poolId.toLowerCase()}`;
-  const cached = await getFromCache<PoolKey>(cache, cachePoolKey);
+  const cached = await cache.get<PoolKey>(cachePoolKey);
   if (cached) {
     return cached;
   }
@@ -45,7 +43,7 @@ export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKI
     hooks,
   };
 
-  await setToCache(cache, cachePoolKey, poolKey);
+  await cache.set(cachePoolKey, poolKey);
 
   return poolKey;
 }
