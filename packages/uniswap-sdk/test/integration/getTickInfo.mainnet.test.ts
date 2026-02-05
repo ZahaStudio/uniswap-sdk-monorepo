@@ -4,11 +4,10 @@ import { mainnet } from "viem/chains";
 import { UniswapSDK } from "@/core/sdk";
 import { MAINNET_POOL_KEY } from "@/test/fixtures/mainnet";
 import { startAnvil, stopAnvil } from "@/test/integration/anvil";
-import { describeIntegration } from "@/test/integration/integrationFlags";
 
 jest.setTimeout(60_000);
 
-describeIntegration("getTickInfo (unichain fork)", () => {
+describe("getTickInfo (unichain fork)", () => {
   let anvilUrl: string | null = null;
   let anvil: Awaited<ReturnType<typeof startAnvil>> | null = null;
 

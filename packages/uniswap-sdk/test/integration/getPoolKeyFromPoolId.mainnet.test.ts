@@ -6,12 +6,11 @@ import type { UniswapSDKInstance } from "@/core/sdk";
 import { UniswapSDK } from "@/core/sdk";
 import { MAINNET_POOL_ID, MAINNET_POOL_KEY } from "@/test/fixtures/mainnet";
 import { startAnvil, stopAnvil } from "@/test/integration/anvil";
-import { describeIntegration } from "@/test/integration/integrationFlags";
 import { getPoolKeyFromPoolId } from "@/utils/getPoolKeyFromPoolId";
 
 jest.setTimeout(60_000);
 
-describeIntegration("getPoolKeyFromPoolId (unichain fork)", () => {
+describe("getPoolKeyFromPoolId (unichain fork)", () => {
   let anvilUrl: string | null = null;
   let anvil: Awaited<ReturnType<typeof startAnvil>> | null = null;
 
