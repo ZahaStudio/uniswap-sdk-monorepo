@@ -13,14 +13,22 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "test": "jest",
+    "test:ci": "pnpm run typecheck && pnpm run test",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "catalog:",
     "eslint": "catalog:",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.0.0",
     "tsdown": "catalog:",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "viem": "catalog:"
   },
   "dependencies": {
     "@uniswap/permit2-sdk": "^1.4.0",

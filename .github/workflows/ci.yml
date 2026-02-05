@@ -25,11 +25,19 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
       - name: Build
         run: pnpm build
 
       - name: Typecheck
-        run: pnpm --filter @zahastudio/uniswap-sdk exec tsc -p tsconfig.json --noEmit
+        run: pnpm typecheck
 
       - name: Lint
         run: pnpm lint
+
+      - name: Test
+        run: pnpm test
