@@ -2,9 +2,12 @@ name: Build
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -20,6 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
+          node-version: "24"
           cache: "pnpm"
 
       - name: Install Dependencies
