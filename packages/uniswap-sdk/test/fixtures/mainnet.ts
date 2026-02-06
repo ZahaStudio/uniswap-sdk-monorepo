@@ -8,6 +8,8 @@ export const MAINNET_TOKENS = {
 
 export const MAINNET_POOL_ID = "0x3258f413c7a88cda2fa8709a589d221a80f6574f63df5a5b6774485d8acc39d9" as const;
 
+export const MAINNET_FORK_BLOCK_NUMBER = 39_629_268;
+
 const [currency0, currency1] = sortTokens(MAINNET_TOKENS.ETH, MAINNET_TOKENS.USDC);
 
 export const MAINNET_POOL_KEY = {

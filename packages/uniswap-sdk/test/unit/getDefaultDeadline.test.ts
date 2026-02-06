@@ -5,7 +5,7 @@ describe("getDefaultDeadline", () => {
   it("adds the provided offset to the current block timestamp", async () => {
     const instance = {
       client: {
-        getBlock: jest.fn().mockResolvedValue({ timestamp: 1_000n }),
+        getBlock: vi.fn().mockResolvedValue({ timestamp: 1_000n }),
       },
     } as unknown as UniswapSDKInstance;
 

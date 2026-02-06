@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
+import { MAINNET_FORK_BLOCK_NUMBER } from "@/test/fixtures/mainnet";
+
 type AnvilInstance = {
   url: string;
   process: ReturnType<typeof spawn>;
@@ -36,7 +38,16 @@ export const startAnvil = async (): Promise<AnvilInstance> => {
   const port = process.env.ANVIL_PORT ?? String(10_000 + Math.floor(Math.random() * 10_000));
   const chainId = process.env.FORK_CHAIN_ID ?? "130";
 
-  const args = ["--fork-url", rpcUrl, "--port", port, "--chain-id", chainId];
+  const args = [
+    "--fork-url",
+    rpcUrl,
+    "--fork-block-number",
+    String(MAINNET_FORK_BLOCK_NUMBER),
+    "--port",
+    port,
+    "--chain-id",
+    chainId,
+  ];
 
   const child = spawn("anvil", args, { stdio: ["ignore", "pipe", "pipe"] });
 
