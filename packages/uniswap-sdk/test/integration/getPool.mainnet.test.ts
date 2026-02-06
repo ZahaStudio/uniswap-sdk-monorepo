@@ -5,31 +5,31 @@ import { mainnet } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
 import { MAINNET_POOL_KEY } from "@/test/fixtures/mainnet";
-import { startAnvil, stopAnvil } from "@/test/integration/anvil";
+import { startForkNode, stopForkNode } from "@/test/integration/forkNode";
 
 describe("getPool (unichain fork)", () => {
-  let anvilUrl: string | null = null;
-  let anvil: Awaited<ReturnType<typeof startAnvil>> | null = null;
+  let forkUrl: string | null = null;
+  let forkNode: Awaited<ReturnType<typeof startForkNode>> | null = null;
 
   beforeAll(async () => {
-    anvil = await startAnvil();
-    anvilUrl = anvil.url;
+    forkNode = await startForkNode();
+    forkUrl = forkNode.url;
   });
 
   afterAll(async () => {
-    if (anvil) {
-      await stopAnvil(anvil);
+    if (forkNode) {
+      await stopForkNode(forkNode);
     }
   });
 
   it("fetches a pool", async () => {
-    if (!anvilUrl) {
-      throw new Error("Anvil URL was not initialized.");
+    if (!forkUrl) {
+      throw new Error("Fork node URL was not initialized.");
     }
 
     const client = createPublicClient({
       chain: mainnet,
-      transport: http(anvilUrl),
+      transport: http(forkUrl),
     });
 
     const sdk = await UniswapSDK.create(client);
