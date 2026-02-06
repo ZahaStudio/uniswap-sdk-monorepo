@@ -1,12 +1,16 @@
 import { v4 } from "hookmate/abi";
 import { pad, toHex } from "viem";
 
-import type { UniswapSDKInstance } from "@/types/core";
-import type { GetUncollectedFeesResponse } from "@/types/utils/getUncollectedFees";
+import type { UniswapSDKInstance } from "@/core/sdk";
 import { getPositionInfo } from "@/utils/getPositionInfo";
 
 const Q128 = 2n ** 128n;
 const MASK_256 = (1n << 256n) - 1n;
+
+export interface GetUncollectedFeesResponse {
+  amount0: bigint;
+  amount1: bigint;
+}
 
 /**
  * Calculates uncollected (accrued but not yet collected) fees for a given position NFT.

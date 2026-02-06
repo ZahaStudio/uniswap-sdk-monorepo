@@ -1,4 +1,4 @@
-import { FeeTier, TICK_SPACING_BY_FEE } from "@/types/utils/getPool";
+import { FeeTier, TICK_SPACING_BY_FEE } from "@/utils/getPool";
 
 /**
  * Gets the appropriate tick spacing for a given fee tier.

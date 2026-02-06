@@ -2,10 +2,6 @@ import type { Currency } from "@uniswap/sdk-core";
 import type { Pool, PoolKey, Position } from "@uniswap/v4-sdk";
 
 /**
- * Parameters required for retrieving a Uniswap V4 position instance.
- */
-
-/**
  * Basic position information without SDK instances.
  * Returns raw position data from the blockchain.
  */
