@@ -14,6 +14,7 @@ import type { GetPositionInfoResponse, GetPositionResponse } from "@/types/utils
 import type { QuoteResponse, SwapExactInSingle } from "@/types/utils/getQuote";
 import type { GetTickInfoArgs, TickInfoResponse } from "@/types/utils/getTickInfo";
 import type { GetTokensArgs } from "@/types/utils/getTokens";
+import type { GetUncollectedFeesResponse } from "@/types/utils/getUncollectedFees";
 import type {
   PreparePermit2BatchDataArgs,
   PreparePermit2BatchDataResult,
@@ -30,6 +31,7 @@ import { getPositionInfo } from "@/utils/getPositionInfo";
 import { getQuote } from "@/utils/getQuote";
 import { getTickInfo } from "@/utils/getTickInfo";
 import { getTokens } from "@/utils/getTokens";
+import { getUncollectedFees } from "@/utils/getUncollectedFees";
 import { preparePermit2BatchData } from "@/utils/preparePermit2BatchData";
 import { preparePermit2Data } from "@/utils/preparePermit2Data";
 
@@ -178,6 +180,21 @@ export class UniswapSDK {
    */
   public async getPositionInfo(tokenId: string): Promise<GetPositionInfoResponse> {
     return getPositionInfo(tokenId, this.instance);
+  }
+
+  /**
+   * Calculates uncollected (accrued but not yet collected) fees for a given position NFT.
+   *
+   * This method uses StateView.getPositionInfo to get the position's last fee growth snapshot,
+   * and StateView.getFeeGrowthInside to get the current fee growth inside the tick range.
+   * The difference, multiplied by the position's liquidity, gives the uncollected fees.
+   *
+   * @param tokenId - The NFT token ID of the position
+   * @returns Promise<GetUncollectedFeesResponse> - Uncollected fee amounts for both tokens
+   * @throws Error if position data cannot be fetched
+   */
+  public async getUncollectedFees(tokenId: string): Promise<GetUncollectedFeesResponse> {
+    return getUncollectedFees(tokenId, this.instance);
   }
 
   /**

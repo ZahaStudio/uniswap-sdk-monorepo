@@ -32,7 +32,6 @@ export interface UsePositionGetters {
   /**
    * Get uncollected fees for this position.
    * @returns Promise with amount0 and amount1 as bigints
-   * @throws Error - Not yet implemented in core SDK
    */
   getUncollectedFees: () => Promise<{ amount0: bigint; amount1: bigint }>;
 }
@@ -170,8 +169,11 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
   // Getters for additional data
   const getters: UsePositionGetters = {
     getUncollectedFees: async () => {
-      // TODO: Implement when core SDK adds this functionality
-      throw new Error("getUncollectedFees not yet implemented in core SDK");
+      if (!tokenId) {
+        throw new Error("Token ID is required");
+      }
+      const sdk = await sdkPromise;
+      return sdk.getUncollectedFees(tokenId);
     },
   };
 
