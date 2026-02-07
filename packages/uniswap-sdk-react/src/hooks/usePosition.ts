@@ -2,7 +2,6 @@
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { GetPositionResponse } from "@zahastudio/uniswap-sdk";
-import { useChainId } from "wagmi";
 
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { positionKeys } from "@/utils/queryKeys";
@@ -11,6 +10,13 @@ import { positionKeys } from "@/utils/queryKeys";
  * Options for the usePosition hook.
  */
 export interface UsePositionOptions {
+  /**
+   * Chain ID to use. If omitted, uses the currently connected chain.
+   * The SDK instance is cached per chain, so passing the same chainId
+   * across multiple hooks reuses the same instance.
+   */
+  chainId?: number;
+
   /** Whether the query is enabled (default: true if tokenId is provided) */
   enabled?: boolean;
 
@@ -139,10 +145,9 @@ export interface UsePositionReturn {
  * ```
  */
 export function usePosition(tokenId: string | undefined, options: UsePositionOptions = {}): UsePositionReturn {
-  const { enabled = true, refetchInterval = false, staleTime = 10000 } = options;
+  const { chainId: overrideChainId, enabled = true, refetchInterval = false, staleTime = 10000 } = options;
 
-  const { sdkPromise } = useUniswapSDK();
-  const chainId = useChainId();
+  const { sdkPromise, chainId } = useUniswapSDK({ chainId: overrideChainId });
 
   // Main query for position data
   const query = useQuery({

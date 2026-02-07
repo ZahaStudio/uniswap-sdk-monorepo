@@ -1,12 +1,10 @@
 // Re-export types from provider
-export type {
-  UniswapSDKConfig,
-  UniswapSDKContextValue,
-  UniswapSDKProviderProps,
-} from "../provider";
+export type { UniswapSDKConfig, UniswapSDKContextValue, UniswapSDKProviderProps } from "../provider";
 
 // Re-export types from hooks
 export type {
+  UseUniswapSDKOptions,
+  UseUniswapSDKReturn,
   UsePositionOptions,
   UsePositionGetters,
   UsePositionActions,

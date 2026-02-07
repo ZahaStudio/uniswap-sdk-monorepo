@@ -1,9 +1,8 @@
 "use client";
 
-import { createContext, useMemo, type ReactNode } from "react";
+import { createContext, useState, useMemo, type ReactNode } from "react";
 
 import { UniswapSDK, type V4Contracts } from "@zahastudio/uniswap-sdk";
-import { useChainId, usePublicClient } from "wagmi";
 
 /**
  * Configuration for the Uniswap SDK React provider.
@@ -17,15 +16,14 @@ export interface UniswapSDKConfig {
 }
 
 /**
- * Internal context value that holds the SDK instance.
+ * Internal context value that holds the shared SDK cache and config.
+ * SDK instances are created lazily per chain and cached for deduplication.
  */
 export interface UniswapSDKContextValue {
-  /** The SDK instance (null until initialized) */
-  sdk: UniswapSDK | null;
-  /** Promise that resolves to the SDK instance */
-  sdkPromise: Promise<UniswapSDK>;
-  /** Whether the SDK is initialized */
-  isInitialized: boolean;
+  /** Shared cache of SDK promises, keyed by chainId */
+  sdkCache: Map<number, Promise<UniswapSDK>>;
+  /** Custom contracts per chain from provider config */
+  contracts?: Record<number, V4Contracts>;
 }
 
 export const UniswapSDKContext = createContext<UniswapSDKContextValue | null>(null);
@@ -38,6 +36,9 @@ export interface UniswapSDKProviderProps {
 /**
  * Provider component for the Uniswap SDK.
  * Must be wrapped inside WagmiProvider and QueryClientProvider.
+ *
+ * Stores a shared SDK instance cache so that multiple calls to `useUniswapSDK`
+ * with the same chainId return the same SDK instance.
  *
  * @example
  * ```tsx
@@ -59,50 +60,15 @@ export interface UniswapSDKProviderProps {
  * ```
  */
 export function UniswapSDKProvider({ children, config }: UniswapSDKProviderProps) {
-  const chainId = useChainId();
-  const publicClient = usePublicClient({ chainId });
+  const [sdkCache] = useState(() => new Map<number, Promise<UniswapSDK>>());
 
-  // Get contracts for current chain
-  const contracts = config?.contracts?.[chainId];
-
-  // Create SDK with public client and chain-specific contracts
-  const contextValue = useMemo<UniswapSDKContextValue>(() => {
-    let sdk: UniswapSDK | null = null;
-
-    if (!publicClient) {
-      // Return a rejected promise if no public client
-      const rejectedPromise = Promise.reject(
-        new Error("UniswapSDKProvider must be used within WagmiProvider with a configured publicClient"),
-      );
-      // Prevent unhandled rejection
-      rejectedPromise.catch(() => {});
-
-      return {
-        get sdk() {
-          return null;
-        },
-        sdkPromise: rejectedPromise,
-        get isInitialized() {
-          return false;
-        },
-      };
-    }
-
-    const sdkPromise = UniswapSDK.create(publicClient, contracts).then((instance) => {
-      sdk = instance;
-      return instance;
-    });
-
-    return {
-      get sdk() {
-        return sdk;
-      },
-      sdkPromise,
-      get isInitialized() {
-        return sdk !== null;
-      },
-    };
-  }, [publicClient, contracts]);
+  const contextValue = useMemo<UniswapSDKContextValue>(
+    () => ({
+      sdkCache,
+      contracts: config?.contracts,
+    }),
+    [sdkCache, config?.contracts],
+  );
 
   return <UniswapSDKContext.Provider value={contextValue}>{children}</UniswapSDKContext.Provider>;
 }
