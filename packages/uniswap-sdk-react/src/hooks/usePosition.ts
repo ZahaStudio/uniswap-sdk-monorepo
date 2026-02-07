@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import type { GetPositionResponse } from "@zahastudio/uniswap-sdk";
+import type { GetPositionResponse, GetUncollectedFeesResponse } from "@zahastudio/uniswap-sdk";
 
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { positionKeys } from "@/utils/queryKeys";
@@ -32,14 +32,14 @@ export interface UsePositionOptions {
 }
 
 /**
- * Getter functions for additional position data.
+ * Combined query data returned by usePosition.
+ * Includes the position itself and uncollected fees.
  */
-export interface UsePositionGetters {
-  /**
-   * Get uncollected fees for this position.
-   * @returns Promise with amount0 and amount1 as bigints
-   */
-  getUncollectedFees: () => Promise<{ amount0: bigint; amount1: bigint }>;
+export interface UsePositionData extends GetPositionResponse {
+  /** Uncollected fees for token0 and token1 */
+  periphery: {
+    uncollectedFees: GetUncollectedFeesResponse;
+  };
 }
 
 /**
@@ -100,11 +100,8 @@ export interface UsePositionActions {
  * Return type for the usePosition hook.
  */
 export interface UsePositionReturn {
-  /** TanStack Query result with position data */
-  query: UseQueryResult<GetPositionResponse, Error>;
-
-  /** Getter functions for additional data */
-  getters: UsePositionGetters;
+  /** TanStack Query result with position data and uncollected fees */
+  query: UseQueryResult<UsePositionData, Error>;
 
   /** Action functions for position operations */
   actions: UsePositionActions;
@@ -113,9 +110,11 @@ export interface UsePositionReturn {
 /**
  * Hook to fetch and manage a Uniswap V4 position.
  *
+ * Fetches the position data and uncollected fees in a single query.
+ *
  * @param tokenId - The NFT token ID of the position
  * @param options - Configuration options for the query
- * @returns Object with query result, getters, and actions
+ * @returns Object with query result and actions
  *
  * @example Basic usage
  * ```tsx
@@ -125,10 +124,11 @@ export interface UsePositionReturn {
  *   if (query.isLoading) return <div>Loading...</div>;
  *   if (query.error) return <div>Error: {query.error.message}</div>;
  *
- *   const position = query.data!;
+ *   const { position, uncollectedFees } = query.data!;
  *   return (
  *     <div>
- *       <p>Liquidity: {position.position.liquidity.toString()}</p>
+ *       <p>Liquidity: {position.liquidity.toString()}</p>
+ *       <p>Fees: {uncollectedFees.amount0.toString()} / {uncollectedFees.amount1.toString()}</p>
  *       <button onClick={() => actions.collectFees('0x...')}>
  *         Collect Fees
  *       </button>
@@ -149,15 +149,24 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
 
   const { sdkPromise, chainId } = useUniswapSDK({ chainId: overrideChainId });
 
-  // Main query for position data
+  // Main query for position data and uncollected fees
   const query = useQuery({
     queryKey: positionKeys.detail(tokenId ?? "", chainId),
-    queryFn: async (): Promise<GetPositionResponse> => {
+    queryFn: async (): Promise<UsePositionData> => {
       if (!tokenId) {
         throw new Error("Token ID is required");
       }
       const sdk = await sdkPromise;
-      return sdk.getPosition(tokenId);
+      const [position, uncollectedFees] = await Promise.all([
+        sdk.getPosition(tokenId),
+        sdk.getUncollectedFees(tokenId),
+      ]);
+      return {
+        ...position,
+        periphery: {
+          uncollectedFees,
+        },
+      };
     },
     enabled: !!tokenId && enabled,
     refetchInterval,
@@ -170,17 +179,6 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       return failureCount < 3;
     },
   });
-
-  // Getters for additional data
-  const getters: UsePositionGetters = {
-    getUncollectedFees: async () => {
-      if (!tokenId) {
-        throw new Error("Token ID is required");
-      }
-      const sdk = await sdkPromise;
-      return sdk.getUncollectedFees(tokenId);
-    },
-  };
 
   // Actions for position operations
   const actions: UsePositionActions = {
@@ -231,5 +229,5 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
     },
   };
 
-  return { query, getters, actions };
+  return { query, actions };
 }

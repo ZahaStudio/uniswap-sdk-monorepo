@@ -6,7 +6,7 @@ export type {
   UseUniswapSDKOptions,
   UseUniswapSDKReturn,
   UsePositionOptions,
-  UsePositionGetters,
+  UsePositionData,
   UsePositionActions,
   UsePositionReturn,
   RemoveLiquidityArgs,
@@ -17,6 +17,7 @@ export type {
 export type {
   GetPositionResponse,
   GetPositionInfoResponse,
+  GetUncollectedFeesResponse,
   V4Contracts,
   UniswapSDKInstance,
 } from "@zahastudio/uniswap-sdk";
