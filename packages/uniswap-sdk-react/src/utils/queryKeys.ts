@@ -14,3 +14,32 @@ export const positionKeys = {
   /** Key for a specific position by tokenId and chainId */
   detail: (tokenId: string, chainId?: number) => [...positionKeys.all, tokenId, chainId] as const,
 };
+
+/**
+ * Query key factory for swap-related queries.
+ * Enables efficient cache invalidation and prefetching.
+ */
+export const swapKeys = {
+  /** Base key for all swap queries */
+  all: [PACKAGE_KEY, "useSwap"] as const,
+
+  /** Key for a swap quote by pool key, amount, direction, and chain */
+  quote: (
+    poolKey: { currency0: string; currency1: string; fee: number; tickSpacing: number; hooks: string },
+    amountIn: string,
+    zeroForOne: boolean,
+    chainId?: number,
+  ) =>
+    [
+      ...swapKeys.all,
+      "quote",
+      poolKey.currency0,
+      poolKey.currency1,
+      poolKey.fee,
+      poolKey.tickSpacing,
+      poolKey.hooks,
+      amountIn,
+      zeroForOne,
+      chainId,
+    ] as const,
+};

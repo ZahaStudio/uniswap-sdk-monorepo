@@ -11,6 +11,26 @@ export type {
   UsePositionReturn,
   RemoveLiquidityArgs,
   AddLiquidityArgs,
+  // useTransaction
+  TransactionStatus,
+  UseTransactionOptions,
+  UseTransactionReturn,
+  SendTransactionParams,
+  WriteContractParams,
+  // useTokenApproval
+  UseTokenApprovalParams,
+  UseTokenApprovalOptions,
+  UseTokenApprovalReturn,
+  // useSwap
+  PoolKey,
+  UseSwapParams,
+  UseSwapOptions,
+  QuoteData,
+  UseSwapPermit2Step,
+  UseSwapExecuteStep,
+  UseSwapSteps,
+  SwapStep,
+  UseSwapReturn,
 } from "../hooks";
 
 // Re-export commonly used types from core SDK
