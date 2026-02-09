@@ -10,7 +10,7 @@ interface TransactionStatusProps {
 }
 
 export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
-  const etherscanUrl = txHash ? `https://etherscan.io/tx/${txHash}` : undefined;
+  const etherscanUrl = txHash ? `https://otterscan-devnet.metacrypt.org/tx/${txHash}` : undefined;
 
   const config = {
     idle: {

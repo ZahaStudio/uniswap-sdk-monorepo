@@ -1,3 +1,6 @@
+// Re-export shared hook options
+export type { UseHookOptions } from "./hooks";
+
 // Re-export types from provider
 export type { UniswapSDKConfig, UniswapSDKContextValue, UniswapSDKProviderProps } from "../provider";
 
@@ -5,7 +8,6 @@ export type { UniswapSDKConfig, UniswapSDKContextValue, UniswapSDKProviderProps 
 export type {
   UseUniswapSDKOptions,
   UseUniswapSDKReturn,
-  UsePositionOptions,
   UsePositionData,
   UsePositionActions,
   UsePositionReturn,
@@ -21,10 +23,13 @@ export type {
   UseTokenApprovalParams,
   UseTokenApprovalOptions,
   UseTokenApprovalReturn,
+  // useToken
+  TokenDetails,
+  TokenBalance,
+  UseTokenReturn,
   // useSwap
   PoolKey,
   UseSwapParams,
-  UseSwapOptions,
   QuoteData,
   UseSwapPermit2Step,
   UseSwapExecuteStep,

@@ -7,6 +7,7 @@ import { erc20Abi, maxUint256, zeroAddress } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 
 import { useTransaction, type UseTransactionReturn } from "@/hooks/useTransaction";
+import type { UseHookOptions } from "@/types/hooks";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Types
@@ -27,13 +28,9 @@ export interface UseTokenApprovalParams {
 /**
  * Configuration options for the token approval hook.
  */
-export interface UseTokenApprovalOptions {
+export interface UseTokenApprovalOptions extends UseHookOptions {
   /** Override the owner address (defaults to connected wallet) */
   owner?: Address;
-  /** Whether to enable the allowance query (default: true) */
-  enabled?: boolean;
-  /** Chain ID override */
-  chainId?: number;
 }
 
 /**
@@ -96,7 +93,7 @@ export function useTokenApproval(
   options: UseTokenApprovalOptions = {},
 ): UseTokenApprovalReturn {
   const { token, spender, amount } = params;
-  const { owner: ownerOverride, enabled = true, chainId } = options;
+  const { owner: ownerOverride, enabled = true, chainId, refetchInterval } = options;
 
   const { address: connectedAddress } = useAccount();
   const owner = ownerOverride ?? connectedAddress;
@@ -113,15 +110,19 @@ export function useTokenApproval(
     chainId,
     query: {
       enabled: queryEnabled,
+      refetchInterval,
     },
   });
 
   // ── Derive isRequired ───────────────────────────────────────────────────
   const isRequired: boolean | undefined = (() => {
-    if (isNativeToken) return false;
-    if (!queryEnabled) return false;
-    if (allowance.isLoading) return undefined;
-    if (allowance.data === undefined) return undefined;
+    if (!queryEnabled) {
+      return false;
+    }
+    if (allowance.isLoading || allowance.data === undefined) {
+      return undefined;
+    }
+
     return allowance.data < amount;
   })();
 

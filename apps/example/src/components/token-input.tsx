@@ -11,6 +11,9 @@ interface TokenInputProps {
   readOnly?: boolean;
   disabled?: boolean;
   loading?: boolean;
+  balance?: string;
+  balanceLoading?: boolean;
+  onMaxClick?: () => void;
 }
 
 export function TokenInput({
@@ -21,6 +24,9 @@ export function TokenInput({
   readOnly = false,
   disabled = false,
   loading = false,
+  balance,
+  balanceLoading = false,
+  onMaxClick,
 }: TokenInputProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -34,6 +40,22 @@ export function TokenInput({
     <div className="bg-surface-raised rounded-xl p-4">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-text-muted text-xs font-medium">{label}</span>
+        {(balance !== undefined || balanceLoading) && (
+          <button
+            type="button"
+            onClick={onMaxClick}
+            disabled={!onMaxClick || disabled || balanceLoading}
+            className={cn(
+              "text-text-muted text-xs font-medium transition-colors",
+              onMaxClick && !disabled && "hover:text-accent cursor-pointer",
+              balanceLoading && "animate-pulse",
+            )}
+          >
+            {balanceLoading
+              ? "Balance: ..."
+              : `Balance: ${formatBalance(balance ?? "0")} ${token.symbol}`}
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -80,4 +102,14 @@ export function TokenInput({
       </div>
     </div>
   );
+}
+
+function formatBalance(value: string): string {
+  const num = parseFloat(value);
+  if (isNaN(num)) return "0";
+  if (num === 0) return "0";
+  if (num < 0.0001) return "<0.0001";
+  if (num < 1) return num.toFixed(4);
+  if (num < 1000) return num.toFixed(4).replace(/\.?0+$/, "");
+  return num.toLocaleString("en-US", { maximumFractionDigits: 2 });
 }

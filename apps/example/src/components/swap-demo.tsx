@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useSwap, type SwapStep } from "@zahastudio/uniswap-sdk-react";
+import { useSwap, useToken, type SwapStep } from "@zahastudio/uniswap-sdk-react";
 import { useAccount } from "wagmi";
 
 import { StepIndicator } from "@/components/step-indicator";
@@ -38,6 +38,19 @@ export function SwapDemo() {
     () => parseTokenAmount(amountInput, selectedPreset.tokenIn.decimals),
     [amountInput, selectedPreset.tokenIn.decimals],
   );
+
+  // ── Token balance ────────────────────────────────────────────────────────
+  const tokenIn = useToken(selectedPreset.tokenIn.address, {
+    enabled: isConnected,
+    chainId: 1,
+    refetchInterval: 15_000,
+  });
+
+  const handleMaxClick = useCallback(() => {
+    if (tokenIn.balance) {
+      setAmountInput(tokenIn.balance.formatted);
+    }
+  }, [tokenIn.balance]);
 
   // ── useSwap ─────────────────────────────────────────────────────────────
   const swap = useSwap(
@@ -154,6 +167,9 @@ export function SwapDemo() {
           value={amountInput}
           onChange={setAmountInput}
           disabled={executing || isSwapConfirmed}
+          balance={tokenIn.balance?.formatted}
+          balanceLoading={tokenIn.isLoadingBalance}
+          onMaxClick={handleMaxClick}
         />
 
         {/* Arrow divider */}

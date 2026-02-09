@@ -2,7 +2,7 @@
 
 import { type ReactNode } from "react";
 
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { UniswapSDKProvider } from "@zahastudio/uniswap-sdk-react";
 import { WagmiProvider } from "wagmi";
@@ -26,7 +26,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={wagmiConfig}>
-        <RainbowKitProvider>
+        <RainbowKitProvider theme={darkTheme()}>
           <UniswapSDKProvider>{children}</UniswapSDKProvider>
         </RainbowKitProvider>
       </WagmiProvider>

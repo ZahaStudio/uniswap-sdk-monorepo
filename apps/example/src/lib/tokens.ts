@@ -76,7 +76,7 @@ export const USDC_USDT_PAIR: SwapPairPreset = {
   tokenOut: USDT,
   fee: 100,
   tickSpacing: 1,
-  defaultAmount: "100",
+  defaultAmount: "200",
 };
 
 // ETH → USDC (native ETH, 0.3% fee tier)
@@ -88,7 +88,7 @@ export const ETH_USDC_PAIR: SwapPairPreset = {
   tokenOut: USDC,
   fee: 3000,
   tickSpacing: 60,
-  defaultAmount: "0.1",
+  defaultAmount: "0.5",
 };
 
 export const SWAP_PRESETS: SwapPairPreset[] = [ETH_USDC_PAIR, USDC_USDT_PAIR];

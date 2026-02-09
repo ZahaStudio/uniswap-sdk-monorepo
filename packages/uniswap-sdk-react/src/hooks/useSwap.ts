@@ -20,6 +20,7 @@ import { useAccount, useSignTypedData } from "wagmi";
 import { useTokenApproval, type UseTokenApprovalReturn } from "@/hooks/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/useTransaction";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import type { UseHookOptions } from "@/types/hooks";
 import { swapKeys } from "@/utils/queryKeys";
 
 /**
@@ -36,20 +37,6 @@ export interface UseSwapParams {
   recipient?: Address;
   /** Slippage tolerance in basis points (default: 50 = 0.5%) */
   slippageBps?: number;
-}
-
-/**
- * Configuration options for the useSwap hook.
- */
-export interface UseSwapOptions {
-  /** Enable/disable all queries and activity (default: true) */
-  enabled?: boolean;
-  /** Quote polling interval in ms (e.g. 12000 for ~1 block) */
-  refetchInterval?: number | false;
-  /** Quote staleness in ms (default: 10000) */
-  staleTime?: number;
-  /** Chain ID override */
-  chainId?: number;
 }
 
 /**
@@ -167,7 +154,7 @@ export interface UseSwapReturn {
  * const txHash = await swap.executeAll();
  * ```
  */
-export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): UseSwapReturn {
+export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): UseSwapReturn {
   const {
     poolKey,
     amountIn,
@@ -175,7 +162,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     recipient: recipientOverride,
     slippageBps = DEFAULT_SLIPPAGE_TOLERANCE,
   } = params;
-  const { enabled = true, refetchInterval = false, staleTime = 10000, chainId: chainIdOverride } = options;
+  const { enabled = true, refetchInterval = false, chainId: chainIdOverride } = options;
 
   // ── SDK & Wallet ────────────────────────────────────────────────────────
   const { sdk, chainId } = useUniswapSDK({ chainId: chainIdOverride });
@@ -218,7 +205,6 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     },
     enabled: isQuoteEnabled,
     refetchInterval,
-    staleTime,
     retry: (failureCount, error) => {
       // Don't retry on known non-transient errors
       if (error instanceof Error && error.message.includes("insufficient liquidity")) return false;
@@ -234,14 +220,16 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
       amount: amountIn,
     },
     {
-      enabled: isSwapEnabled && !isNativeInput,
+      enabled: isSwapEnabled,
       chainId,
     },
   );
 
   // ── Step 3: Permit2  ─────────────────────────────────────────────
   const signTypedData = useSignTypedData();
-  const permit2DataRef = useRef<ReturnType<PreparePermit2DataResult["buildPermit2DataWithSignature"]> | null>(null);
+  const permit2DataRef = useRef<ReturnType<PreparePermit2DataResult["buildPermit2DataWithSignature"]> | undefined>(
+    undefined,
+  );
   const [permit2Error, setPermit2Error] = useState<Error | undefined>(undefined);
 
   const permit2Sign = useCallback(async () => {
@@ -265,6 +253,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
         token: inputToken,
         spender: universalRouter,
         owner: connectedAddress,
+        sigDeadline: Math.floor(Date.now() / 1000) + 60 * 15, // 5 minutes from now
       });
 
       // Sign the typed data via wallet
@@ -285,7 +274,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
   }, [isNativeInput, isWalletReady, sdk, inputToken, connectedAddress, signTypedData]);
 
   const permit2Reset = useCallback(() => {
-    permit2DataRef.current = null;
+    permit2DataRef.current = undefined;
     setPermit2Error(undefined);
     signTypedData.reset();
   }, [signTypedData]);
@@ -312,6 +301,10 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     if (!sdk) {
       throw new Error("SDK not initialized");
     }
+    if (permit2Step.isRequired && !permit2DataRef.current) {
+      throw new Error("Permit2 signature required");
+    }
+
     const universalRouter = sdk.getContractAddress("universalRouter");
 
     // Fetch a fresh pool for the most current on-chain state
@@ -330,7 +323,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
       amountOutMinimum: quoteQuery.data.minAmountOut,
       zeroForOne,
       recipient: recipient ?? connectedAddress,
-      permit2Signature: permit2DataRef.current ?? undefined,
+      permit2Signature: permit2DataRef.current,
     });
 
     // Send the transaction
@@ -343,6 +336,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     isWalletReady,
     quoteQuery.data,
     sdk,
+    permit2Step.isRequired,
     poolKey.currency0,
     poolKey.currency1,
     poolKey.fee,
@@ -364,7 +358,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     if (approval.isRequired == undefined || approval.isRequired) {
       return "approval";
     }
-    if (permit2Step.isRequired && !permit2Step.isSigned) {
+    if (permit2Step.isRequired && !permit2DataRef.current) {
       return "permit2";
     }
     if (!swapTransaction.isConfirmed) {

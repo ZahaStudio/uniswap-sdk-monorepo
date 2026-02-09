@@ -29,11 +29,7 @@ export function Header() {
         </div>
       </div>
 
-      <ConnectButton
-        chainStatus="icon"
-        showBalance={false}
-        accountStatus="avatar"
-      />
+      <ConnectButton />
     </header>
   );
 }

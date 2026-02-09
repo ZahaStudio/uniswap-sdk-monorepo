@@ -9,7 +9,7 @@ export const wagmiConfig = getDefaultConfig({
   projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "demo",
   chains: [mainnet],
   transports: {
-    [mainnet.id]: http("https://mainnet.gateway.tenderly.co"),
+    [mainnet.id]: http("https://virtual.mainnet.eu.rpc.tenderly.co/20ddfe93-89e7-4457-bca0-6dc140c75c13"),
   },
   ssr: true,
 });
