@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
@@ -13,8 +13,6 @@ import {
   type QuoteResponse,
   type SwapExactInSingle,
 } from "@zahastudio/uniswap-sdk";
-// Re-export PoolKey so consumers can import it from the react package
-export type { PoolKey } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount, useSignTypedData } from "wagmi";
@@ -34,8 +32,8 @@ import { swapKeys } from "@/utils/queryKeys";
 export interface UseSwapParams {
   /** V4 pool key identifying the pool to swap through */
   poolKey: PoolKey;
-  /** Amount of input tokens (as string, matching SDK's getQuote format) */
-  amountIn: string;
+  /** Amount of input tokens in base units */
+  amountIn: bigint;
   /** Swap direction: true = currency0→currency1, false = currency1→currency0 */
   zeroForOne: boolean;
   /** Recipient address for the output tokens (defaults to connected wallet) */
@@ -99,9 +97,7 @@ export interface UseSwapExecuteStep {
  */
 export interface UseSwapSteps {
   /** Auto-fetching quote query with slippage-adjusted minAmountOut */
-  quote: {
-    query: UseQueryResult<QuoteData, Error>;
-  };
+  quote: UseQueryResult<QuoteData, Error>;
   /** ERC-20 → Permit2 approval step */
   approval: UseTokenApprovalReturn;
   /** Off-chain Permit2 signature step */
@@ -124,8 +120,6 @@ export interface UseSwapReturn {
   steps: UseSwapSteps;
   /** The first incomplete required step */
   currentStep: SwapStep;
-  /** Whether all pre-swap steps are complete and swap can execute */
-  isReady: boolean;
   /** Execute all remaining required steps sequentially. Returns swap tx hash. */
   executeAll: () => Promise<Hex>;
   /** Reset all mutation state (approval, permit2, swap). Quote query persists. */
@@ -153,7 +147,7 @@ export interface UseSwapReturn {
  * @example Basic usage with individual step control
  * ```tsx
  * const swap = useSwap(
- *   { poolKey, amountIn: "1000000", zeroForOne: true },
+ *   { poolKey, amountIn: 1000000n, zeroForOne: true },
  *   { refetchInterval: 12000 },
  * );
  *
@@ -171,7 +165,7 @@ export interface UseSwapReturn {
  *
  * @example One-click swap with executeAll
  * ```tsx
- * const swap = useSwap({ poolKey, amountIn: "1000000", zeroForOne: true });
+ * const swap = useSwap({ poolKey, amountIn: 1000000n, zeroForOne: true });
  *
  * // Single call handles approve → sign → swap
  * const txHash = await swap.executeAll();
@@ -187,28 +181,23 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
   } = params;
   const { enabled = true, refetchInterval = false, staleTime = 10000, chainId: chainIdOverride } = options;
 
-  // ── SDK & wallet ────────────────────────────────────────────────────────
+  // ── SDK & Wallet ────────────────────────────────────────────────────────
   const { sdkPromise, chainId } = useUniswapSDK({ chainId: chainIdOverride });
   const { address: connectedAddress } = useAccount();
   const recipient = recipientOverride ?? connectedAddress;
 
-  // ── Derived constants ───────────────────────────────────────────────────
+  // ── Derived Constants ───────────────────────────────────────────────────
   const inputToken = (zeroForOne ? poolKey.currency0 : poolKey.currency1) as Address;
   const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
 
-  let amountInBigInt: bigint;
-  try {
-    amountInBigInt = BigInt(amountIn);
-  } catch {
-    amountInBigInt = 0n;
-  }
-
-  const hasValidAmount = amountInBigInt > 0n;
-  const isEnabled = enabled && !!connectedAddress && hasValidAmount;
+  const hasValidAmount = amountIn > 0n;
+  const isWalletReady = !!connectedAddress;
+  const isQuoteEnabled = enabled && hasValidAmount;
+  const isSwapEnabled = isQuoteEnabled && isWalletReady;
 
   // ── Step 1: Quote ───────────────────────────────────────────────────────
-  const quoteQuery = useQuery<QuoteData, Error>({
-    queryKey: swapKeys.quote(poolKey, amountIn, zeroForOne, chainId),
+  const quoteQuery = useQuery({
+    queryKey: swapKeys.quote(poolKey, amountIn, zeroForOne, slippageBps, chainId),
     queryFn: async (): Promise<QuoteData> => {
       const sdk = await sdkPromise;
 
@@ -221,7 +210,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
           hooks: poolKey.hooks as `0x${string}`,
         },
         zeroForOne,
-        amountIn,
+        amountIn: amountIn.toString(),
       };
 
       const quote = await sdk.getQuote(quoteParams);
@@ -229,7 +218,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
 
       return { ...quote, minAmountOut };
     },
-    enabled: isEnabled,
+    enabled: isQuoteEnabled,
     refetchInterval,
     staleTime,
     retry: (failureCount, error) => {
@@ -244,23 +233,26 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     {
       token: inputToken,
       spender: PERMIT2_ADDRESS as Address,
-      amount: amountInBigInt,
+      amount: amountIn,
     },
     {
-      enabled: isEnabled && !isNativeInput,
+      enabled: isSwapEnabled && !isNativeInput,
       chainId,
     },
   );
 
-  // ── Step 3: Permit2 signing ─────────────────────────────────────────────
+  // ── Step 3: Permit2  ─────────────────────────────────────────────
   const signTypedData = useSignTypedData();
   const permit2DataRef = useRef<ReturnType<PreparePermit2DataResult["buildPermit2DataWithSignature"]> | null>(null);
-  const [permit2Signed, setPermit2Signed] = useState(false);
   const [permit2Error, setPermit2Error] = useState<Error | undefined>(undefined);
 
   const permit2Sign = useCallback(async () => {
-    if (isNativeInput) return;
-    if (!connectedAddress) throw new Error("No wallet connected");
+    if (isNativeInput) {
+      return;
+    }
+    if (!isWalletReady) {
+      throw new Error("No wallet connected");
+    }
 
     try {
       setPermit2Error(undefined);
@@ -285,17 +277,15 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
 
       // Build the final permit2 data with the signature
       permit2DataRef.current = prepareResult.buildPermit2DataWithSignature(signature);
-      setPermit2Signed(true);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setPermit2Error(error);
       throw error;
     }
-  }, [isNativeInput, connectedAddress, sdkPromise, inputToken, signTypedData]);
+  }, [isNativeInput, isWalletReady, sdkPromise, inputToken, connectedAddress, signTypedData]);
 
   const permit2Reset = useCallback(() => {
     permit2DataRef.current = null;
-    setPermit2Signed(false);
     setPermit2Error(undefined);
     signTypedData.reset();
   }, [signTypedData]);
@@ -303,7 +293,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
   const permit2Step: UseSwapPermit2Step = {
     isRequired: !isNativeInput,
     isPending: signTypedData.isPending,
-    isSigned: permit2Signed,
+    isSigned: !!permit2DataRef.current,
     error: permit2Error,
     sign: permit2Sign,
     reset: permit2Reset,
@@ -313,7 +303,12 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
   const swapTransaction = useTransaction();
 
   const swapExecute = useCallback(async (): Promise<Hex> => {
-    if (!recipient) throw new Error("No recipient address");
+    if (!isWalletReady) {
+      throw new Error("No wallet connected");
+    }
+    if (!quoteQuery.data) {
+      throw new Error("Quote not available");
+    }
 
     const sdk = await sdkPromise;
     const universalRouter = sdk.getContractAddress("universalRouter");
@@ -324,19 +319,16 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
       currencyB: poolKey.currency1 as Address,
       fee: poolKey.fee as FeeTier,
       tickSpacing: poolKey.tickSpacing,
-      hooks: poolKey.hooks as `0x${string}`,
+      hooks: poolKey.hooks as Address,
     });
-
-    // Use the latest quote's minAmountOut, or 0n if no quote yet
-    const minAmountOut = quoteQuery.data?.minAmountOut ?? 0n;
 
     // Build calldata
     const calldata = sdk.buildSwapCallData({
       pool,
-      amountIn: amountInBigInt,
-      amountOutMinimum: minAmountOut,
+      amountIn,
+      amountOutMinimum: quoteQuery.data.minAmountOut,
       zeroForOne,
-      recipient: recipient as Address,
+      recipient: recipient ?? connectedAddress,
       permit2Signature: permit2DataRef.current ?? undefined,
     });
 
@@ -344,37 +336,50 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     return swapTransaction.sendTransaction({
       to: universalRouter,
       data: calldata,
-      value: isNativeInput ? amountInBigInt : 0n,
+      value: isNativeInput ? amountIn : 0n,
     });
   }, [
-    recipient,
+    isWalletReady,
+    quoteQuery.data,
     sdkPromise,
-    poolKey,
-    amountInBigInt,
+    poolKey.currency0,
+    poolKey.currency1,
+    poolKey.fee,
+    poolKey.tickSpacing,
+    poolKey.hooks,
+    amountIn,
     zeroForOne,
-    isNativeInput,
-    quoteQuery.data?.minAmountOut,
+    recipient,
+    connectedAddress,
     swapTransaction,
+    isNativeInput,
   ]);
 
   // ── Derived state ───────────────────────────────────────────────────────
   const currentStep: SwapStep = (() => {
-    if (!quoteQuery.data || quoteQuery.isLoading) return "quote";
-    if (approval.isRequired === true && !approval.transaction.isConfirmed) return "approval";
-    if (permit2Step.isRequired && !permit2Step.isSigned) return "permit2";
-    if (!swapTransaction.isConfirmed) return "swap";
+    if (!quoteQuery.data || quoteQuery.isLoading || !isWalletReady) {
+      return "quote";
+    }
+    if (approval.isRequired == undefined || approval.isRequired) {
+      return "approval";
+    }
+    if (permit2Step.isRequired && !permit2Step.isSigned) {
+      return "permit2";
+    }
+    if (!swapTransaction.isConfirmed) {
+      return "swap";
+    }
     return "completed";
   })();
 
-  const isReady =
-    !!quoteQuery.data &&
-    (approval.isRequired === false || approval.transaction.isConfirmed) &&
-    (!permit2Step.isRequired || permit2Step.isSigned);
-
-  // ── executeAll ──────────────────────────────────────────────────────────
+  // ── executeAll
   const executeAll = useCallback(async (): Promise<Hex> => {
+    if (approval.isRequired === undefined) {
+      throw new Error("Awaiting approval status.");
+    }
+
     // Step 1: Approval (if required)
-    if (approval.isRequired === true && !approval.transaction.isConfirmed) {
+    if (approval.isRequired && !approval.transaction.isConfirmed) {
       await approval.approve();
       await approval.transaction.waitForConfirmation();
     }
@@ -388,32 +393,24 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     return swapExecute();
   }, [approval, permit2Step.isRequired, permit2Step.isSigned, permit2Sign, swapExecute]);
 
-  // ── Reset ───────────────────────────────────────────────────────────────
+  // ── Reset Everything
   const reset = useCallback(() => {
     approval.transaction.reset();
     permit2Reset();
     swapTransaction.reset();
   }, [approval.transaction, permit2Reset, swapTransaction]);
 
-  // ── Auto-reset on input changes ─────────────────────────────────────────
-  const inputKeyRef = useRef<string>("");
-  useEffect(() => {
-    const inputKey = `${poolKey.currency0}-${poolKey.currency1}-${poolKey.fee}-${poolKey.tickSpacing}-${poolKey.hooks}-${amountIn}-${zeroForOne}-${chainId}`;
-    if (inputKeyRef.current && inputKeyRef.current !== inputKey) {
-      reset();
-    }
-    inputKeyRef.current = inputKey;
-  }, [poolKey, amountIn, zeroForOne, chainId, reset]);
-
   return {
     steps: {
-      quote: { query: quoteQuery },
+      quote: quoteQuery,
       approval,
       permit2: permit2Step,
-      swap: { transaction: swapTransaction, execute: swapExecute },
+      swap: {
+        transaction: swapTransaction,
+        execute: swapExecute,
+      },
     },
     currentStep,
-    isReady,
     executeAll,
     reset,
   };

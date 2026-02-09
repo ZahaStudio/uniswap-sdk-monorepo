@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useState, useMemo, type ReactNode } from "react";
+import { createContext, useMemo, type ReactNode } from "react";
 
 import { UniswapSDK, type V4Contracts } from "@zahastudio/uniswap-sdk";
 
@@ -33,6 +33,8 @@ export interface UniswapSDKProviderProps {
   config?: UniswapSDKConfig;
 }
 
+const sdkCache = new Map<number, Promise<UniswapSDK>>();
+
 /**
  * Provider component for the Uniswap SDK.
  * Must be wrapped inside WagmiProvider and QueryClientProvider.
@@ -60,14 +62,12 @@ export interface UniswapSDKProviderProps {
  * ```
  */
 export function UniswapSDKProvider({ children, config }: UniswapSDKProviderProps) {
-  const [sdkCache] = useState(() => new Map<number, Promise<UniswapSDK>>());
-
   const contextValue = useMemo<UniswapSDKContextValue>(
     () => ({
       sdkCache,
       contracts: config?.contracts,
     }),
-    [sdkCache, config?.contracts],
+    [config?.contracts],
   );
 
   return <UniswapSDKContext.Provider value={contextValue}>{children}</UniswapSDKContext.Provider>;

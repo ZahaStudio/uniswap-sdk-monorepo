@@ -23,11 +23,12 @@ export const swapKeys = {
   /** Base key for all swap queries */
   all: [PACKAGE_KEY, "useSwap"] as const,
 
-  /** Key for a swap quote by pool key, amount, direction, and chain */
+  /** Key for a swap quote by pool key, amount, direction, slippage, and chain */
   quote: (
     poolKey: { currency0: string; currency1: string; fee: number; tickSpacing: number; hooks: string },
-    amountIn: string,
+    amountIn: bigint,
     zeroForOne: boolean,
+    slippageBps: number,
     chainId?: number,
   ) =>
     [
@@ -40,6 +41,7 @@ export const swapKeys = {
       poolKey.hooks,
       amountIn,
       zeroForOne,
+      slippageBps,
       chainId,
     ] as const,
 };
