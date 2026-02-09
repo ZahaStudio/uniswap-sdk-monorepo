@@ -147,7 +147,7 @@ export interface UsePositionReturn {
 export function usePosition(tokenId: string | undefined, options: UsePositionOptions = {}): UsePositionReturn {
   const { chainId: overrideChainId, enabled = true, refetchInterval = false, staleTime = 10000 } = options;
 
-  const { sdkPromise, chainId } = useUniswapSDK({ chainId: overrideChainId });
+  const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
 
   // Main query for position data and uncollected fees
   const query = useQuery({
@@ -156,7 +156,9 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       if (!tokenId) {
         throw new Error("Token ID is required");
       }
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
       const [position, uncollectedFees] = await Promise.all([
         sdk.getPosition(tokenId),
         sdk.getUncollectedFees(tokenId),
@@ -168,7 +170,7 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
         },
       };
     },
-    enabled: !!tokenId && enabled,
+    enabled: !!tokenId && enabled && !!sdk,
     refetchInterval,
     staleTime,
     retry: (failureCount, error) => {
@@ -186,7 +188,9 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       if (!tokenId) {
         throw new Error("Token ID is required");
       }
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
       return sdk.buildCollectFeesCallData({
         tokenId,
         recipient,
@@ -197,7 +201,9 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       if (!tokenId) {
         throw new Error("Token ID is required");
       }
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
       return sdk.buildRemoveLiquidityCallData({
         tokenId,
         liquidityPercentage: args.liquidityPercentage,
@@ -214,8 +220,9 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       if (!position) {
         throw new Error("Position not loaded. Wait for query to complete before adding liquidity.");
       }
-
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
       return sdk.buildAddLiquidityCallData({
         pool: position.pool,
         tickLower: position.position.tickLower,

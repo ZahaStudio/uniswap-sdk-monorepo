@@ -82,8 +82,14 @@ export class UniswapSDK {
     };
   }
 
-  public static async create(client: PublicClient, contracts?: V4Contracts): Promise<UniswapSDK> {
-    const chainId = await client.getChainId();
+  /**
+   * Creates a SDK instance for a specific chain.
+   *
+   * @param client - Viem public client for the target chain
+   * @param chainId - Chain ID for the target network
+   * @param contracts - Optional overrides for contract addresses
+   */
+  public static create(client: PublicClient, chainId: number, contracts?: V4Contracts): UniswapSDK {
     const chain = getChainById(chainId);
     const uniswapContracts = getUniswapContracts(chainId);
 

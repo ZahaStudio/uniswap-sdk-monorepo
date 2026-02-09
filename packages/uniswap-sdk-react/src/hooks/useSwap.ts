@@ -22,10 +22,6 @@ import { useTransaction, type UseTransactionReturn } from "@/hooks/useTransactio
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { swapKeys } from "@/utils/queryKeys";
 
-// ────────────────────────────────────────────────────────────────────────────
-// Types
-// ────────────────────────────────────────────────────────────────────────────
-
 /**
  * Operation parameters for the useSwap hook.
  */
@@ -182,7 +178,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
   const { enabled = true, refetchInterval = false, staleTime = 10000, chainId: chainIdOverride } = options;
 
   // ── SDK & Wallet ────────────────────────────────────────────────────────
-  const { sdkPromise, chainId } = useUniswapSDK({ chainId: chainIdOverride });
+  const { sdk, chainId } = useUniswapSDK({ chainId: chainIdOverride });
   const { address: connectedAddress } = useAccount();
   const recipient = recipientOverride ?? connectedAddress;
 
@@ -192,14 +188,16 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
 
   const hasValidAmount = amountIn > 0n;
   const isWalletReady = !!connectedAddress;
-  const isQuoteEnabled = enabled && hasValidAmount;
+  const isQuoteEnabled = enabled && hasValidAmount && !!sdk;
   const isSwapEnabled = isQuoteEnabled && isWalletReady;
 
   // ── Step 1: Quote ───────────────────────────────────────────────────────
   const quoteQuery = useQuery({
     queryKey: swapKeys.quote(poolKey, amountIn, zeroForOne, slippageBps, chainId),
     queryFn: async (): Promise<QuoteData> => {
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
 
       const quoteParams: SwapExactInSingle = {
         poolKey: {
@@ -253,11 +251,13 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     if (!isWalletReady) {
       throw new Error("No wallet connected");
     }
+    if (!sdk) {
+      throw new Error("SDK not initialized");
+    }
 
     try {
       setPermit2Error(undefined);
 
-      const sdk = await sdkPromise;
       const universalRouter = sdk.getContractAddress("universalRouter");
 
       // Prepare the permit2 data (reads on-chain nonce/expiration)
@@ -282,7 +282,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
       setPermit2Error(error);
       throw error;
     }
-  }, [isNativeInput, isWalletReady, sdkPromise, inputToken, connectedAddress, signTypedData]);
+  }, [isNativeInput, isWalletReady, sdk, inputToken, connectedAddress, signTypedData]);
 
   const permit2Reset = useCallback(() => {
     permit2DataRef.current = null;
@@ -309,8 +309,9 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
     if (!quoteQuery.data) {
       throw new Error("Quote not available");
     }
-
-    const sdk = await sdkPromise;
+    if (!sdk) {
+      throw new Error("SDK not initialized");
+    }
     const universalRouter = sdk.getContractAddress("universalRouter");
 
     // Fetch a fresh pool for the most current on-chain state
@@ -341,7 +342,7 @@ export function useSwap(params: UseSwapParams, options: UseSwapOptions = {}): Us
   }, [
     isWalletReady,
     quoteQuery.data,
-    sdkPromise,
+    sdk,
     poolKey.currency0,
     poolKey.currency1,
     poolKey.fee,
