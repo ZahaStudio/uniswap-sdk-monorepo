@@ -1,5 +1,4 @@
-import { Ether } from "@uniswap/sdk-core";
-import { createPublicClient, erc20Abi, http } from "viem";
+import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
@@ -37,22 +36,12 @@ describe("getTokens (unichain fork)", () => {
     const sdk = await UniswapSDK.create(client);
     const [currencyA, currencyB] = await sdk.getTokens({ addresses: [tokenA, tokenB] });
 
-    const nativeCurrency = Ether.onChain(await client.getChainId());
-    expect(currencyA.symbol).toBe(nativeCurrency.symbol);
-    expect(currencyA.decimals).toBe(nativeCurrency.decimals);
-    expect(currencyA.name).toBe(nativeCurrency.name);
+    expect(currencyA.symbol).toBe("ETH");
+    expect(currencyA.decimals).toBe(18);
+    expect(currencyA.name).toBe("Ether");
 
-    const [expectedSymbol, expectedName, expectedDecimals] = await client.multicall({
-      allowFailure: false,
-      contracts: [
-        { address: tokenB, abi: erc20Abi, functionName: "symbol" },
-        { address: tokenB, abi: erc20Abi, functionName: "name" },
-        { address: tokenB, abi: erc20Abi, functionName: "decimals" },
-      ],
-    });
-
-    expect(currencyB.symbol).toBe(expectedSymbol);
-    expect(currencyB.name).toBe(expectedName);
-    expect(currencyB.decimals).toBe(expectedDecimals);
+    expect(currencyB.symbol).toBe("USDC");
+    expect(currencyB.name).toBe("USDC");
+    expect(currencyB.decimals).toBe(6);
   });
 });

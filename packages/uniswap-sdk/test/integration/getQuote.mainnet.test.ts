@@ -1,4 +1,3 @@
-import { v4 } from "hookmate/abi";
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
 
@@ -33,27 +32,8 @@ describe("getQuote (unichain fork)", () => {
 
     const sdk = await UniswapSDK.create(client);
     const amountIn = "1000000";
-    const quoteParams = {
-      poolKey: {
-        currency0: MAINNET_POOL_KEY.currency0 as `0x${string}`,
-        currency1: MAINNET_POOL_KEY.currency1 as `0x${string}`,
-        fee: MAINNET_POOL_KEY.fee,
-        tickSpacing: MAINNET_POOL_KEY.tickSpacing,
-        hooks: MAINNET_POOL_KEY.hooks as `0x${string}`,
-      },
-      zeroForOne: false,
-      exactAmount: BigInt(amountIn),
-      hookData: "0x" as `0x${string}`,
-    };
-
-    const [expectedAmountOut, expectedGasUsed] = await client
-      .simulateContract({
-        address: sdk.getContractAddress("quoter"),
-        abi: v4.QuoterArtifact.abi,
-        functionName: "quoteExactInputSingle",
-        args: [quoteParams],
-      })
-      .then((simulation) => simulation.result);
+    const expectedAmountOut = 518374739793346n;
+    const expectedGasUsed = 37263n;
 
     const block = await client.getBlock();
     const blockTimestampMs = Number(block.timestamp) * 1000;
