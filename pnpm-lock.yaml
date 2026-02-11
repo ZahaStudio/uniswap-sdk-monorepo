@@ -12,9 +12,6 @@ catalogs:
     tsdown:
       specifier: ^0.20.1
       version: 0.20.1
-    viem:
-      specifier: ^2.45.0
-      version: 2.45.0
 
 overrides:
   '@types/node': ^24.10.9
