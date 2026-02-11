@@ -3,15 +3,11 @@
 import { useCallback } from "react";
 
 import type { Address } from "viem";
-import { erc20Abi, maxUint256, zeroAddress } from "viem";
+import { erc20Abi, encodeFunctionData, maxUint256, zeroAddress } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 
-import { useTransaction, type UseTransactionReturn } from "@/hooks/useTransaction";
+import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import type { UseHookOptions } from "@/types/hooks";
-
-// ────────────────────────────────────────────────────────────────────────────
-// Types
-// ────────────────────────────────────────────────────────────────────────────
 
 /**
  * Operation parameters for the token approval hook.
@@ -55,10 +51,6 @@ export interface UseTokenApprovalReturn {
    */
   approve: (amount?: bigint) => Promise<`0x${string}`>;
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// Hook
-// ────────────────────────────────────────────────────────────────────────────
 
 /**
  * Reusable hook for checking and executing ERC-20 token approvals.
@@ -144,11 +136,15 @@ export function useTokenApproval(
         throw new Error("No wallet connected");
       }
 
-      return transaction.writeContract({
-        address: token,
+      const data = encodeFunctionData({
         abi: erc20Abi,
         functionName: "approve",
         args: [spender, approveAmount ?? maxUint256],
+      });
+
+      return transaction.sendTransaction({
+        to: token,
+        data,
       });
     },
     [isNativeToken, owner, token, spender, transaction],

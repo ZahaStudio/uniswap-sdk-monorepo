@@ -8,10 +8,6 @@ import { useAccount, useBalance, useReadContracts } from "wagmi";
 
 import type { UseHookOptions } from "@/types/hooks";
 
-// ────────────────────────────────────────────────────────────────────────────
-// Types
-// ────────────────────────────────────────────────────────────────────────────
-
 /**
  * On-chain token metadata.
  */
@@ -81,7 +77,6 @@ export function useToken(tokenAddress: Address, options: UseHookOptions = {}): U
   const { address: account } = useAccount();
   const isNative = tokenAddress.toLowerCase() === zeroAddress.toLowerCase();
 
-  // ── Native ETH balance ────────────────────────────────────────────────
   const nativeBalance = useBalance({
     address: account,
     chainId,
@@ -91,7 +86,6 @@ export function useToken(tokenAddress: Address, options: UseHookOptions = {}): U
     },
   });
 
-  // ── ERC-20 metadata + balance (single multicall) ──────────────────────
   const erc20Query = useReadContracts({
     contracts: [
       { address: tokenAddress, abi: erc20Abi, functionName: "name", chainId },
@@ -115,7 +109,6 @@ export function useToken(tokenAddress: Address, options: UseHookOptions = {}): U
     },
   });
 
-  // ── Derive token details ──────────────────────────────────────────────
   const token = useMemo((): TokenDetails => {
     if (isNative) {
       return {
@@ -135,7 +128,6 @@ export function useToken(tokenAddress: Address, options: UseHookOptions = {}): U
     };
   }, [isNative, tokenAddress, erc20Query.data]);
 
-  // ── Derive balance ────────────────────────────────────────────────────
   const balance = useMemo((): TokenBalance | undefined => {
     if (isNative) {
       if (!nativeBalance.data) return undefined;
@@ -158,7 +150,6 @@ export function useToken(tokenAddress: Address, options: UseHookOptions = {}): U
     };
   }, [isNative, nativeBalance.data, token.decimals, account, erc20Query.data]);
 
-  // ── Loading / error state ─────────────────────────────────────────────
   const isLoadingToken = !isNative && erc20Query.isLoading;
   const isLoadingBalance = isNative ? nativeBalance.isLoading : erc20Query.isLoading;
   const error = (isNative ? nativeBalance.error : erc20Query.error) ?? undefined;

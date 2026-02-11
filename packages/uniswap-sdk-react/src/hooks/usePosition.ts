@@ -19,57 +19,11 @@ export interface UsePositionData extends GetPositionResponse {
 }
 
 /**
- * Arguments for the removeLiquidity action.
+ * Operation parameters for position hooks.
  */
-export interface RemoveLiquidityArgs {
-  /** Percentage of liquidity to remove (0-10000 in basis points, e.g., 5000 = 50%) */
-  liquidityPercentage: number;
-  /** Slippage tolerance in basis points (optional, default: 50 = 0.5%) */
-  slippageTolerance?: number;
-  /** Unix timestamp deadline (optional, default: 30 minutes from now) */
-  deadline?: string;
-}
-
-/**
- * Arguments for the addLiquidity action.
- */
-export interface AddLiquidityArgs {
-  /** Amount of token0 to add (as string) */
-  amount0?: string;
-  /** Amount of token1 to add (as string) */
-  amount1?: string;
-  /** Recipient address for the position NFT */
-  recipient: string;
-  /** Slippage tolerance in basis points (optional, default: 50 = 0.5%) */
-  slippageTolerance?: number;
-  /** Unix timestamp deadline (optional, default: 30 minutes from now) */
-  deadline?: string;
-}
-
-/**
- * Action functions for position operations.
- */
-export interface UsePositionActions {
-  /**
-   * Build calldata for collecting fees from this position.
-   * @param recipient - Address to receive the collected fees
-   * @returns Promise with calldata and value for the transaction
-   */
-  collectFees: (recipient: string) => Promise<{ calldata: string; value: string }>;
-
-  /**
-   * Build calldata for removing liquidity from this position.
-   * @param args - Remove liquidity parameters
-   * @returns Promise with calldata and value for the transaction
-   */
-  removeLiquidity: (args: RemoveLiquidityArgs) => Promise<{ calldata: string; value: string }>;
-
-  /**
-   * Build calldata for adding more liquidity to this position.
-   * @param args - Add liquidity parameters
-   * @returns Promise with calldata and value for the transaction
-   */
-  addLiquidity: (args: AddLiquidityArgs) => Promise<{ calldata: string; value: string }>;
+export interface UsePositionParams {
+  /** The NFT token ID of the position */
+  tokenId: string;
 }
 
 /**
@@ -78,60 +32,41 @@ export interface UsePositionActions {
 export interface UsePositionReturn {
   /** TanStack Query result with position data and uncollected fees */
   query: UseQueryResult<UsePositionData, Error>;
-
-  /** Action functions for position operations */
-  actions: UsePositionActions;
 }
 
 /**
- * Hook to fetch and manage a Uniswap V4 position.
+ * Hook to fetch a Uniswap V4 position.
  *
  * Fetches the position data and uncollected fees in a single query.
+ * Use alongside `usePositionCollectFees`, `usePositionRemoveLiquidity`,
+ * or `usePositionIncreaseLiquidity` for mutation actions.
  *
- * @param tokenId - The NFT token ID of the position
+ * @param params - Operation parameters: tokenId
  * @param options - Configuration options for the query
- * @returns Object with query result and actions
+ * @returns Object with query result
  *
  * @example Basic usage
  * ```tsx
- * function PositionDisplay({ tokenId }: { tokenId: string }) {
- *   const { query, actions } = usePosition(tokenId);
+ * const { query } = usePosition({ tokenId });
  *
- *   if (query.isLoading) return <div>Loading...</div>;
- *   if (query.error) return <div>Error: {query.error.message}</div>;
- *
- *   const { position, uncollectedFees } = query.data!;
- *   return (
- *     <div>
- *       <p>Liquidity: {position.liquidity.toString()}</p>
- *       <p>Fees: {uncollectedFees.amount0.toString()} / {uncollectedFees.amount1.toString()}</p>
- *       <button onClick={() => actions.collectFees('0x...')}>
- *         Collect Fees
- *       </button>
- *     </div>
- *   );
- * }
+ * if (query.isLoading) return <div>Loading...</div>;
+ * const { position, periphery } = query.data!;
  * ```
  *
  * @example With polling
  * ```tsx
- * const { query } = usePosition(tokenId, {
- *   refetchInterval: 12000, // Refetch every 12 seconds
- * });
+ * const { query } = usePosition({ tokenId }, { refetchInterval: 12000 });
  * ```
  */
-export function usePosition(tokenId: string | undefined, options: UseHookOptions = {}): UsePositionReturn {
+export function usePosition(params: UsePositionParams, options: UseHookOptions = {}): UsePositionReturn {
+  const { tokenId } = params;
   const { chainId: overrideChainId, enabled = true, refetchInterval = false } = options;
 
   const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
 
-  // Main query for position data and uncollected fees
   const query = useQuery({
-    queryKey: positionKeys.detail(tokenId ?? "", chainId),
+    queryKey: positionKeys.detail(tokenId, chainId),
     queryFn: async (): Promise<UsePositionData> => {
-      if (!tokenId) {
-        throw new Error("Token ID is required");
-      }
       if (!sdk) {
         throw new Error("SDK not initialized");
       }
@@ -149,7 +84,6 @@ export function usePosition(tokenId: string | undefined, options: UseHookOptions
     enabled: !!tokenId && enabled && !!sdk,
     refetchInterval,
     retry: (failureCount, error) => {
-      // Don't retry on "position doesn't exist" errors
       if (error instanceof Error && error.message.includes("Position has no liquidity")) {
         return false;
       }
@@ -157,59 +91,5 @@ export function usePosition(tokenId: string | undefined, options: UseHookOptions
     },
   });
 
-  // Actions for position operations
-  const actions: UsePositionActions = {
-    collectFees: async (recipient: string) => {
-      if (!tokenId) {
-        throw new Error("Token ID is required");
-      }
-      if (!sdk) {
-        throw new Error("SDK not initialized");
-      }
-      return sdk.buildCollectFeesCallData({
-        tokenId,
-        recipient,
-      });
-    },
-
-    removeLiquidity: async (args: RemoveLiquidityArgs) => {
-      if (!tokenId) {
-        throw new Error("Token ID is required");
-      }
-      if (!sdk) {
-        throw new Error("SDK not initialized");
-      }
-      return sdk.buildRemoveLiquidityCallData({
-        tokenId,
-        liquidityPercentage: args.liquidityPercentage,
-        slippageTolerance: args.slippageTolerance,
-        deadline: args.deadline,
-      });
-    },
-
-    addLiquidity: async (args: AddLiquidityArgs) => {
-      if (!tokenId) {
-        throw new Error("Token ID is required");
-      }
-      const position = query.data;
-      if (!position) {
-        throw new Error("Position not loaded. Wait for query to complete before adding liquidity.");
-      }
-      if (!sdk) {
-        throw new Error("SDK not initialized");
-      }
-      return sdk.buildAddLiquidityCallData({
-        pool: position.pool,
-        tickLower: position.position.tickLower,
-        tickUpper: position.position.tickUpper,
-        amount0: args.amount0,
-        amount1: args.amount1,
-        recipient: args.recipient,
-        slippageTolerance: args.slippageTolerance,
-        deadline: args.deadline,
-      });
-    },
-  };
-
-  return { query, actions };
+  return { query };
 }

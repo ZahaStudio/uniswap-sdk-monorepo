@@ -42,8 +42,6 @@ import { preparePermit2Data } from "@/utils/preparePermit2Data";
 export type V4Contracts = {
   /** Address of the pool manager contract */
   poolManager: Address;
-  /** Address of the position descriptor contract */
-  positionDescriptor: Address;
   /** Address of the position manager contract */
   positionManager: Address;
   /** Address of the quoter contract */
@@ -52,6 +50,8 @@ export type V4Contracts = {
   stateView: Address;
   /** Address of the universal router contract */
   universalRouter: Address;
+  /** Address of the Permit2 contract */
+  permit2: Address;
 };
 
 /**
@@ -114,7 +114,8 @@ export class UniswapSDK {
         quoter: uniswapContracts.v4.quoter,
         stateView: uniswapContracts.v4.stateView,
         universalRouter: uniswapContracts.utility.universalRouter,
-      } as V4Contracts;
+        permit2: uniswapContracts.utility.permit2,
+      } satisfies V4Contracts;
     }
 
     return new UniswapSDK(client, chain, contracts, cache);

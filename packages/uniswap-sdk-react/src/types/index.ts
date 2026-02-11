@@ -8,17 +8,29 @@ export type { UniswapSDKConfig, UniswapSDKContextValue, UniswapSDKProviderProps 
 export type {
   UseUniswapSDKOptions,
   UseUniswapSDKReturn,
+  // usePosition
+  UsePositionParams,
   UsePositionData,
-  UsePositionActions,
   UsePositionReturn,
+  // usePositionCollectFees
+  CollectFeesArgs,
+  UsePositionCollectFeesOptions,
+  UsePositionCollectFeesReturn,
+  // usePositionRemoveLiquidity
   RemoveLiquidityArgs,
-  AddLiquidityArgs,
+  UsePositionRemoveLiquidityOptions,
+  UsePositionRemoveLiquidityReturn,
+  // usePositionIncreaseLiquidity
+  IncreaseLiquidityArgs,
+  UsePositionPermit2Step,
+  IncreaseLiquidityStep,
+  UsePositionIncreaseLiquidityOptions,
+  UsePositionIncreaseLiquidityReturn,
   // useTransaction
   TransactionStatus,
   UseTransactionOptions,
   UseTransactionReturn,
   SendTransactionParams,
-  WriteContractParams,
   // useTokenApproval
   UseTokenApprovalParams,
   UseTokenApprovalOptions,

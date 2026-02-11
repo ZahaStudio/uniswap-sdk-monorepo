@@ -17,8 +17,8 @@ import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount, useSignTypedData } from "wagmi";
 
-import { useTokenApproval, type UseTokenApprovalReturn } from "@/hooks/useTokenApproval";
-import { useTransaction, type UseTransactionReturn } from "@/hooks/useTransaction";
+import { useTokenApproval, type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
+import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
 import { swapKeys } from "@/utils/queryKeys";
@@ -108,10 +108,6 @@ export interface UseSwapReturn {
   /** Reset all mutation state (approval, permit2, swap). Quote query persists. */
   reset: () => void;
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// Hook
-// ────────────────────────────────────────────────────────────────────────────
 
 /**
  * Hook to manage the full Uniswap V4 swap lifecycle.
@@ -361,7 +357,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     if (permit2Step.isRequired && !permit2DataRef.current) {
       return "permit2";
     }
-    if (!swapTransaction.isConfirmed) {
+    if (swapTransaction.status !== "confirmed") {
       return "swap";
     }
     return "completed";
@@ -374,7 +370,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     }
 
     // Step 1: Approval (if required)
-    if (approval.isRequired && !approval.transaction.isConfirmed) {
+    if (approval.isRequired && approval.transaction.status !== "confirmed") {
       await approval.approve();
       await approval.transaction.waitForConfirmation();
     }

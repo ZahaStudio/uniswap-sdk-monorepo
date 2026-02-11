@@ -2,12 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import type { Abi, Address, Hex, TransactionReceipt } from "viem";
-import { useSendTransaction, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
-
-// ────────────────────────────────────────────────────────────────────────────
-// Types
-// ────────────────────────────────────────────────────────────────────────────
+import type { Address, Hex, TransactionReceipt } from "viem";
+import { useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 
 /**
  * Transaction lifecycle status.
@@ -31,7 +27,7 @@ export interface UseTransactionOptions {
 }
 
 /**
- * Parameters for sending a raw transaction.
+ * Parameters for sending a transaction.
  */
 export interface SendTransactionParams {
   /** Target contract address */
@@ -43,53 +39,24 @@ export interface SendTransactionParams {
 }
 
 /**
- * Parameters for a typed contract write.
- */
-export interface WriteContractParams<TAbi extends Abi = Abi> {
-  /** Contract address */
-  address: Address;
-  /** Contract ABI */
-  abi: TAbi;
-  /** Function to call */
-  functionName: string;
-  /** Function arguments */
-  args?: readonly unknown[];
-  /** Native value to send */
-  value?: bigint;
-}
-
-/**
  * Return type for the useTransaction hook.
  */
 export interface UseTransactionReturn {
-  // ── Wagmi hook instances (exposed directly) ───────────────────────────
-  /** Wagmi useSendTransaction return — use for raw tx sends */
+  /** Wagmi useSendTransaction return */
   send: ReturnType<typeof useSendTransaction>;
-  /** Wagmi useWriteContract return — use for typed contract writes */
-  write: ReturnType<typeof useWriteContract>;
   /** Wagmi useWaitForTransactionReceipt return — receipt query */
   receipt: ReturnType<typeof useWaitForTransactionReceipt>;
 
-  // ── Derived state ─────────────────────────────────────────────────────
   /** Current transaction hash (set after broadcast) */
   txHash: Hex | undefined;
   /** Derived lifecycle status */
   status: TransactionStatus;
-  /** First error from send, write, or receipt */
+  /** First error from send or receipt */
   error: Error | undefined;
 
-  // ── Convenience flags ─────────────────────────────────────────────────
-  isIdle: boolean;
-  isPending: boolean;
-  isConfirming: boolean;
-  isConfirmed: boolean;
-  isError: boolean;
-
   // ── Actions ───────────────────────────────────────────────────────────
-  /** Send a raw transaction. Resolves with the tx hash after broadcast. */
+  /** Send a transaction. Resolves with the tx hash after broadcast. */
   sendTransaction: (params: SendTransactionParams) => Promise<Hex>;
-  /** Send a typed contract write. Resolves with the tx hash after broadcast. */
-  writeContract: (params: WriteContractParams) => Promise<Hex>;
   /**
    * Returns a promise that resolves when the current transaction is confirmed.
    * Useful for chaining steps in a pipeline (e.g. approve → wait → swap).
@@ -99,17 +66,16 @@ export interface UseTransactionReturn {
   reset: () => void;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Hook
-// ────────────────────────────────────────────────────────────────────────────
-
 /**
  * Generic, reusable hook for managing the lifecycle of a single blockchain
- * transaction. Composes wagmi's `useSendTransaction`, `useWriteContract`, and
+ * transaction. Composes wagmi's `useSendTransaction` and
  * `useWaitForTransactionReceipt` into a unified status model.
  *
  * This hook is SDK-agnostic — it knows nothing about Uniswap. It can be used
  * for any transaction pattern: swaps, approvals, position management, etc.
+ *
+ * All contract interactions should encode their calldata first and use
+ * `sendTransaction` for consistent behavior.
  *
  * @param options - Optional callbacks and confirmation config
  * @returns Transaction lifecycle state and action functions
@@ -120,11 +86,8 @@ export interface UseTransactionReturn {
  *   onSuccess: (receipt) => console.log("Confirmed!", receipt.transactionHash),
  * });
  *
- * // Raw send
+ * // Send a transaction with pre-encoded calldata
  * await tx.sendTransaction({ to: "0x...", data: "0x...", value: 0n });
- *
- * // Contract write
- * await tx.writeContract({ address: "0x...", abi: erc20Abi, functionName: "approve", args: [...] });
  *
  * // Wait for confirmation in a pipeline
  * const receipt = await tx.waitForConfirmation();
@@ -133,7 +96,6 @@ export interface UseTransactionReturn {
 export function useTransaction(options: UseTransactionOptions = {}): UseTransactionReturn {
   const { onSuccess, confirmations = 1 } = options;
 
-  // ── Local state ─────────────────────────────────────────────────────────
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
 
   // Ref-based promise resolver for waitForConfirmation()
@@ -142,9 +104,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     reject: (err: Error) => void;
   } | null>(null);
 
-  // ── Wagmi hooks ─────────────────────────────────────────────────────────
   const send = useSendTransaction();
-  const write = useWriteContract();
 
   const receipt = useWaitForTransactionReceipt({
     hash: txHash,
@@ -176,13 +136,13 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   }, [receipt.error]);
 
   // ── Derive status ───────────────────────────────────────────────────────
-  const error = send.error ?? write.error ?? receipt.error ?? undefined;
+  const error = send.error ?? receipt.error ?? undefined;
 
   const status: TransactionStatus = (() => {
     if (error) return "error";
     if (receipt.isSuccess) return "confirmed";
     if (txHash && receipt.isLoading) return "confirming";
-    if (send.isPending || write.isPending) return "pending";
+    if (send.isPending) return "pending";
     return "idle";
   })();
 
@@ -198,21 +158,6 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
       return hash;
     },
     [send],
-  );
-
-  const writeContractFn = useCallback(
-    async (params: WriteContractParams): Promise<Hex> => {
-      const hash = await write.writeContractAsync({
-        address: params.address,
-        abi: params.abi,
-        functionName: params.functionName,
-        args: params.args as unknown[],
-        value: params.value,
-      });
-      setTxHash(hash);
-      return hash;
-    },
-    [write],
   );
 
   const waitForConfirmation = useCallback((): Promise<TransactionReceipt> => {
@@ -231,14 +176,12 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const reset = useCallback(() => {
     setTxHash(undefined);
     send.reset();
-    write.reset();
     confirmResolverRef.current = null;
-  }, [send, write]);
+  }, [send]);
 
   return {
     // Wagmi hook instances
     send,
-    write,
     receipt,
 
     // Derived state
@@ -246,16 +189,8 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     status,
     error,
 
-    // Convenience flags
-    isIdle: status === "idle",
-    isPending: status === "pending",
-    isConfirming: status === "confirming",
-    isConfirmed: status === "confirmed",
-    isError: status === "error",
-
     // Actions
     sendTransaction,
-    writeContract: writeContractFn,
     waitForConfirmation,
     reset,
   };
