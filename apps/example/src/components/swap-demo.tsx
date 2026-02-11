@@ -135,7 +135,7 @@ export function SwapDemo() {
   }, [reset]);
 
   // ── Render ──────────────────────────────────────────────────────────────
-  const isSwapConfirmed = steps.swap.transaction.isConfirmed;
+  const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
 
   return (
@@ -280,10 +280,7 @@ export function SwapDemo() {
       )}
 
       {/* Transaction status */}
-      {(steps.swap.transaction.isPending ||
-        steps.swap.transaction.isConfirming ||
-        steps.swap.transaction.isConfirmed ||
-        steps.swap.transaction.isError) && (
+      {steps.swap.transaction.status !== "idle" && (
         <TransactionStatus
           status={steps.swap.transaction.status}
           txHash={swapTxHash}
