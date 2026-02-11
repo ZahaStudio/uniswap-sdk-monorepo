@@ -16,6 +16,7 @@
     "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 1 --prune-history --mnemonic-seed-unsafe 1337"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.29.8",
     "@changesets/config": "^3.1.2",
     "eslint": "catalog:",
