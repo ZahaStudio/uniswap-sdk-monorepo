@@ -13,3 +13,4 @@ server/dist
 public/dist
 .turbo
 .claude
+*.tsbuildinfo

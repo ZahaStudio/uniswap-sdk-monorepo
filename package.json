@@ -4,6 +4,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:lib": "turbo run dev --filter='!@acme/*'",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
@@ -11,18 +12,19 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "turbo run build --filter='!@acme/*' && changeset publish"
+    "release": "turbo run build --filter='!@acme/*' && changeset publish",
+    "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 1 --prune-history --mnemonic-seed-unsafe 1337"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.5.2",
     "@changesets/cli": "^2.29.8",
     "@changesets/config": "^3.1.2",
     "eslint": "catalog:",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "tsx": "^4.21.0",
-    "turbo": "^2.8.0"
+    "turbo": "^2.8.5"
   },
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.29.2",
   "engines": {
     "node": ">=24"
   }

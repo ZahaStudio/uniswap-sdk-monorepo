@@ -15,17 +15,27 @@
     "lint": "eslint",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "viem": ">=2.0.0",
+    "@tanstack/react-query": ">=5.0.0",
+    "wagmi": ">=2.0.0"
+  },
+  "dependencies": {
+    "@zahastudio/uniswap-sdk": "workspace:*"
+  },
   "devDependencies": {
+    "@acme/eslint-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
+    "@tanstack/react-query": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
-    "@acme/eslint-config": "workspace:*",
+    "react": "catalog:",
     "tsdown": "catalog:",
-    "typescript": "catalog:"
-  },
-  "dependencies": {
-    "react": "catalog:"
+    "typescript": "catalog:",
+    "viem": "catalog:",
+    "wagmi": "catalog:"
   },
   "publishConfig": {
     "access": "public"

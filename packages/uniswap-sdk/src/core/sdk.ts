@@ -24,6 +24,8 @@ import type { GetTickInfoArgs, TickInfoResponse } from "@/utils/getTickInfo";
 import { getTickInfo } from "@/utils/getTickInfo";
 import type { GetTokensArgs } from "@/utils/getTokens";
 import { getTokens } from "@/utils/getTokens";
+import type { GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
+import { getUncollectedFees } from "@/utils/getUncollectedFees";
 import { preparePermit2BatchData } from "@/utils/preparePermit2BatchData";
 import type {
   PreparePermit2BatchDataArgs,
@@ -40,8 +42,6 @@ import { preparePermit2Data } from "@/utils/preparePermit2Data";
 export type V4Contracts = {
   /** Address of the pool manager contract */
   poolManager: Address;
-  /** Address of the position descriptor contract */
-  positionDescriptor: Address;
   /** Address of the position manager contract */
   positionManager: Address;
   /** Address of the quoter contract */
@@ -50,6 +50,8 @@ export type V4Contracts = {
   stateView: Address;
   /** Address of the universal router contract */
   universalRouter: Address;
+  /** Address of the Permit2 contract */
+  permit2: Address;
 };
 
 /**
@@ -88,8 +90,20 @@ export class UniswapSDK {
     };
   }
 
-  public static async create(client: PublicClient, contracts?: V4Contracts, cache?: CacheAdapter): Promise<UniswapSDK> {
-    const chainId = await client.getChainId();
+  /**
+   * Creates a SDK instance for a specific chain.
+   *
+   * @param client - Viem public client for the target chain
+   * @param chainId - Chain ID for the target network (defaults to client.chain.id)
+   * @param contracts - Optional overrides for contract addresses
+   * @param cache - Optional cache adapter
+   */
+  public static create(
+    client: PublicClient,
+    chainId: number,
+    contracts?: V4Contracts,
+    cache?: CacheAdapter,
+  ): UniswapSDK {
     const chain = getChainById(chainId);
     const uniswapContracts = getUniswapContracts(chainId);
 
@@ -100,7 +114,8 @@ export class UniswapSDK {
         quoter: uniswapContracts.v4.quoter,
         stateView: uniswapContracts.v4.stateView,
         universalRouter: uniswapContracts.utility.universalRouter,
-      } as V4Contracts;
+        permit2: uniswapContracts.utility.permit2,
+      } satisfies V4Contracts;
     }
 
     return new UniswapSDK(client, chain, contracts, cache);
@@ -217,6 +232,21 @@ export class UniswapSDK {
    */
   public async getPositionInfo(tokenId: string): Promise<GetPositionInfoResponse> {
     return getPositionInfo(tokenId, this.instance);
+  }
+
+  /**
+   * Calculates uncollected (accrued but not yet collected) fees for a given position NFT.
+   *
+   * This method uses StateView.getPositionInfo to get the position's last fee growth snapshot,
+   * and StateView.getFeeGrowthInside to get the current fee growth inside the tick range.
+   * The difference, multiplied by the position's liquidity, gives the uncollected fees.
+   *
+   * @param tokenId - The NFT token ID of the position
+   * @returns Promise<GetUncollectedFeesResponse> - Uncollected fee amounts for both tokens
+   * @throws Error if position data cannot be fetched
+   */
+  public async getUncollectedFees(tokenId: string): Promise<GetUncollectedFeesResponse> {
+    return getUncollectedFees(tokenId, this.instance);
   }
 
   /**
