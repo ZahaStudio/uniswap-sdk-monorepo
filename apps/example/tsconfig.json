@@ -8,10 +8,17 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "#/*": ["./public/*"],
-      "$/*": ["./.source/*"]
-    }
+      "@/*": [
+        "./src/*"
+      ],
+      "#/*": [
+        "./public/*"
+      ],
+      "$/*": [
+        "./.source/*"
+      ]
+    },
+    "jsx": "preserve"
   },
   "include": [
     "**/*.ts", // Includes Next & Cloudflare (.d.ts) types
@@ -19,5 +26,8 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".next/"]
+  "exclude": [
+    "node_modules",
+    ".next/"
+  ]
 }

@@ -10,7 +10,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "turbo run build --filter='!@acme/*' && changeset publish"
+    "release": "turbo run build --filter='!@acme/*' && changeset publish",
+    "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 1 --prune-history --mnemonic-seed-unsafe 1337"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
@@ -18,7 +19,7 @@
     "eslint": "catalog:",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "turbo": "^2.8.2"
+    "turbo": "^2.8.3"
   },
   "packageManager": "pnpm@10.28.2",
   "engines": {

@@ -189,7 +189,7 @@ export async function preparePermit2Data(
     details: {
       token,
       amount: MaxUint160.toString(),
-      expiration: details.expiration.toString(),
+      expiration: sigDeadline.toString(),
       nonce: details.nonce.toString(),
     },
     spender,

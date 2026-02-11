@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useMemo } from "react";
 
 import { UniswapSDK } from "@zahastudio/uniswap-sdk";
 import { useChainId, usePublicClient } from "wagmi";
@@ -13,8 +13,6 @@ import { UniswapSDKContext } from "../provider/UniswapSDKProvider";
 export interface UseUniswapSDKReturn {
   /** The SDK instance (null until initialized) */
   sdk: UniswapSDK | null;
-  /** Promise that resolves to the SDK instance */
-  sdkPromise: Promise<UniswapSDK>;
   /** Whether the SDK is initialized */
   isInitialized: boolean;
   /** The effective chain ID being used */
@@ -46,10 +44,10 @@ export interface UseUniswapSDKOptions {
  * @example Using the connected chain (default)
  * ```tsx
  * function MyComponent() {
- *   const { sdk, sdkPromise, isInitialized } = useUniswapSDK();
+ *   const { sdk, isInitialized } = useUniswapSDK();
  *
  *   const fetchData = async () => {
- *     const sdk = await sdkPromise;
+ *     if (!sdk) return;
  *     const position = await sdk.getPosition(tokenId);
  *   };
  * }
@@ -78,60 +76,21 @@ export function useUniswapSDK(options: UseUniswapSDKOptions = {}): UseUniswapSDK
   const connectedChainId = useChainId();
   const effectiveChainId = options.chainId ?? connectedChainId;
   const publicClient = usePublicClient({ chainId: effectiveChainId });
-  const contracts = context.contracts?.[effectiveChainId];
 
-  const [sdk, setSDK] = useState<UniswapSDK | null>(null);
-  const [trackedPromise, setTrackedPromise] = useState<Promise<UniswapSDK> | null>(null);
-
-  // Create or retrieve cached SDK promise for the effective chain
-  const sdkPromise = useMemo(() => {
-    // Return cached promise if one exists for this chain
-    const cached = context.sdkCache.get(effectiveChainId);
-    if (cached) return cached;
-
+  const sdk = useMemo(() => {
     if (!publicClient) {
-      // Don't cache rejected promises — the client may become available later
-      const rejected = Promise.reject(
-        new Error(
-          `No public client available for chain ${effectiveChainId}. ` +
-            "Ensure the chain is configured in your WagmiProvider.",
-        ),
-      );
-      rejected.catch(() => {}); // Prevent unhandled rejection
-      return rejected;
+      return null;
     }
 
-    const promise = UniswapSDK.create(publicClient, contracts);
-    context.sdkCache.set(effectiveChainId, promise);
-    return promise;
-  }, [context.sdkCache, effectiveChainId, publicClient, contracts]);
-
-  // Reset SDK synchronously during render when the promise changes
-  if (sdkPromise !== trackedPromise) {
-    setTrackedPromise(sdkPromise);
-    setSDK(null);
-  }
-
-  // Track initialization reactively
-  useEffect(() => {
-    let cancelled = false;
-
-    sdkPromise
-      .then((instance) => {
-        if (!cancelled) setSDK(instance);
-      })
-      .catch(() => {
-        // SDK creation failed — sdk stays null
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [sdkPromise]);
+    const instance = context.getSdk({
+      chainId: effectiveChainId,
+      publicClient,
+    });
+    return instance;
+  }, [context, effectiveChainId, publicClient]);
 
   return {
     sdk,
-    sdkPromise,
     isInitialized: sdk !== null,
     chainId: effectiveChainId,
   };

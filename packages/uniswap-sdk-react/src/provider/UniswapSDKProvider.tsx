@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useState, useMemo, type ReactNode } from "react";
+import { createContext, useCallback, type ReactNode } from "react";
 
 import { UniswapSDK, type V4Contracts } from "@zahastudio/uniswap-sdk";
+import type { PublicClient } from "viem";
 
 /**
  * Configuration for the Uniswap SDK React provider.
@@ -20,10 +21,10 @@ export interface UniswapSDKConfig {
  * SDK instances are created lazily per chain and cached for deduplication.
  */
 export interface UniswapSDKContextValue {
-  /** Shared cache of SDK promises, keyed by chainId */
-  sdkCache: Map<number, Promise<UniswapSDK>>;
   /** Custom contracts per chain from provider config */
   contracts?: Record<number, V4Contracts>;
+  /** Retrieve or create a cached SDK instance for a chain */
+  getSdk: (params: { chainId: number; publicClient: PublicClient }) => UniswapSDK;
 }
 
 export const UniswapSDKContext = createContext<UniswapSDKContextValue | null>(null);
@@ -32,6 +33,8 @@ export interface UniswapSDKProviderProps {
   children: ReactNode;
   config?: UniswapSDKConfig;
 }
+
+const sdkCache = new Map<number, UniswapSDK>();
 
 /**
  * Provider component for the Uniswap SDK.
@@ -59,16 +62,30 @@ export interface UniswapSDKProviderProps {
  * }
  * ```
  */
-export function UniswapSDKProvider({ children, config }: UniswapSDKProviderProps) {
-  const [sdkCache] = useState(() => new Map<number, Promise<UniswapSDK>>());
 
-  const contextValue = useMemo<UniswapSDKContextValue>(
-    () => ({
-      sdkCache,
-      contracts: config?.contracts,
-    }),
-    [sdkCache, config?.contracts],
+export function UniswapSDKProvider({ children, config = {} }: UniswapSDKProviderProps) {
+  const getSdk = useCallback(
+    ({ chainId, publicClient }: { chainId: number; publicClient: PublicClient }) => {
+      const cached = sdkCache.get(chainId);
+      if (cached) {
+        return cached;
+      }
+
+      const instance = UniswapSDK.create(publicClient, chainId, config.contracts?.[chainId]);
+      sdkCache.set(chainId, instance);
+
+      return instance;
+    },
+    [config.contracts],
   );
 
-  return <UniswapSDKContext.Provider value={contextValue}>{children}</UniswapSDKContext.Provider>;
+  return (
+    <UniswapSDKContext.Provider
+      value={{
+        getSdk,
+      }}
+    >
+      {children}
+    </UniswapSDKContext.Provider>
+  );
 }

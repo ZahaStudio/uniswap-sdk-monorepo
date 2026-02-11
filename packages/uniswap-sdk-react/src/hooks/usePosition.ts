@@ -4,32 +4,8 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { GetPositionResponse, GetUncollectedFeesResponse } from "@zahastudio/uniswap-sdk";
 
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import type { UseHookOptions } from "@/types/hooks";
 import { positionKeys } from "@/utils/queryKeys";
-
-/**
- * Options for the usePosition hook.
- */
-export interface UsePositionOptions {
-  /**
-   * Chain ID to use. If omitted, uses the currently connected chain.
-   * The SDK instance is cached per chain, so passing the same chainId
-   * across multiple hooks reuses the same instance.
-   */
-  chainId?: number;
-
-  /** Whether the query is enabled (default: true if tokenId is provided) */
-  enabled?: boolean;
-
-  /**
-   * Refetch interval in milliseconds.
-   * Set to a number to poll, or false to disable.
-   * Recommend: 12000 (12 seconds, ~1 Ethereum block)
-   */
-  refetchInterval?: number | false;
-
-  /** Stale time in milliseconds (default: 10000) */
-  staleTime?: number;
-}
 
 /**
  * Combined query data returned by usePosition.
@@ -144,10 +120,10 @@ export interface UsePositionReturn {
  * });
  * ```
  */
-export function usePosition(tokenId: string | undefined, options: UsePositionOptions = {}): UsePositionReturn {
-  const { chainId: overrideChainId, enabled = true, refetchInterval = false, staleTime = 10000 } = options;
+export function usePosition(tokenId: string | undefined, options: UseHookOptions = {}): UsePositionReturn {
+  const { chainId: overrideChainId, enabled = true, refetchInterval = false } = options;
 
-  const { sdkPromise, chainId } = useUniswapSDK({ chainId: overrideChainId });
+  const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
 
   // Main query for position data and uncollected fees
   const query = useQuery({
@@ -156,7 +132,9 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       if (!tokenId) {
         throw new Error("Token ID is required");
       }
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
       const [position, uncollectedFees] = await Promise.all([
         sdk.getPosition(tokenId),
         sdk.getUncollectedFees(tokenId),
@@ -168,9 +146,8 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
         },
       };
     },
-    enabled: !!tokenId && enabled,
+    enabled: !!tokenId && enabled && !!sdk,
     refetchInterval,
-    staleTime,
     retry: (failureCount, error) => {
       // Don't retry on "position doesn't exist" errors
       if (error instanceof Error && error.message.includes("Position has no liquidity")) {
@@ -186,7 +163,9 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       if (!tokenId) {
         throw new Error("Token ID is required");
       }
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
       return sdk.buildCollectFeesCallData({
         tokenId,
         recipient,
@@ -197,7 +176,9 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       if (!tokenId) {
         throw new Error("Token ID is required");
       }
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
       return sdk.buildRemoveLiquidityCallData({
         tokenId,
         liquidityPercentage: args.liquidityPercentage,
@@ -214,8 +195,9 @@ export function usePosition(tokenId: string | undefined, options: UsePositionOpt
       if (!position) {
         throw new Error("Position not loaded. Wait for query to complete before adding liquidity.");
       }
-
-      const sdk = await sdkPromise;
+      if (!sdk) {
+        throw new Error("SDK not initialized");
+      }
       return sdk.buildAddLiquidityCallData({
         pool: position.pool,
         tickLower: position.position.tickLower,
