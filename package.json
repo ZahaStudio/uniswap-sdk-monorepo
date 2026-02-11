@@ -13,7 +13,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "turbo run build --filter='!@acme/*' && changeset publish",
+    "release": "changeset publish",
     "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 1 --prune-history --mnemonic-seed-unsafe 1337"
   },
   "devDependencies": {
