@@ -94,10 +94,16 @@ export class UniswapSDK {
    * Creates a SDK instance for a specific chain.
    *
    * @param client - Viem public client for the target chain
-   * @param chainId - Chain ID for the target network
+   * @param chainId - Chain ID for the target network (defaults to client.chain.id)
    * @param contracts - Optional overrides for contract addresses
+   * @param cache - Optional cache adapter
    */
-  public static create(client: PublicClient, chainId: number, contracts?: V4Contracts, cache?: CacheAdapter): UniswapSDK {
+  public static create(
+    client: PublicClient,
+    chainId: number,
+    contracts?: V4Contracts,
+    cache?: CacheAdapter,
+  ): UniswapSDK {
     const chain = getChainById(chainId);
     const uniswapContracts = getUniswapContracts(chainId);
 

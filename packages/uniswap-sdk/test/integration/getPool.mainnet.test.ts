@@ -1,5 +1,5 @@
-import { createPublicClient, http, zeroAddress } from "viem";
-import { mainnet } from "viem/chains";
+import { type PublicClient, createPublicClient, http, zeroAddress } from "viem";
+import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
 import { MAINNET_POOL_KEY } from "@/test/fixtures/mainnet";
@@ -26,11 +26,11 @@ describe("getPool (unichain fork)", () => {
     }
 
     const client = createPublicClient({
-      chain: mainnet,
+      chain: unichain,
       transport: http(forkUrl),
-    });
+    }) as PublicClient;
 
-    const sdk = await UniswapSDK.create(client);
+    const sdk = UniswapSDK.create(client, unichain.id);
     const pool = await sdk.getPool({
       currencyA: MAINNET_POOL_KEY.currency0,
       currencyB: MAINNET_POOL_KEY.currency1,

@@ -1,5 +1,5 @@
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
+import { type PublicClient, createPublicClient, http } from "viem";
+import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
 import { MAINNET_TOKENS } from "@/test/fixtures/mainnet";
@@ -29,11 +29,11 @@ describe("getTokens (unichain fork)", () => {
     const tokenB = MAINNET_TOKENS.USDC as `0x${string}`;
 
     const client = createPublicClient({
-      chain: mainnet,
+      chain: unichain,
       transport: http(forkUrl),
-    });
+    }) as PublicClient;
 
-    const sdk = await UniswapSDK.create(client);
+    const sdk = UniswapSDK.create(client, unichain.id);
     const [currencyA, currencyB] = await sdk.getTokens({ addresses: [tokenA, tokenB] });
 
     expect(currencyA.symbol).toBe("ETH");

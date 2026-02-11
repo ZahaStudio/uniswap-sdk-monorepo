@@ -1,6 +1,6 @@
 import { Pool } from "@uniswap/v4-sdk";
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
+import { type PublicClient, createPublicClient, http } from "viem";
+import { unichain } from "viem/chains";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { UniswapSDK } from "@/core/sdk";
@@ -29,11 +29,11 @@ describe("getPoolKeyFromPoolId (unichain fork)", () => {
     }
 
     const client = createPublicClient({
-      chain: mainnet,
+      chain: unichain,
       transport: http(forkUrl),
-    });
+    }) as PublicClient;
 
-    const sdk = await UniswapSDK.create(client);
+    const sdk = UniswapSDK.create(client, unichain.id);
     const instance = (sdk as unknown as { instance: UniswapSDKInstance }).instance;
 
     const tokens = await sdk.getTokens({

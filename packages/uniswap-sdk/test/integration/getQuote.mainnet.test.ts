@@ -1,5 +1,5 @@
-import { createPublicClient, http } from "viem";
-import { mainnet } from "viem/chains";
+import { type PublicClient, createPublicClient, http } from "viem";
+import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
 import { MAINNET_POOL_KEY } from "@/test/fixtures/mainnet";
@@ -26,11 +26,11 @@ describe("getQuote (unichain fork)", () => {
     }
 
     const client = createPublicClient({
-      chain: mainnet,
+      chain: unichain,
       transport: http(forkUrl),
-    });
+    }) as PublicClient;
 
-    const sdk = await UniswapSDK.create(client);
+    const sdk = UniswapSDK.create(client, unichain.id);
     const amountIn = "1000000";
     const expectedAmountOut = 518374739793346n;
     const expectedGasUsed = 37263n;

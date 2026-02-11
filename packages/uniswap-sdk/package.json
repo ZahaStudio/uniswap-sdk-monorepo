@@ -13,7 +13,7 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit -p tsconfig.test.json",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ci": "pnpm run typecheck && pnpm run test",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
@@ -27,7 +27,7 @@
     "tsdown": "catalog:",
     "typescript": "^5.9.3",
     "viem": "catalog:",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.18"
   },
   "dependencies": {
     "@uniswap/permit2-sdk": "^1.4.0",
@@ -35,8 +35,8 @@
     "@uniswap/universal-router-sdk": "^4.30.0",
     "@uniswap/v3-sdk": "^3.27.0",
     "@uniswap/v4-sdk": "^1.27.0",
-    "hookmate": "^0.5.0",
-    "lru-cache": "^11.2.5"
+    "hookmate": "^0.5.1",
+    "lru-cache": "^11.2.6"
   },
   "peerDependencies": {
     "viem": "catalog:"
