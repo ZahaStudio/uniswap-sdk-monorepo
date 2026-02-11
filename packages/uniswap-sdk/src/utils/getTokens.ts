@@ -1,6 +1,6 @@
 import { type Currency, Ether, Token } from "@uniswap/sdk-core";
 import type { Address } from "viem";
-import { erc20Abi, zeroAddress } from "viem";
+import { erc20Abi, getAddress, zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
@@ -21,9 +21,40 @@ export interface GetTokensArgs {
  */
 export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInstance): Promise<Currency[]> {
   const { addresses } = params;
-  const { client, chain } = instance;
+  const { client, chain, cache } = instance;
+  const resultByAddress = new Map<string, Currency>();
+  const missingAddresses: Address[] = [];
+  const normalize = (address: Address) => getAddress(address);
+  const cacheTokenKey = (address: Address) => `tokens:${chain.id}:${normalize(address)}`;
 
-  const calls = addresses
+  for (const address of addresses) {
+    if (address === zeroAddress) {
+      const nativeCurrency = Ether.onChain(chain.id);
+      resultByAddress.set(normalize(address), nativeCurrency);
+      await cache.set(cacheTokenKey(address), nativeCurrency);
+      continue;
+    }
+    const cachedCurrency = await cache.get<Currency>(cacheTokenKey(address));
+    if (cachedCurrency) {
+      resultByAddress.set(normalize(address), cachedCurrency);
+    } else {
+      missingAddresses.push(address);
+    }
+  }
+
+  // return the cached values if we are able to find all addresses in
+  // cache
+  if (missingAddresses.length === 0) {
+    return addresses.map((address) => {
+      const cachedToken = resultByAddress.get(normalize(address));
+      if (!cachedToken) {
+        throw new Error(`Failed to fetch token data for ${address}`);
+      }
+      return cachedToken;
+    });
+  }
+
+  const calls = missingAddresses
     .filter((address) => address !== zeroAddress) // filter out native currency
     .flatMap((address) => [
       { address, abi: erc20Abi, functionName: "symbol" },
@@ -37,23 +68,26 @@ export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInsta
       allowFailure: false,
     });
 
-    const tokens: Currency[] = [];
     let resultIndex = 0;
 
-    for (const address of addresses) {
-      if (address === zeroAddress) {
-        tokens.push(Ether.onChain(chain.id));
-      } else {
-        // For ERC20 tokens, use multicall results
-        const symbol = results[resultIndex++] as string;
-        const name = results[resultIndex++] as string;
-        const decimals = results[resultIndex++] as number;
-        tokens.push(new Token(chain.id, address, decimals, symbol, name));
-      }
+    // Add all the missing addresses to cache
+    for (const address of missingAddresses) {
+      const symbol = results[resultIndex++] as string;
+      const name = results[resultIndex++] as string;
+      const decimals = results[resultIndex++] as number;
+      const token = new Token(chain.id, address, decimals, symbol, name);
+      resultByAddress.set(normalize(address), token);
+      await cache.set(cacheTokenKey(address), token);
     }
 
-    return tokens;
+    return addresses.map((address) => {
+      const token = resultByAddress.get(normalize(address));
+      if (!token) {
+        throw new Error(`Failed to fetch token data for ${address}`);
+      }
+      return token;
+    });
   } catch (err) {
-    throw new Error(`Failed to fetch token data: ${(err as Error).message}`);
+    throw new Error(`Failed to fetch token data: ${(err as Error).message} `);
   }
 }
