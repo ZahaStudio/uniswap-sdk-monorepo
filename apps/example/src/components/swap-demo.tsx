@@ -19,6 +19,8 @@ import {
 } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 
+const defaultChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "1");
+
 export function SwapDemo() {
   const { isConnected } = useAccount();
 
@@ -42,7 +44,7 @@ export function SwapDemo() {
   // ── Token balance ────────────────────────────────────────────────────────
   const tokenIn = useToken(selectedPreset.tokenIn.address, {
     enabled: isConnected,
-    chainId: 1,
+    chainId: defaultChainId,
     refetchInterval: 15_000,
   });
 
@@ -63,7 +65,7 @@ export function SwapDemo() {
     {
       enabled: amountInRaw > 0n,
       refetchInterval: 15_000, // refresh quote every 15s
-      chainId: 1,
+      chainId: defaultChainId,
     },
   );
 

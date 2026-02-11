@@ -1,15 +1,16 @@
 "use client";
 
-import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { http } from "viem";
+import { createConfig, http } from "wagmi";
 import { mainnet } from "wagmi/chains";
+import { injected } from "wagmi/connectors";
 
-export const wagmiConfig = getDefaultConfig({
-  appName: "Uniswap SDK Example",
-  projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "demo",
+const mainnetRpcUrl = process.env.NEXT_PUBLIC_MAINNET_RPC_URL ?? "http://127.0.0.1:8545";
+
+export const wagmiConfig = createConfig({
   chains: [mainnet],
+  connectors: [injected()],
   transports: {
-    [mainnet.id]: http("https://virtual.mainnet.eu.rpc.tenderly.co/20ddfe93-89e7-4457-bca0-6dc140c75c13"),
+    [mainnet.id]: http(mainnetRpcUrl),
   },
   ssr: true,
 });
