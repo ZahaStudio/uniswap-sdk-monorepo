@@ -3,8 +3,8 @@ import type { Pool } from "@uniswap/v4-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
-import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/types/positions";
-import { getChainById } from "@/constants/chains";
+import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/positions";
+import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
 import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/utils/buildAddLiquidityCallData";
 import { buildAddLiquidityCallData } from "@/utils/buildAddLiquidityCallData";
 import type { BuildCollectFeesCallDataArgs } from "@/utils/buildCollectFeesCallData";
@@ -13,6 +13,7 @@ import type { BuildRemoveLiquidityCallDataArgs } from "@/utils/buildRemoveLiquid
 import { buildRemoveLiquidityCallData } from "@/utils/buildRemoveLiquidityCallData";
 import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import { buildSwapCallData } from "@/utils/buildSwapCallData";
+import { getChainById } from "@/utils/chains";
 import type { PoolArgs } from "@/utils/getPool";
 import { getPool } from "@/utils/getPool";
 import { getPosition } from "@/utils/getPosition";
@@ -62,6 +63,8 @@ export type UniswapSDKInstance = {
   chain: Chain;
   /** Contract addresses */
   contracts: V4Contracts;
+  /** Cache adapter */
+  cache: CacheAdapter;
 };
 
 /**
@@ -72,15 +75,20 @@ export type UniswapSDKInstance = {
 export class UniswapSDK {
   private instance: UniswapSDKInstance;
 
-  private constructor(client: PublicClient, chain: Chain, contracts: V4Contracts) {
+  private constructor(client: PublicClient, chain: Chain, contracts: V4Contracts, cache?: CacheAdapter) {
+    if (!cache) {
+      cache = createDefaultCache();
+    }
+
     this.instance = {
       client,
       chain,
       contracts,
+      cache,
     };
   }
 
-  public static async create(client: PublicClient, contracts?: V4Contracts): Promise<UniswapSDK> {
+  public static async create(client: PublicClient, contracts?: V4Contracts, cache?: CacheAdapter): Promise<UniswapSDK> {
     const chainId = await client.getChainId();
     const chain = getChainById(chainId);
     const uniswapContracts = getUniswapContracts(chainId);
@@ -95,7 +103,7 @@ export class UniswapSDK {
       } as V4Contracts;
     }
 
-    return new UniswapSDK(client, chain, contracts);
+    return new UniswapSDK(client, chain, contracts, cache);
   }
 
   /**

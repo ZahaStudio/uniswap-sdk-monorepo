@@ -28,5 +28,8 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Typecheck
+        run: pnpm --filter @zahastudio/uniswap-sdk exec tsc -p tsconfig.json --noEmit
+
       - name: Lint
         run: pnpm lint

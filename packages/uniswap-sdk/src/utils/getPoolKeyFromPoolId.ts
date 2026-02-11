@@ -18,8 +18,13 @@ export interface GetPoolKeyFromPoolIdParams {
  * @throws Error if SDK instance is not found
  */
 export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKInstance): Promise<PoolKey> {
-  const { client, contracts } = instance;
+  const { client, contracts, chain, cache } = instance;
   const { positionManager } = contracts;
+  const cachePoolKey = `poolKey:${chain.id}:${poolId.toLowerCase()}`;
+  const cached = await cache.get<PoolKey>(cachePoolKey);
+  if (cached) {
+    return cached;
+  }
 
   const poolId25Bytes = `0x${poolId.slice(2, 52)}` as `0x${string}`;
 
@@ -30,11 +35,15 @@ export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKI
     args: [poolId25Bytes],
   });
 
-  return {
+  const poolKey = {
     currency0,
     currency1,
     fee,
     tickSpacing,
     hooks,
   };
+
+  await cache.set(cachePoolKey, poolKey);
+
+  return poolKey;
 }

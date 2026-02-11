@@ -1,6 +1,6 @@
 import { V4PositionManager } from "@uniswap/v4-sdk";
 
-import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/common/types/constants";
+import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/common/constants";
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
