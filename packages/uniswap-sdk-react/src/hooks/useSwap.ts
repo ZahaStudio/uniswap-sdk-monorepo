@@ -1,23 +1,22 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   calculateMinimumOutput,
   DEFAULT_SLIPPAGE_TOLERANCE,
-  PERMIT2_ADDRESS,
   type FeeTier,
   type PoolKey,
-  type PreparePermit2DataResult,
   type QuoteResponse,
   type SwapExactInSingle,
 } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
-import { useAccount, useSignTypedData } from "wagmi";
+import { useAccount } from "wagmi";
 
-import { useTokenApproval, type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
+import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
+import type { UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
@@ -48,22 +47,15 @@ export interface QuoteData extends QuoteResponse {
 }
 
 /**
- * Permit2 signing step state.
+ * Permit2 signing step state — re-exported from the primitive hook.
+ * @see UsePermit2SignStep
  */
-export interface UseSwapPermit2Step {
-  /** Whether permit2 signing is required (false for native ETH) */
-  isRequired: boolean;
-  /** Whether the wallet signature prompt is pending */
-  isPending: boolean;
-  /** Whether the permit2 has been signed */
-  isSigned: boolean;
-  /** Error from the signing step */
-  error: Error | undefined;
-  /** Initiate permit2 preparation and signing */
-  sign: () => Promise<void>;
-  /** Reset the permit2 step */
-  reset: () => void;
-}
+export type { UsePermit2SignStep };
+
+/**
+ * @deprecated Use `UsePermit2SignStep` instead. This alias exists for backward compatibility.
+ */
+export type UseSwapPermit2Step = UsePermit2SignStep;
 
 /**
  * Swap execution step state.
@@ -84,7 +76,7 @@ export interface UseSwapSteps {
   /** ERC-20 → Permit2 approval step */
   approval: UseTokenApprovalReturn;
   /** Off-chain Permit2 signature step */
-  permit2: UseSwapPermit2Step;
+  permit2: UsePermit2SignStep;
   /** Swap transaction execution step */
   swap: UseSwapExecuteStep;
 }
@@ -107,6 +99,24 @@ export interface UseSwapReturn {
   executeAll: () => Promise<Hex>;
   /** Reset all mutation state (approval, permit2, swap). Quote query persists. */
   reset: () => void;
+}
+
+function assertWalletConnected(address: Address | undefined): asserts address is Address {
+  if (!address) {
+    throw new Error("No wallet connected");
+  }
+}
+
+function assertQuoteAvailable(quote: QuoteData | undefined): asserts quote is QuoteData {
+  if (!quote) {
+    throw new Error("Quote not available");
+  }
+}
+
+function assertPermit2Satisfied(isRequired: boolean, isSigned: boolean): void {
+  if (isRequired && !isSigned) {
+    throw new Error("Permit2 signature required");
+  }
 }
 
 /**
@@ -160,12 +170,10 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   } = params;
   const { enabled = true, refetchInterval = false, chainId: chainIdOverride } = options;
 
-  // ── SDK & Wallet ────────────────────────────────────────────────────────
   const { sdk, chainId } = useUniswapSDK({ chainId: chainIdOverride });
   const { address: connectedAddress } = useAccount();
   const recipient = recipientOverride ?? connectedAddress;
 
-  // ── Derived Constants ───────────────────────────────────────────────────
   const inputToken = (zeroForOne ? poolKey.currency0 : poolKey.currency1) as Address;
   const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
 
@@ -174,7 +182,8 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isQuoteEnabled = enabled && hasValidAmount && !!sdk;
   const isSwapEnabled = isQuoteEnabled && isWalletReady;
 
-  // ── Step 1: Quote ───────────────────────────────────────────────────────
+  const universalRouter = sdk?.getContractAddress("universalRouter") ?? zeroAddress;
+
   const quoteQuery = useQuery({
     queryKey: swapKeys.quote(poolKey, amountIn, zeroForOne, slippageBps, chainId),
     queryFn: async (): Promise<QuoteData> => {
@@ -202,18 +211,15 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     enabled: isQuoteEnabled,
     refetchInterval,
     retry: (failureCount, error) => {
-      // Don't retry on known non-transient errors
       if (error instanceof Error && error.message.includes("insufficient liquidity")) return false;
       return failureCount < 3;
     },
   });
 
-  // ── Step 2: Approval (ERC-20 → Permit2) ────────────────────────────────
-  const approval = useTokenApproval(
+  const permit2 = usePermit2(
     {
-      token: inputToken,
-      spender: PERMIT2_ADDRESS as Address,
-      amount: amountIn,
+      tokens: [{ address: inputToken, amount: amountIn }],
+      spender: universalRouter,
     },
     {
       enabled: isSwapEnabled,
@@ -221,89 +227,21 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     },
   );
 
-  // ── Step 3: Permit2  ─────────────────────────────────────────────
-  const signTypedData = useSignTypedData();
-  const permit2DataRef = useRef<ReturnType<PreparePermit2DataResult["buildPermit2DataWithSignature"]> | undefined>(
-    undefined,
-  );
-  const [permit2Error, setPermit2Error] = useState<Error | undefined>(undefined);
-
-  const permit2Sign = useCallback(async () => {
-    if (isNativeInput) {
-      return;
-    }
-    if (!isWalletReady) {
-      throw new Error("No wallet connected");
-    }
-    if (!sdk) {
-      throw new Error("SDK not initialized");
-    }
-
-    try {
-      setPermit2Error(undefined);
-
-      const universalRouter = sdk.getContractAddress("universalRouter");
-
-      // Prepare the permit2 data (reads on-chain nonce/expiration)
-      const prepareResult = await sdk.preparePermit2Data({
-        token: inputToken,
-        spender: universalRouter,
-        owner: connectedAddress,
-        sigDeadline: Math.floor(Date.now() / 1000) + 60 * 15, // 5 minutes from now
-      });
-
-      // Sign the typed data via wallet
-      const signature = await signTypedData.signTypedDataAsync({
-        domain: prepareResult.toSign.domain,
-        types: prepareResult.toSign.types,
-        primaryType: prepareResult.toSign.primaryType,
-        message: prepareResult.toSign.message,
-      });
-
-      // Build the final permit2 data with the signature
-      permit2DataRef.current = prepareResult.buildPermit2DataWithSignature(signature);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setPermit2Error(error);
-      throw error;
-    }
-  }, [isNativeInput, isWalletReady, sdk, inputToken, connectedAddress, signTypedData]);
-
-  const permit2Reset = useCallback(() => {
-    permit2DataRef.current = undefined;
-    setPermit2Error(undefined);
-    signTypedData.reset();
-  }, [signTypedData]);
-
-  const permit2Step: UseSwapPermit2Step = {
-    isRequired: !isNativeInput,
-    isPending: signTypedData.isPending,
-    isSigned: !!permit2DataRef.current,
-    error: permit2Error,
-    sign: permit2Sign,
-    reset: permit2Reset,
-  };
-
-  // ── Step 4: Swap execution ──────────────────────────────────────────────
   const swapTransaction = useTransaction();
 
-  const swapExecute = useCallback(async (): Promise<Hex> => {
-    if (!isWalletReady) {
-      throw new Error("No wallet connected");
-    }
-    if (!quoteQuery.data) {
-      throw new Error("Quote not available");
-    }
+  const swapExecute = useCallback(async (signedPermit2?: Permit2SignedResult): Promise<Hex> => {
+    assertWalletConnected(connectedAddress);
+    const quote = quoteQuery.data;
+    assertQuoteAvailable(quote);
+
     if (!sdk) {
       throw new Error("SDK not initialized");
     }
-    if (permit2Step.isRequired && !permit2DataRef.current) {
-      throw new Error("Permit2 signature required");
-    }
+    const permit2Signed = signedPermit2 ?? permit2.permit2.signed;
+    assertPermit2Satisfied(permit2.permit2.isRequired, !!permit2Signed);
 
-    const universalRouter = sdk.getContractAddress("universalRouter");
+    const permit2Signature = permit2Signed?.kind === "single" ? permit2Signed.data : undefined;
 
-    // Fetch a fresh pool for the most current on-chain state
     const pool = await sdk.getPool({
       currencyA: poolKey.currency0 as Address,
       currencyB: poolKey.currency1 as Address,
@@ -312,27 +250,26 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       hooks: poolKey.hooks as Address,
     });
 
-    // Build calldata
     const calldata = sdk.buildSwapCallData({
       pool,
       amountIn,
-      amountOutMinimum: quoteQuery.data.minAmountOut,
+      amountOutMinimum: quote.minAmountOut,
       zeroForOne,
       recipient: recipient ?? connectedAddress,
-      permit2Signature: permit2DataRef.current,
+      permit2Signature,
     });
 
-    // Send the transaction
     return swapTransaction.sendTransaction({
       to: universalRouter,
       data: calldata,
       value: isNativeInput ? amountIn : 0n,
     });
   }, [
-    isWalletReady,
+    connectedAddress,
     quoteQuery.data,
     sdk,
-    permit2Step.isRequired,
+    permit2.permit2.isRequired,
+    permit2.permit2.signed,
     poolKey.currency0,
     poolKey.currency1,
     poolKey.fee,
@@ -341,20 +278,19 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     amountIn,
     zeroForOne,
     recipient,
-    connectedAddress,
     swapTransaction,
+    universalRouter,
     isNativeInput,
   ]);
 
-  // ── Derived state ───────────────────────────────────────────────────────
   const currentStep: SwapStep = (() => {
     if (!quoteQuery.data || quoteQuery.isLoading || !isWalletReady) {
       return "quote";
     }
-    if (approval.isRequired == undefined || approval.isRequired) {
+    if (permit2.approvals[0].isRequired === undefined || permit2.approvals[0].isRequired) {
       return "approval";
     }
-    if (permit2Step.isRequired && !permit2DataRef.current) {
+    if (permit2.permit2.isRequired && !permit2.permit2.isSigned) {
       return "permit2";
     }
     if (swapTransaction.status !== "confirmed") {
@@ -363,42 +299,24 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     return "completed";
   })();
 
-  // ── executeAll
   const executeAll = useCallback(async (): Promise<Hex> => {
-    if (approval.isRequired === undefined) {
-      throw new Error("Awaiting approval status.");
-    }
+    const signedPermit2 = await permit2.approveAndSign();
+    return swapExecute(signedPermit2);
+  }, [permit2, swapExecute]);
 
-    // Step 1: Approval (if required)
-    if (approval.isRequired && approval.transaction.status !== "confirmed") {
-      await approval.approve();
-      await approval.transaction.waitForConfirmation();
-    }
-
-    // Step 2: Permit2 sign (if required)
-    if (permit2Step.isRequired && !permit2Step.isSigned) {
-      await permit2Sign();
-    }
-
-    // Step 3: Execute swap
-    return swapExecute();
-  }, [approval, permit2Step.isRequired, permit2Step.isSigned, permit2Sign, swapExecute]);
-
-  // ── Reset Everything
   const reset = useCallback(() => {
-    approval.transaction.reset();
-    permit2Reset();
+    permit2.reset();
     swapTransaction.reset();
-  }, [approval.transaction, permit2Reset, swapTransaction]);
+  }, [permit2, swapTransaction]);
 
   return {
     steps: {
       quote: quoteQuery,
-      approval,
-      permit2: permit2Step,
+      approval: permit2.approvals[0],
+      permit2: permit2.permit2,
       swap: {
         transaction: swapTransaction,
-        execute: swapExecute,
+        execute: () => swapExecute(),
       },
     },
     currentStep,

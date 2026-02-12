@@ -53,8 +53,6 @@ export interface UseTransactionReturn {
   status: TransactionStatus;
   /** First error from send or receipt */
   error: Error | undefined;
-
-  // ── Actions ───────────────────────────────────────────────────────────
   /** Send a transaction. Resolves with the tx hash after broadcast. */
   sendTransaction: (params: SendTransactionParams) => Promise<Hex>;
   /**
@@ -97,6 +95,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const { onSuccess, confirmations = 1 } = options;
 
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
+  const txHashRef = useRef<Hex | undefined>(undefined);
 
   // Ref-based promise resolver for waitForConfirmation()
   const confirmResolverRef = useRef<{
@@ -114,7 +113,6 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     },
   });
 
-  // ── Fire callbacks when receipt arrives ─────────────────────────────────
   useEffect(() => {
     if (receipt.data) {
       onSuccess?.(receipt.data);
@@ -125,7 +123,6 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     }
   }, [receipt.data, onSuccess]);
 
-  // ── Fire rejection when receipt errors ──────────────────────────────────
   useEffect(() => {
     if (receipt.error) {
       if (confirmResolverRef.current) {
@@ -135,7 +132,6 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     }
   }, [receipt.error]);
 
-  // ── Derive status ───────────────────────────────────────────────────────
   const error = send.error ?? receipt.error ?? undefined;
 
   const status: TransactionStatus = (() => {
@@ -146,7 +142,6 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     return "idle";
   })();
 
-  // ── Actions ─────────────────────────────────────────────────────────────
   const sendTransaction = useCallback(
     async (params: SendTransactionParams): Promise<Hex> => {
       const hash = await send.sendTransactionAsync({
@@ -154,6 +149,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
         data: params.data,
         value: params.value ?? 0n,
       });
+      txHashRef.current = hash;
       setTxHash(hash);
       return hash;
     },
@@ -165,15 +161,16 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     if (receipt.data) return Promise.resolve(receipt.data);
 
     // If no tx in flight, reject
-    if (!txHash) return Promise.reject(new Error("No transaction to wait for"));
+    if (!txHashRef.current) return Promise.reject(new Error("No transaction to wait for"));
 
     // Create a promise that will be resolved by the receipt effect
     return new Promise<TransactionReceipt>((resolve, reject) => {
       confirmResolverRef.current = { resolve, reject };
     });
-  }, [receipt.data, txHash]);
+  }, [receipt.data]);
 
   const reset = useCallback(() => {
+    txHashRef.current = undefined;
     setTxHash(undefined);
     send.reset();
     confirmResolverRef.current = null;

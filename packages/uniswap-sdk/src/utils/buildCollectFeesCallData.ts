@@ -37,7 +37,6 @@ export interface BuildCollectFeesCallDataArgs {
  * const { calldata, value } = await buildCollectFeesCallData({
  *   tokenId: '1234',
  *   recipient: userAddress,
- *   slippageTolerance: 50, // 0.5%
  *   deadline: '1234567890',
  * }, instance)
  *
@@ -65,7 +64,7 @@ export async function buildCollectFeesCallData(
       recipient,
       slippageTolerance: percentFromBips(0),
       deadline,
-      hookData: positionData.pool.hooks,
+      hookData: "0x",
     });
 
     return {

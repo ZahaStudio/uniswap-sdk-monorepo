@@ -22,7 +22,6 @@ export type {
   UsePositionRemoveLiquidityReturn,
   // usePositionIncreaseLiquidity
   IncreaseLiquidityArgs,
-  UsePositionPermit2Step,
   IncreaseLiquidityStep,
   UsePositionIncreaseLiquidityOptions,
   UsePositionIncreaseLiquidityReturn,
@@ -39,6 +38,14 @@ export type {
   TokenDetails,
   TokenBalance,
   UseTokenReturn,
+  // usePermit2 (primitive)
+  UsePermit2Token,
+  UsePermit2Params,
+  UsePermit2Options,
+  Permit2SignedResult,
+  UsePermit2SignStep,
+  Permit2Step,
+  UsePermit2Return,
   // useSwap
   PoolKey,
   UseSwapParams,

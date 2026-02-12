@@ -1,13 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 
-import { PERMIT2_ADDRESS, type PreparePermit2BatchDataResult } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
-import { useAccount, useSignTypedData } from "wagmi";
 
-import { useTokenApproval, type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
+import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
+import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
@@ -26,24 +25,6 @@ export interface IncreaseLiquidityArgs {
   slippageTolerance?: number;
   /** Unix timestamp deadline (optional, default: 30 minutes from now) */
   deadline?: string;
-}
-
-/**
- * Permit2 batch signing step state.
- */
-export interface UsePositionPermit2Step {
-  /** Whether permit2 signing is required (false when both tokens are native) */
-  isRequired: boolean;
-  /** Whether the wallet signature prompt is pending */
-  isPending: boolean;
-  /** Whether the permit2 has been signed */
-  isSigned: boolean;
-  /** Error from the signing step */
-  error: Error | undefined;
-  /** Initiate permit2 batch preparation and signing */
-  sign: () => Promise<void>;
-  /** Reset the permit2 step */
-  reset: () => void;
 }
 
 /**
@@ -76,7 +57,7 @@ export interface UsePositionIncreaseLiquidityReturn {
     /** ERC-20 → Permit2 approval for token1 */
     approvalToken1: UseTokenApprovalReturn;
     /** Off-chain Permit2 batch signature step */
-    permit2: UsePositionPermit2Step;
+    permit2: UsePermit2SignStep;
     /** Increase liquidity transaction execution step */
     execute: {
       transaction: UseTransactionReturn;
@@ -133,14 +114,11 @@ export function usePositionIncreaseLiquidity(
   const { tokenId } = params;
   const { chainId: overrideChainId, amount0 = 0n, amount1 = 0n, onSuccess } = options;
 
-  // ── SDK & Wallet ─────────────────────────────────────────────────────────
   const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
-  const { address: connectedAddress } = useAccount();
   const { query } = usePosition({ tokenId }, { chainId: overrideChainId });
 
   const position = query.data;
 
-  // ── Derive token addresses from position data ───────────────────────────
   const token0Address = (
     position?.currency0?.isNative ? zeroAddress : (position?.currency0?.wrapped?.address ?? zeroAddress)
   ) as Address;
@@ -148,10 +126,22 @@ export function usePositionIncreaseLiquidity(
     position?.currency1?.isNative ? zeroAddress : (position?.currency1?.wrapped?.address ?? zeroAddress)
   ) as Address;
 
-  const hasNonNativeToken0 = token0Address.toLowerCase() !== zeroAddress.toLowerCase();
-  const hasNonNativeToken1 = token1Address.toLowerCase() !== zeroAddress.toLowerCase();
+  const positionManager = (sdk?.getContractAddress("positionManager") ?? zeroAddress) as Address;
 
-  // ── Transaction ──────────────────────────────────────────────────────────
+  const permit2 = usePermit2(
+    {
+      tokens: [
+        { address: token0Address, amount: amount0 },
+        { address: token1Address, amount: amount1 },
+      ],
+      spender: positionManager,
+    },
+    {
+      enabled: !!position,
+      chainId,
+    },
+  );
+
   const transaction = useTransaction({
     onSuccess: () => {
       query.refetch();
@@ -159,122 +149,22 @@ export function usePositionIncreaseLiquidity(
     },
   });
 
-  // ── Token Approvals ─────────────────────────────────────────────────────
-  const approvalEnabled = !!position;
-
-  const approvalToken0 = useTokenApproval(
-    {
-      token: token0Address,
-      spender: PERMIT2_ADDRESS as Address,
-      amount: amount0,
-    },
-    {
-      enabled: approvalEnabled,
-      chainId,
-    },
-  );
-
-  const approvalToken1 = useTokenApproval(
-    {
-      token: token1Address,
-      spender: PERMIT2_ADDRESS as Address,
-      amount: amount1,
-    },
-    {
-      enabled: approvalEnabled,
-      chainId,
-    },
-  );
-
-  // ── Permit2 Batch Sign ──────────────────────────────────────────────────
-  const signTypedData = useSignTypedData();
-  const permit2BatchDataRef = useRef<
-    ReturnType<PreparePermit2BatchDataResult["buildPermit2BatchDataWithSignature"]> | undefined
-  >(undefined);
-  const [permit2Error, setPermit2Error] = useState<Error | undefined>(undefined);
-
-  const permit2IsRequired = hasNonNativeToken0 || hasNonNativeToken1;
-
-  const permit2Sign = useCallback(async () => {
-    if (!permit2IsRequired) {
-      return;
-    }
-    if (!connectedAddress) {
-      throw new Error("No wallet connected");
-    }
-    if (!sdk) {
-      throw new Error("SDK not initialized");
-    }
-
-    try {
-      setPermit2Error(undefined);
-
-      const positionManager = sdk.getContractAddress("positionManager");
-
-      const tokens: Address[] = [];
-      if (hasNonNativeToken0) tokens.push(token0Address);
-      if (hasNonNativeToken1) tokens.push(token1Address);
-
-      const prepareResult = await sdk.preparePermit2BatchData({
-        tokens,
-        spender: positionManager,
-        owner: connectedAddress,
-        sigDeadline: Math.floor(Date.now() / 1000) + 60 * 15,
-      });
-
-      const signature = await signTypedData.signTypedDataAsync({
-        domain: prepareResult.toSign.domain,
-        types: prepareResult.toSign.types,
-        primaryType: prepareResult.toSign.primaryType,
-        message: prepareResult.toSign.message,
-      });
-
-      permit2BatchDataRef.current = prepareResult.buildPermit2BatchDataWithSignature(signature);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setPermit2Error(error);
-      throw error;
-    }
-  }, [
-    permit2IsRequired,
-    connectedAddress,
-    sdk,
-    hasNonNativeToken0,
-    hasNonNativeToken1,
-    token0Address,
-    token1Address,
-    signTypedData,
-  ]);
-
-  const permit2Reset = useCallback(() => {
-    permit2BatchDataRef.current = undefined;
-    setPermit2Error(undefined);
-    signTypedData.reset();
-  }, [signTypedData]);
-
-  const permit2Step: UsePositionPermit2Step = {
-    isRequired: permit2IsRequired,
-    isPending: signTypedData.isPending,
-    isSigned: !!permit2BatchDataRef.current,
-    error: permit2Error,
-    sign: permit2Sign,
-    reset: permit2Reset,
-  };
-
-  // ── Execute ─────────────────────────────────────────────────────────────
-  const execute = useCallback(
-    async (args: IncreaseLiquidityArgs): Promise<Hex> => {
+  const executeWithPermit = useCallback(
+    async (args: IncreaseLiquidityArgs, signedPermit2?: Permit2SignedResult): Promise<Hex> => {
       if (!position) {
         throw new Error("Position not loaded. Wait for query to complete before increasing liquidity.");
       }
       if (!sdk) {
         throw new Error("SDK not initialized");
       }
-      if (permit2Step.isRequired && !permit2BatchDataRef.current) {
+      const permit2Signed = signedPermit2 ?? permit2.permit2.signed;
+      if (permit2.permit2.isRequired && !permit2Signed) {
         throw new Error("Permit2 signature required");
       }
 
-      const positionManager = sdk.getContractAddress("positionManager");
+      const batchPermit = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
+
+      const positionManagerAddress = sdk.getContractAddress("positionManager");
       const { calldata, value } = await sdk.buildAddLiquidityCallData({
         pool: position.pool,
         tickLower: position.position.tickLower,
@@ -284,75 +174,51 @@ export function usePositionIncreaseLiquidity(
         recipient: args.recipient,
         slippageTolerance: args.slippageTolerance,
         deadline: args.deadline,
-        permit2BatchSignature: permit2BatchDataRef.current,
+        permit2BatchSignature: batchPermit,
       });
 
       return transaction.sendTransaction({
-        to: positionManager,
+        to: positionManagerAddress,
         data: calldata as Hex,
         value: BigInt(value),
       });
     },
-    [position, sdk, permit2Step.isRequired, transaction],
+    [position, sdk, permit2.permit2.isRequired, permit2.permit2.signed, transaction],
   );
 
-  // ── executeAll ──────────────────────────────────────────────────────────
+  const execute = useCallback(
+    async (args: IncreaseLiquidityArgs): Promise<Hex> => executeWithPermit(args),
+    [executeWithPermit],
+  );
+
   const executeAll = useCallback(
     async (args: IncreaseLiquidityArgs): Promise<Hex> => {
-      // Step 1: Token0 approval (if required)
-      if (approvalToken0.isRequired && !approvalToken0.transaction.isConfirmed) {
-        await approvalToken0.approve();
-        await approvalToken0.transaction.waitForConfirmation();
-      }
-
-      // Step 2: Token1 approval (if required)
-      if (approvalToken1.isRequired && !approvalToken1.transaction.isConfirmed) {
-        await approvalToken1.approve();
-        await approvalToken1.transaction.waitForConfirmation();
-      }
-
-      // Step 3: Permit2 batch sign (if required and not already signed)
-      if (permit2Step.isRequired && !permit2Step.isSigned) {
-        await permit2Sign();
-      }
-
-      // Step 4: Execute increase liquidity transaction
-      return execute(args);
+      const signedPermit2 = await permit2.approveAndSign();
+      return executeWithPermit(args, signedPermit2);
     },
-    [approvalToken0, approvalToken1, permit2Step.isRequired, permit2Step.isSigned, permit2Sign, execute],
+    [permit2, executeWithPermit],
   );
 
-  // ── Derive currentStep ──────────────────────────────────────────────────
   const currentStep: IncreaseLiquidityStep = (() => {
-    if (approvalToken0.isRequired === undefined || approvalToken0.isRequired) {
-      return "approval0";
+    if (permit2.currentStep !== "ready") {
+      return permit2.currentStep;
     }
-    if (approvalToken1.isRequired === undefined || approvalToken1.isRequired) {
-      return "approval1";
-    }
-    if (permit2Step.isRequired && !permit2BatchDataRef.current) {
-      return "permit2";
-    }
-    if (!transaction.isConfirmed) {
+    if (transaction.status !== "confirmed") {
       return "execute";
     }
     return "completed";
   })();
 
-  // ── Reset ───────────────────────────────────────────────────────────────
   const reset = useCallback(() => {
-    approvalToken0.transaction.reset();
-    approvalToken1.transaction.reset();
-    permit2Reset();
+    permit2.reset();
     transaction.reset();
-  }, [approvalToken0.transaction, approvalToken1.transaction, permit2Reset, transaction]);
+  }, [permit2, transaction]);
 
-  // ── Return ──────────────────────────────────────────────────────────────
   return {
     steps: {
-      approvalToken0,
-      approvalToken1,
-      permit2: permit2Step,
+      approvalToken0: permit2.approvals[0],
+      approvalToken1: permit2.approvals[1],
+      permit2: permit2.permit2,
       execute: {
         transaction,
         execute,

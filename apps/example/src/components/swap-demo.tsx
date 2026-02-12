@@ -19,10 +19,14 @@ import {
 } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 
+function shouldShowExecutionError(message: string): boolean {
+  const normalizedMessage = message.toLowerCase();
+  return !normalizedMessage.includes("user rejected") && !normalizedMessage.includes("user denied");
+}
+
 export function SwapDemo() {
   const { isConnected } = useAccount();
 
-  // ── Pair selection ──────────────────────────────────────────────────────
   const [selectedPreset, setSelectedPreset] = useState<SwapPairPreset>(SWAP_PRESETS[1]!);
   const [amountInput, setAmountInput] = useState(selectedPreset.defaultAmount);
 
@@ -31,7 +35,6 @@ export function SwapDemo() {
     setAmountInput(preset.defaultAmount);
   }, []);
 
-  // ── Derived pool key & params ───────────────────────────────────────────
   const { poolKey, zeroForOne } = useMemo(() => getPoolKeyFromPreset(selectedPreset), [selectedPreset]);
 
   const amountInRaw = useMemo(
@@ -39,7 +42,6 @@ export function SwapDemo() {
     [amountInput, selectedPreset.tokenIn.decimals],
   );
 
-  // ── Token balance ────────────────────────────────────────────────────────
   const tokenIn = useToken(selectedPreset.tokenIn.address, {
     enabled: isConnected,
     chainId: 1,
@@ -52,7 +54,6 @@ export function SwapDemo() {
     }
   }, [tokenIn.balance]);
 
-  // ── useSwap ─────────────────────────────────────────────────────────────
   const swap = useSwap(
     {
       poolKey,
@@ -69,7 +70,6 @@ export function SwapDemo() {
 
   const { steps, currentStep, executeAll, reset } = swap;
 
-  // ── Quote data ──────────────────────────────────────────────────────────
   const quoteData = steps.quote.data;
   const quoteLoading = steps.quote.isLoading;
   const quoteError = steps.quote.error;
@@ -81,7 +81,6 @@ export function SwapDemo() {
     ? formatTokenAmount(quoteData.minAmountOut, selectedPreset.tokenOut.decimals)
     : undefined;
 
-  // ── Action handler ──────────────────────────────────────────────────────
   const [executing, setExecuting] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
 
@@ -105,7 +104,7 @@ export function SwapDemo() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.toLowerCase().includes("user rejected") && !msg.toLowerCase().includes("user denied")) {
+      if (shouldShowExecutionError(msg)) {
         setTxError(msg);
       }
     } finally {
@@ -120,7 +119,7 @@ export function SwapDemo() {
       await executeAll();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (!msg.toLowerCase().includes("user rejected") && !msg.toLowerCase().includes("user denied")) {
+      if (shouldShowExecutionError(msg)) {
         setTxError(msg);
       }
     } finally {
@@ -134,7 +133,6 @@ export function SwapDemo() {
     setExecuting(false);
   }, [reset]);
 
-  // ── Render ──────────────────────────────────────────────────────────────
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
 

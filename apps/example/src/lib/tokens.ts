@@ -1,8 +1,6 @@
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 
-// ─── Token definitions for Ethereum Mainnet ─────────────────────────────────
-
 export interface TokenInfo {
   address: Address;
   symbol: string;
@@ -42,8 +40,6 @@ export const WETH: TokenInfo = {
   decimals: 18,
   logoUrl: "https://token-icons.s3.amazonaws.com/eth.png",
 };
-
-// ─── Swap pair presets ──────────────────────────────────────────────────────
 
 export interface SwapPairPreset {
   id: string;

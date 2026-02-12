@@ -93,7 +93,6 @@ export function useTokenApproval(
   const isNativeToken = token.toLowerCase() === zeroAddress.toLowerCase();
   const queryEnabled = enabled && !isNativeToken && !!owner && amount > 0n;
 
-  // ── Allowance query ─────────────────────────────────────────────────────
   const allowance = useReadContract({
     address: token,
     abi: erc20Abi,
@@ -106,7 +105,6 @@ export function useTokenApproval(
     },
   });
 
-  // ── Derive isRequired ───────────────────────────────────────────────────
   const isRequired: boolean | undefined = (() => {
     if (!queryEnabled) {
       return false;
@@ -118,7 +116,6 @@ export function useTokenApproval(
     return allowance.data < amount;
   })();
 
-  // ── Transaction for approval ────────────────────────────────────────────
   const transaction = useTransaction({
     onSuccess: () => {
       // Refetch allowance after approval confirms
@@ -126,7 +123,6 @@ export function useTokenApproval(
     },
   });
 
-  // ── Approve action ──────────────────────────────────────────────────────
   const approve = useCallback(
     async (approveAmount?: bigint) => {
       if (isNativeToken) {
