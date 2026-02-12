@@ -4,7 +4,7 @@ import { createConfig, http } from "wagmi";
 import { mainnet } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
-const mainnetRpcUrl = process.env.NEXT_PUBLIC_MAINNET_RPC_URL ?? "http://127.0.0.1:8545";
+const mainnetRpcUrl = process.env.NEXT_PUBLIC_MAINNET_RPC_URL;
 
 export const wagmiConfig = createConfig({
   chains: [mainnet],

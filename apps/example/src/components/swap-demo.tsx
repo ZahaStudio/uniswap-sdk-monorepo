@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useSwap, useToken, type SwapStep } from "@zahastudio/uniswap-sdk-react";
-import { useAccount } from "wagmi";
+import { useAccount, useChainId } from "wagmi";
 
 import { StepIndicator } from "@/components/step-indicator";
 import { SwapDetails } from "@/components/swap-details";
@@ -19,10 +19,9 @@ import {
 } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 
-const defaultChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? "1");
-
 export function SwapDemo() {
   const { isConnected } = useAccount();
+  const connectedChainId = useChainId();
 
   // ── Pair selection ──────────────────────────────────────────────────────
   const [selectedPreset, setSelectedPreset] = useState<SwapPairPreset>(SWAP_PRESETS[1]!);
@@ -44,7 +43,7 @@ export function SwapDemo() {
   // ── Token balance ────────────────────────────────────────────────────────
   const tokenIn = useToken(selectedPreset.tokenIn.address, {
     enabled: isConnected,
-    chainId: defaultChainId,
+    chainId: connectedChainId,
     refetchInterval: 15_000,
   });
 
@@ -65,7 +64,7 @@ export function SwapDemo() {
     {
       enabled: amountInRaw > 0n,
       refetchInterval: 15_000, // refresh quote every 15s
-      chainId: defaultChainId,
+      chainId: connectedChainId,
     },
   );
 
