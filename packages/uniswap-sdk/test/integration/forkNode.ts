@@ -27,7 +27,7 @@ const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, errorMessa
 };
 
 export const startForkNode = async (): Promise<ForkNodeInstance> => {
-  const forkUrl = process.env.UNICHAIN_RPC_URL ?? process.env.MAINNET_RPC_URL ?? "https://mainnet.unichain.org";
+  const forkUrl = process.env.UNICHAIN_RPC_URL ?? "https://mainnet.unichain.org";
   const port = Number(process.env.ANVIL_PORT ?? String(10_000 + Math.floor(Math.random() * 10_000)));
   const chainId = Number(process.env.FORK_CHAIN_ID ?? "130");
   const startupTimeoutMs = Number(process.env.ANVIL_STARTUP_TIMEOUT_MS ?? "60000");
