@@ -51,9 +51,7 @@ export function TokenInput({
               balanceLoading && "animate-pulse",
             )}
           >
-            {balanceLoading
-              ? "Balance: ..."
-              : `Balance: ${formatBalance(balance ?? "0")} ${token.symbol}`}
+            {balanceLoading ? "Balance: ..." : `Balance: ${formatBalance(balance ?? "0")} ${token.symbol}`}
           </button>
         )}
       </div>

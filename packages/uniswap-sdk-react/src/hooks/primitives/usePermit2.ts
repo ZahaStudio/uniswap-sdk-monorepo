@@ -9,6 +9,7 @@ import { useAccount, useSignTypedData } from "wagmi";
 
 import { useTokenApproval, type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions";
 
 /**
  * A token to include in the Permit2 flow.
@@ -109,7 +110,7 @@ function isNonNative(token: UsePermit2Token): boolean {
 
 function createPermit2InputsKey(
   chainId: number,
-  connectedAddress: Address | undefined,
+  connectedAddress: Address,
   spender: Address,
   token0: UsePermit2Token,
   token1: UsePermit2Token,
@@ -206,7 +207,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
   const [signedState, setSignedState] = useState<KeyedState<Permit2SignedResult> | undefined>(undefined);
   const [signErrorState, setSignErrorState] = useState<KeyedState<Error> | undefined>(undefined);
 
-  const inputsKey = createPermit2InputsKey(chainId, connectedAddress, spender, token0, token1);
+  const inputsKey = createPermit2InputsKey(chainId, connectedAddress ?? zeroAddress, spender, token0, token1);
   const signed = signedState?.key === inputsKey ? signedState.value : undefined;
   const signError = signErrorState?.key === inputsKey ? signErrorState.value : undefined;
 
@@ -217,12 +218,8 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
       return result;
     }
 
-    if (!connectedAddress) {
-      throw new Error("No wallet connected");
-    }
-    if (!sdk) {
-      throw new Error("SDK not initialized");
-    }
+    assertWalletConnected(connectedAddress);
+    assertSdkInitialized(sdk);
 
     try {
       setSignErrorState(undefined);

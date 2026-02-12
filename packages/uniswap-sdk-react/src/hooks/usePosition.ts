@@ -5,6 +5,7 @@ import type { GetPositionResponse, GetUncollectedFeesResponse } from "@zahastudi
 
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
+import { assertSdkInitialized } from "@/utils/assertions";
 import { positionKeys } from "@/utils/queryKeys";
 
 /**
@@ -67,9 +68,7 @@ export function usePosition(params: UsePositionParams, options: UseHookOptions =
   const query = useQuery({
     queryKey: positionKeys.detail(tokenId, chainId),
     queryFn: async (): Promise<UsePositionData> => {
-      if (!sdk) {
-        throw new Error("SDK not initialized");
-      }
+      assertSdkInitialized(sdk);
       const [position, uncollectedFees] = await Promise.all([
         sdk.getPosition(tokenId),
         sdk.getUncollectedFees(tokenId),

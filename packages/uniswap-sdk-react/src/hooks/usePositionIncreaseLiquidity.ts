@@ -10,6 +10,7 @@ import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import { assertSdkInitialized } from "@/utils/assertions";
 
 /**
  * Arguments for increasing liquidity on a position.
@@ -154,9 +155,7 @@ export function usePositionIncreaseLiquidity(
       if (!position) {
         throw new Error("Position not loaded. Wait for query to complete before increasing liquidity.");
       }
-      if (!sdk) {
-        throw new Error("SDK not initialized");
-      }
+      assertSdkInitialized(sdk);
       const permit2Signed = signedPermit2 ?? permit2.permit2.signed;
       if (permit2.permit2.isRequired && !permit2Signed) {
         throw new Error("Permit2 signature required");

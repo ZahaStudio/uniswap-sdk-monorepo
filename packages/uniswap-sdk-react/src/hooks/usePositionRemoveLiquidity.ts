@@ -7,6 +7,7 @@ import type { Hex } from "viem";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import { assertSdkInitialized } from "@/utils/assertions";
 
 /**
  * Arguments for removing liquidity from a position.
@@ -77,9 +78,7 @@ export function usePositionRemoveLiquidity(
 
   const execute = useCallback(
     async (args: RemoveLiquidityArgs): Promise<Hex> => {
-      if (!sdk) {
-        throw new Error("SDK not initialized");
-      }
+      assertSdkInitialized(sdk);
 
       const positionManager = sdk.getContractAddress("positionManager");
       const { calldata, value } = await sdk.buildRemoveLiquidityCallData({
