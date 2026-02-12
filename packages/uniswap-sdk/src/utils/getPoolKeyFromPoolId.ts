@@ -18,7 +18,7 @@ export interface GetPoolKeyFromPoolIdParams {
  * @throws Error if SDK instance is not found
  */
 export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKInstance): Promise<PoolKey> {
-  const { client, contracts, chain, cache } = instance;
+  const { client, contracts, chain, cache, blockNumber } = instance;
   const { positionManager } = contracts;
   const cachePoolKey = `poolKey:${chain.id}:${poolId.toLowerCase()}`;
   const cached = await cache.get<PoolKey>(cachePoolKey);
@@ -29,6 +29,7 @@ export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKI
   const poolId25Bytes = `0x${poolId.slice(2, 52)}` as `0x${string}`;
 
   const [currency0, currency1, fee, tickSpacing, hooks] = await client.readContract({
+    blockNumber,
     address: positionManager,
     abi: v4.PositionManagerArtifact.abi,
     functionName: "poolKeys",

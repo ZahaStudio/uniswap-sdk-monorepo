@@ -21,7 +21,7 @@ export interface GetTokensArgs {
  */
 export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInstance): Promise<Currency[]> {
   const { addresses } = params;
-  const { client, chain, cache } = instance;
+  const { client, chain, cache, blockNumber } = instance;
   const resultByAddress = new Map<string, Currency>();
   const missingAddresses: Address[] = [];
   const normalize = (address: Address) => getAddress(address);
@@ -64,6 +64,7 @@ export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInsta
 
   try {
     const results = await client.multicall({
+      blockNumber,
       contracts: calls,
       allowFailure: false,
     });

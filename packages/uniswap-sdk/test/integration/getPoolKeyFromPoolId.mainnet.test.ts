@@ -4,36 +4,20 @@ import { unichain } from "viem/chains";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { UniswapSDK } from "@/core/sdk";
-import { UNICHAIN_POOL_ID, UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
-import { startForkNode, stopForkNode } from "@/test/integration/forkNode";
+import { UNICHAIN_FORK_BLOCK_NUMBER, UNICHAIN_POOL_ID, UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
 import { getPoolKeyFromPoolId } from "@/utils/getPoolKeyFromPoolId";
 
-describe("getPoolKeyFromPoolId (unichain fork)", () => {
-  let forkUrl: string | null = null;
-  let forkNode: Awaited<ReturnType<typeof startForkNode>> | null = null;
+const UNICHAIN_RPC_URL = "https://unichain.drpc.org";
+const PINNED_BLOCK_NUMBER = BigInt(UNICHAIN_FORK_BLOCK_NUMBER);
 
-  beforeAll(async () => {
-    forkNode = await startForkNode();
-    forkUrl = forkNode.url;
-  });
-
-  afterAll(async () => {
-    if (forkNode) {
-      await stopForkNode(forkNode);
-    }
-  });
-
+describe("getPoolKeyFromPoolId (unichain rpc)", () => {
   it("fetches the pool key for a pool id", async () => {
-    if (!forkUrl) {
-      throw new Error("Fork node URL was not initialized.");
-    }
-
     const client = createPublicClient({
       chain: unichain,
-      transport: http(forkUrl),
+      transport: http(UNICHAIN_RPC_URL),
     }) as PublicClient;
 
-    const sdk = UniswapSDK.create(client, unichain.id);
+    const sdk = UniswapSDK.create(client, unichain.id, undefined, undefined, PINNED_BLOCK_NUMBER);
     const instance = (sdk as unknown as { instance: UniswapSDKInstance }).instance;
 
     const tokens = await sdk.getTokens({

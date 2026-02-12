@@ -100,7 +100,7 @@ export interface QuoteResponse {
  * - Contract call reverts
  */
 export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKInstance): Promise<QuoteResponse> {
-  const { client, contracts } = instance;
+  const { client, contracts, blockNumber } = instance;
   const { quoter } = contracts;
 
   try {
@@ -121,6 +121,7 @@ export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKIn
 
     // Simulate the quote to estimate the amount out
     const simulation = await client.simulateContract({
+      blockNumber,
       address: quoter,
       abi: v4.QuoterArtifact.abi,
       functionName: "quoteExactInputSingle",

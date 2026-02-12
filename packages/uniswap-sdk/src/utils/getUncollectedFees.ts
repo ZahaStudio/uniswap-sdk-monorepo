@@ -28,7 +28,7 @@ export async function getUncollectedFees(
   tokenId: string,
   instance: UniswapSDKInstance,
 ): Promise<GetUncollectedFeesResponse> {
-  const { client, contracts } = instance;
+  const { client, contracts, blockNumber } = instance;
   const { positionManager, stateView } = contracts;
 
   // Step 1: Get position info (poolId, tickLower, tickUpper, liquidity, poolKey)
@@ -40,6 +40,7 @@ export async function getUncollectedFees(
 
   // Step 2: Multicall to StateView for fee growth snapshots and current fee growth
   const [stateViewPositionInfo, feeGrowthInside] = await client.multicall({
+    blockNumber,
     allowFailure: false,
     contracts: [
       {
