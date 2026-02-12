@@ -1,7 +1,7 @@
 import { createServer } from "prool";
 import { anvil } from "prool/instances";
 
-import { MAINNET_FORK_BLOCK_NUMBER } from "@/test/fixtures/mainnet";
+import { UNICHAIN_FORK_BLOCK_NUMBER } from "@/test/fixtures/unichain";
 
 type ForkNodeInstance = {
   url: string;
@@ -27,7 +27,7 @@ const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number, errorMessa
 };
 
 export const startForkNode = async (): Promise<ForkNodeInstance> => {
-  const forkUrl = process.env.MAINNET_RPC_URL ?? "https://unichain.drpc.org";
+  const forkUrl = process.env.UNICHAIN_RPC_URL ?? process.env.MAINNET_RPC_URL ?? "https://mainnet.unichain.org";
   const port = Number(process.env.ANVIL_PORT ?? String(10_000 + Math.floor(Math.random() * 10_000)));
   const chainId = Number(process.env.FORK_CHAIN_ID ?? "130");
   const startupTimeoutMs = Number(process.env.ANVIL_STARTUP_TIMEOUT_MS ?? "60000");
@@ -36,7 +36,7 @@ export const startForkNode = async (): Promise<ForkNodeInstance> => {
     instance: anvil({
       chainId,
       forkUrl,
-      forkBlockNumber: BigInt(MAINNET_FORK_BLOCK_NUMBER),
+      forkBlockNumber: BigInt(UNICHAIN_FORK_BLOCK_NUMBER),
     }),
     host: "127.0.0.1",
     port,

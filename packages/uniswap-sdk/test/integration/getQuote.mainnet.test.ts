@@ -2,7 +2,7 @@ import { type PublicClient, createPublicClient, http } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
-import { MAINNET_POOL_KEY } from "@/test/fixtures/mainnet";
+import { UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
 import { startForkNode, stopForkNode } from "@/test/integration/forkNode";
 
 describe("getQuote (unichain fork)", () => {
@@ -42,7 +42,7 @@ describe("getQuote (unichain fork)", () => {
     vi.setSystemTime(blockTimestampMs);
 
     const quote = await sdk.getQuote({
-      poolKey: MAINNET_POOL_KEY,
+      poolKey: UNICHAIN_POOL_KEY,
       zeroForOne: false,
       amountIn,
     });

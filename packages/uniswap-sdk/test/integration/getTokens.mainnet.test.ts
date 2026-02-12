@@ -2,7 +2,7 @@ import { type PublicClient, createPublicClient, http } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
-import { MAINNET_TOKENS } from "@/test/fixtures/mainnet";
+import { UNICHAIN_TOKENS } from "@/test/fixtures/unichain";
 import { startForkNode, stopForkNode } from "@/test/integration/forkNode";
 
 describe("getTokens (unichain fork)", () => {
@@ -25,8 +25,8 @@ describe("getTokens (unichain fork)", () => {
       throw new Error("Fork node URL was not initialized.");
     }
 
-    const tokenA = MAINNET_TOKENS.ETH as `0x${string}`;
-    const tokenB = MAINNET_TOKENS.USDC as `0x${string}`;
+    const tokenA = UNICHAIN_TOKENS.ETH as `0x${string}`;
+    const tokenB = UNICHAIN_TOKENS.USDC as `0x${string}`;
 
     const client = createPublicClient({
       chain: unichain,

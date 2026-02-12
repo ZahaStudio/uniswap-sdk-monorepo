@@ -2,7 +2,7 @@ import { type PublicClient, createPublicClient, http } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
-import { MAINNET_POOL_KEY } from "@/test/fixtures/mainnet";
+import { UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
 import { startForkNode, stopForkNode } from "@/test/integration/forkNode";
 
 describe("getTickInfo (unichain fork)", () => {
@@ -32,7 +32,7 @@ describe("getTickInfo (unichain fork)", () => {
 
     const sdk = UniswapSDK.create(client, unichain.id);
     const tickInfo = await sdk.getTickInfo({
-      poolKey: MAINNET_POOL_KEY,
+      poolKey: UNICHAIN_POOL_KEY,
       tick: 0,
     });
 
@@ -54,7 +54,7 @@ describe("getTickInfo (unichain fork)", () => {
 
     const sdk = UniswapSDK.create(client, unichain.id);
     const tickInfo = await sdk.getTickInfo({
-      poolKey: MAINNET_POOL_KEY,
+      poolKey: UNICHAIN_POOL_KEY,
       tick: -200680,
     });
 
