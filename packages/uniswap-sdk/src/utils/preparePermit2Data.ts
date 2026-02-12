@@ -173,15 +173,12 @@ export async function preparePermit2Data(
   // calculate sigDeadline if not provided
   let sigDeadline = sigDeadlineParam;
   if (!sigDeadline) {
-    const blockTimestamp = await instance.client
-      .getBlock({ blockNumber: instance.blockNumber })
-      .then((block) => block.timestamp);
+    const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp);
     sigDeadline = Number(blockTimestamp + 60n * 60n); // 30 minutes from current block timestamp
   }
 
   // Fetch allowance details for each token
   const details = await instance.client.readContract({
-    blockNumber: instance.blockNumber,
     address: PERMIT2_ADDRESS as `0x${string}`,
     abi: allowanceAbi,
     functionName: "allowance",

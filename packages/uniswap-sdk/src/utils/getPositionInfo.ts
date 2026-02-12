@@ -26,13 +26,12 @@ import { getTokens } from "@/utils/getTokens";
  * @throws Error if position data cannot be fetched or position doesn't exist
  */
 export async function getPositionInfo(tokenId: string, instance: UniswapSDKInstance): Promise<GetPositionInfoResponse> {
-  const { client, contracts, blockNumber } = instance;
+  const { client, contracts } = instance;
 
   const { positionManager, stateView } = contracts;
 
   // Fetch poolKey and raw position info using multicall
   const [poolAndPositionInfo, liquidity] = await client.multicall({
-    blockNumber,
     allowFailure: false,
     contracts: [
       {
@@ -73,7 +72,6 @@ export async function getPositionInfo(tokenId: string, instance: UniswapSDKInsta
 
   // Fetch pool state (slot0 and liquidity) in a single multicall
   const [slot0Result, poolLiquidityResult] = await client.multicall({
-    blockNumber,
     allowFailure: false,
     contracts: [
       {

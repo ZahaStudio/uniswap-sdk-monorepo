@@ -68,9 +68,7 @@ export async function preparePermit2BatchData(
   // calculate sigDeadline if not provided
   let sigDeadline = sigDeadlineParam;
   if (!sigDeadline) {
-    const blockTimestamp = await instance.client
-      .getBlock({ blockNumber: instance.blockNumber })
-      .then((block) => block.timestamp);
+    const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp);
 
     sigDeadline = Number(blockTimestamp + 60n * 60n); // 30 minutes from current block timestamp
   }
@@ -79,7 +77,6 @@ export async function preparePermit2BatchData(
 
   // Fetch allowance details for each token
   const details = await instance.client.multicall({
-    blockNumber: instance.blockNumber,
     allowFailure: false,
     contracts: noNativeTokens.map((token) => ({
       address: PERMIT2_ADDRESS as `0x${string}`,

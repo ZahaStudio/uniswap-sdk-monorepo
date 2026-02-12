@@ -1,20 +1,14 @@
-import { type PublicClient, createPublicClient, http, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
-import { UNICHAIN_FORK_BLOCK_NUMBER, UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
-
-const UNICHAIN_RPC_URL = "https://unichain.drpc.org";
-const PINNED_BLOCK_NUMBER = BigInt(UNICHAIN_FORK_BLOCK_NUMBER);
+import { UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
+import { createPinnedUnichainClient } from "@/test/integration/pinnedClient";
 
 describe("getPool (unichain rpc)", () => {
   it("fetches a pool", async () => {
-    const client = createPublicClient({
-      chain: unichain,
-      transport: http(UNICHAIN_RPC_URL),
-    }) as PublicClient;
-
-    const sdk = UniswapSDK.create(client, unichain.id, undefined, undefined, PINNED_BLOCK_NUMBER);
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
     const pool = await sdk.getPool({
       currencyA: UNICHAIN_POOL_KEY.currency0,
       currencyB: UNICHAIN_POOL_KEY.currency1,

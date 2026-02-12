@@ -5,5 +5,5 @@ export async function getDefaultDeadline(
   instance: UniswapSDKInstance,
   timeFromNow: number = DEFAULT_DEADLINE,
 ): Promise<bigint> {
-  return (await instance.client.getBlock({ blockNumber: instance.blockNumber })).timestamp + BigInt(timeFromNow);
+  return (await instance.client.getBlock()).timestamp + BigInt(timeFromNow);
 }

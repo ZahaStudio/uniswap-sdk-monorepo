@@ -71,11 +71,10 @@ export async function getPool(args: PoolArgs, instance: UniswapSDKInstance): Pro
 
   const poolId32Bytes = Pool.getPoolId(tokenInstances[0], tokenInstances[1], fee, _tickSpacing, hooks) as `0x${string}`;
 
-  const { client, contracts, blockNumber } = instance;
+  const { client, contracts } = instance;
   const { stateView } = contracts;
 
   const poolData = await client.multicall({
-    blockNumber,
     allowFailure: false,
     contracts: [
       {

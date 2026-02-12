@@ -61,7 +61,6 @@ export type V4Contracts = {
 export type UniswapSDKInstance = {
   /** Viem public client */
   client: PublicClient;
-  blockNumber?: bigint;
   /** Chain */
   chain: Chain;
   /** Contract addresses */
@@ -78,20 +77,13 @@ export type UniswapSDKInstance = {
 export class UniswapSDK {
   private instance: UniswapSDKInstance;
 
-  private constructor(
-    client: PublicClient,
-    chain: Chain,
-    contracts: V4Contracts,
-    cache?: CacheAdapter,
-    blockNumber?: bigint,
-  ) {
+  private constructor(client: PublicClient, chain: Chain, contracts: V4Contracts, cache?: CacheAdapter) {
     if (!cache) {
       cache = createDefaultCache();
     }
 
     this.instance = {
       client,
-      blockNumber,
       chain,
       contracts,
       cache,
@@ -111,7 +103,6 @@ export class UniswapSDK {
     chainId: number,
     contracts?: V4Contracts,
     cache?: CacheAdapter,
-    blockNumber?: bigint,
   ): UniswapSDK {
     const chain = getChainById(chainId);
     const uniswapContracts = getUniswapContracts(chainId);
@@ -127,7 +118,7 @@ export class UniswapSDK {
       } satisfies V4Contracts;
     }
 
-    return new UniswapSDK(client, chain, contracts, cache, blockNumber);
+    return new UniswapSDK(client, chain, contracts, cache);
   }
 
   /**

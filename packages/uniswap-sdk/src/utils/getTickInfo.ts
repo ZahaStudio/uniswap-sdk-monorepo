@@ -21,7 +21,7 @@ export interface TickInfoResponse {
  * Reads tick info for a given pool key and tick from V4 StateView.
  */
 export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKInstance): Promise<TickInfoResponse> {
-  const { client, contracts, blockNumber } = instance;
+  const { client, contracts } = instance;
   const { stateView } = contracts;
 
   const { poolKey, tick } = args;
@@ -49,7 +49,6 @@ export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKIns
 
   // Read tick info
   const result = await client.readContract({
-    blockNumber,
     address: stateView,
     abi: v4.StateViewArtifact.abi,
     functionName: "getTickInfo",
