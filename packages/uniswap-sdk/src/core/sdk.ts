@@ -3,37 +3,34 @@ import type { Pool } from "@uniswap/v4-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
-import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/positions";
 import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
-import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/utils/buildAddLiquidityCallData";
-import { buildAddLiquidityCallData } from "@/utils/buildAddLiquidityCallData";
-import type { BuildCollectFeesCallDataArgs } from "@/utils/buildCollectFeesCallData";
-import { buildCollectFeesCallData } from "@/utils/buildCollectFeesCallData";
-import type { BuildRemoveLiquidityCallDataArgs } from "@/utils/buildRemoveLiquidityCallData";
-import { buildRemoveLiquidityCallData } from "@/utils/buildRemoveLiquidityCallData";
-import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
-import { buildSwapCallData } from "@/utils/buildSwapCallData";
+import {
+  buildAddLiquidityCallData,
+  type BuildAddLiquidityArgs,
+  type BuildAddLiquidityCallDataResult,
+} from "@/utils/buildAddLiquidityCallData";
+import { buildCollectFeesCallData, type BuildCollectFeesCallDataArgs } from "@/utils/buildCollectFeesCallData";
+import {
+  buildRemoveLiquidityCallData,
+  type BuildRemoveLiquidityCallDataArgs,
+} from "@/utils/buildRemoveLiquidityCallData";
+import { buildSwapCallData, type BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import { getChainById } from "@/utils/chains";
-import type { PoolArgs } from "@/utils/getPool";
-import { getPool } from "@/utils/getPool";
-import { getPosition } from "@/utils/getPosition";
-import { getPositionInfo } from "@/utils/getPositionInfo";
-import type { QuoteResponse, SwapExactInSingle } from "@/utils/getQuote";
-import { getQuote } from "@/utils/getQuote";
-import type { GetTickInfoArgs, TickInfoResponse } from "@/utils/getTickInfo";
-import { getTickInfo } from "@/utils/getTickInfo";
-import type { GetTokensArgs } from "@/utils/getTokens";
-import { getTokens } from "@/utils/getTokens";
-import type { GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
-import { getUncollectedFees } from "@/utils/getUncollectedFees";
+import { getPool, type PoolArgs } from "@/utils/getPool";
+import { getPosition, type GetPositionResponse } from "@/utils/getPosition";
+import { getPositionInfo, type GetPositionInfoResponse } from "@/utils/getPositionInfo";
+import { getQuote, type QuoteResponse, type SwapExactInSingle } from "@/utils/getQuote";
+import { getTickInfo, type GetTickInfoArgs, type TickInfoResponse } from "@/utils/getTickInfo";
+import { getTokens, type GetTokensArgs } from "@/utils/getTokens";
+import { getUncollectedFees, type GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
 import { preparePermit2BatchData } from "@/utils/preparePermit2BatchData";
-import type {
-  PreparePermit2BatchDataArgs,
-  PreparePermit2BatchDataResult,
-  PreparePermit2DataArgs,
-  PreparePermit2DataResult,
+import {
+  preparePermit2Data,
+  type PreparePermit2BatchDataArgs,
+  type PreparePermit2BatchDataResult,
+  type PreparePermit2DataArgs,
+  type PreparePermit2DataResult,
 } from "@/utils/preparePermit2Data";
-import { preparePermit2Data } from "@/utils/preparePermit2Data";
 
 /**
  * Configuration for V4 contracts.
