@@ -1,41 +1,80 @@
-# Swap Example
+# Uniswap SDK Example App
 
 ## Overview
-This example demonstrates how to use the Uniswap V4 react and typescript SDK to swap between ETH and USDC
 
-## Usage
-To run this example, follow these steps:
+This app demonstrates how to build real user flows with `@zahastudio/uniswap-sdk-react` on Uniswap V4.
 
-1. Install dependencies from the root directory
+It includes two demos:
+
+- **Swap (`/swap`)**: quote and execute token swaps with `useSwap`
+
+By default, the app runs against `Ethereum mainnet` (chain ID `1`).
+
+## What this app demonstrates
+
+### Swap demo
+
+- Preset pairs:
+  - `ETH -> USDC`
+  - `USDC -> USDT`
+- Multi-step execution flow handled by the SDK (`quote`, `approval`, `permit2`, `swap`)
+- Quote refresh and transaction status tracking
+
+## Prerequisites
+
+- Node.js `>= 24`
+- `pnpm`
+- A browser wallet (for example MetaMask)
+
+## Run locally
+
+From the monorepo root:
+
+1. Install dependencies
+
    ```bash
    pnpm install
    ```
 
-2. Start the development server from the root directory
+2. Build and start dev servers
+
    ```bash
    pnpm build && pnpm dev
    ```
 
-Note: By default, the example app runs on `Ethereum mainnet` 
+3. Open the example app
+   ```text
+   http://localhost:3002
+   ```
 
-## Running on Anvil
+## Environment variables
 
-1. Set the environment variable
-  ```bash
-  export NEXT_PUBLIC_MAINNET_RPC_URL=http://127.0.0.1:8545
-  ```
-2. Start anvil
+- `NEXT_PUBLIC_MAINNET_RPC_URL` (optional)
+  - Overrides the Ethereum mainnet RPC URL used by the app
+  - Useful for running against a local Anvil fork
 
-  ```bash
+## Running on Anvil (mainnet fork)
+
+1. Point the app to your local RPC
+
+   ```bash
+   export NEXT_PUBLIC_MAINNET_RPC_URL=http://127.0.0.1:8545
+   ```
+
+2. Start Anvil from the monorepo root
+
+   ```bash
    pnpm anvil
    ```
-   
-   After starting anvil, change the `Ethereum mainnet` rpc of your browser wallet to point to  `http://127.0.0.1:8545` and 
-   import one of the private keys mentioned in the anvil logs. By default those private keys should have around 10000 ETH
-   
-3. Start the development server from the root directory
-  ```bash
-  pnpm build && pnpm dev
-  ```
 
-Interact with the app by swapping ETH for USDC or vice versa.
+3. Configure your wallet
+   - Update the `Ethereum mainnet` RPC URL to `http://127.0.0.1:8545`
+   - Import one of the private keys printed by Anvil (funded accounts)
+
+4. Start the app
+
+   ```bash
+   pnpm build && pnpm dev
+   ```
+
+5. Interact with the demos to execute ETH/USDC or USDC/USDT swaps
