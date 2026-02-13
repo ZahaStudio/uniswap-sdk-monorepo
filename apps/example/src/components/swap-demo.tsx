@@ -80,6 +80,10 @@ export function SwapDemo() {
 
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
+  const hasInsufficientBalance = amountInRaw > 0n && tokenIn.balance !== undefined && amountInRaw > tokenIn.balance.raw;
+  const insufficientBalanceError = hasInsufficientBalance
+    ? `Insufficient ${selectedPreset.tokenIn.symbol} balance`
+    : null;
 
   // Countdown timer for next auto-refresh
   const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(QUOTE_REFRESH_INTERVAL / 1000);
@@ -119,6 +123,10 @@ export function SwapDemo() {
 
   const handleExecuteStep = useCallback(async () => {
     setTxError(null);
+    if (hasInsufficientBalance) {
+      setTxError(`Insufficient ${selectedPreset.tokenIn.symbol} balance`);
+      return;
+    }
     setExecuting(true);
     try {
       switch (currentStep) {
@@ -143,10 +151,14 @@ export function SwapDemo() {
     } finally {
       setExecuting(false);
     }
-  }, [currentStep, steps]);
+  }, [currentStep, hasInsufficientBalance, selectedPreset.tokenIn.symbol, steps]);
 
   const handleExecuteAll = useCallback(async () => {
     setTxError(null);
+    if (hasInsufficientBalance) {
+      setTxError(`Insufficient ${selectedPreset.tokenIn.symbol} balance`);
+      return;
+    }
     setExecuting(true);
     try {
       await executeAll();
@@ -158,7 +170,7 @@ export function SwapDemo() {
     } finally {
       setExecuting(false);
     }
-  }, [executeAll]);
+  }, [executeAll, hasInsufficientBalance, selectedPreset.tokenIn.symbol]);
 
   const handleReset = useCallback(() => {
     reset();
@@ -281,8 +293,10 @@ export function SwapDemo() {
         )}
 
         {/* Error display */}
-        {(quoteError || txError) && (
-          <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">{quoteError?.message ?? txError}</div>
+        {(quoteError || txError || insufficientBalanceError) && (
+          <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">
+            {insufficientBalanceError ?? quoteError?.message ?? txError}
+          </div>
         )}
 
         {/* Action button */}
@@ -310,7 +324,14 @@ export function SwapDemo() {
               {/* Execute all button */}
               <button
                 onClick={handleExecuteAll}
-                disabled={executing || !quoteData || quoteLoading || amountInput === "" || amountInput === "0"}
+                disabled={
+                  executing ||
+                  !quoteData ||
+                  quoteLoading ||
+                  hasInsufficientBalance ||
+                  amountInput === "" ||
+                  amountInput === "0"
+                }
                 className={cn(
                   "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
                   "bg-accent hover:bg-accent-hover text-white",
@@ -324,7 +345,7 @@ export function SwapDemo() {
               {quoteData && currentStep !== "quote" && currentStep !== "completed" && (
                 <button
                   onClick={handleExecuteStep}
-                  disabled={executing}
+                  disabled={executing || hasInsufficientBalance}
                   className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {executing ? getStepActionLabel(currentStep) + "..." : `Step: ${getStepActionLabel(currentStep)}`}

@@ -18,6 +18,7 @@ import { useAccount } from "wagmi";
 import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import type { UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
+import { useToken } from "@/hooks/useToken";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
 import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions";
@@ -167,6 +168,10 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isSwapEnabled = isQuoteEnabled && isWalletReady;
 
   const universalRouter = sdk?.getContractAddress("universalRouter") ?? zeroAddress;
+  const inputTokenState = useToken(inputToken, {
+    enabled: isSwapEnabled,
+    chainId,
+  });
 
   const quoteQuery = useQuery({
     queryKey: swapKeys.quote(poolKey, amountIn, zeroForOne, slippageBps, chainId),
@@ -221,6 +226,11 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         throw new Error("Quote not available");
       }
 
+      const inputBalanceRaw = inputTokenState.balance?.raw;
+      if (inputBalanceRaw !== undefined && amountIn > inputBalanceRaw) {
+        throw new Error("Insufficient balance for swap amount");
+      }
+
       const permit2Signed = signedPermit2 ?? permit2.permit2.signed;
       if (!permit2Signed && permit2.permit2.isRequired) {
         throw new Error("Permit2 signature required");
@@ -254,6 +264,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     [
       connectedAddress,
       quoteQuery.data,
+      inputTokenState.balance?.raw,
       sdk,
       permit2.permit2.isRequired,
       permit2.permit2.signed,
