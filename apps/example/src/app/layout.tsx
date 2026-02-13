@@ -5,8 +5,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Uniswap SDK — Swap Example",
-  description: "Example app demonstrating the useSwap hook from @zahastudio/uniswap-sdk-react",
+  title: "Uniswap SDK — Example",
+  description: "",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

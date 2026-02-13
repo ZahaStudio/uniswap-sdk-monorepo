@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type PropsWithChildren } from "react";
 
 import { darkTheme, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -22,7 +22,7 @@ const queryClient = new QueryClient({
   },
 });
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children }: PropsWithChildren) {
   return (
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={wagmiConfig}>
