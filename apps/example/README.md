@@ -3,12 +3,6 @@
 ## Overview
 
 This app demonstrates how to build real user flows with `@zahastudio/uniswap-sdk-react` on Uniswap V4.
-It includes a demo to:
-- **Swap (`/swap`)**: quote and execute token swaps with `useSwap`
-
-By default, the app runs against `Ethereum mainnet` (chain ID `1`).
-
-## What this app demonstrates
 
 ### Swap demo
 
@@ -17,6 +11,8 @@ By default, the app runs against `Ethereum mainnet` (chain ID `1`).
   - `USDC -> USDT`
 - Multi-step execution flow handled by the SDK (`quote`, `approval`, `permit2`, `swap`)
 - Quote refresh and transaction status tracking
+
+By default, the app runs against `Ethereum mainnet` (chain ID `1`).
 
 ## Prerequisites
 
