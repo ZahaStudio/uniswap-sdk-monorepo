@@ -8,6 +8,7 @@ import { useAccount, useReadContract } from "wagmi";
 
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import type { UseHookOptions } from "@/types/hooks";
+import { assertWalletConnected } from "@/utils/assertions";
 
 /**
  * Operation parameters for the token approval hook.
@@ -128,9 +129,7 @@ export function useTokenApproval(
       if (isNativeToken) {
         throw new Error("Cannot approve native token");
       }
-      if (!owner) {
-        throw new Error("No wallet connected");
-      }
+      assertWalletConnected(owner);
 
       const data = encodeFunctionData({
         abi: erc20Abi,

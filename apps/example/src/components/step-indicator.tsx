@@ -2,7 +2,7 @@
 
 import type {
   SwapStep,
-  UseSwapPermit2Step,
+  UsePermit2SignStep,
   UseTokenApprovalReturn,
   UseTransactionReturn,
 } from "@zahastudio/uniswap-sdk-react";
@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 interface StepIndicatorProps {
   currentStep: SwapStep;
   approval: UseTokenApprovalReturn;
-  permit2: UseSwapPermit2Step;
+  permit2: UsePermit2SignStep;
   swapTx: UseTransactionReturn;
   isNativeInput: boolean;
 }

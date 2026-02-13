@@ -11,5 +11,5 @@ export const wagmiConfig = getDefaultConfig({
   transports: {
     [mainnet.id]: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL),
   },
-  ssr: true,
+  ssr: false,
 });
