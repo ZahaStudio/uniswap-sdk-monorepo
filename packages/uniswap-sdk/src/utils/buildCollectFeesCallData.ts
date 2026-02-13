@@ -20,9 +20,10 @@ export interface BuildCollectFeesCallDataArgs {
   recipient: string;
 
   /**
-   * Optional deadline for the transaction (default: 10 minutes from current block timestamp).
+   * Deadline duration in seconds from current block timestamp.
+   * Defaults to the SDK instance's defaultDeadline (600 = 10 minutes).
    */
-  deadline?: string;
+  deadlineDuration?: number;
 }
 
 /**
@@ -37,7 +38,7 @@ export interface BuildCollectFeesCallDataArgs {
  * const { calldata, value } = await buildCollectFeesCallData({
  *   tokenId: '1234',
  *   recipient: userAddress,
- *   deadline: '1234567890',
+ *   deadlineDuration: 600, // 10 minutes
  * }, instance)
  *
  * const tx = await sendTransaction({
@@ -48,7 +49,7 @@ export interface BuildCollectFeesCallDataArgs {
  * ```
  */
 export async function buildCollectFeesCallData(
-  { tokenId, recipient, deadline: deadlineParam }: BuildCollectFeesCallDataArgs,
+  { tokenId, recipient, deadlineDuration }: BuildCollectFeesCallDataArgs,
   instance: UniswapSDKInstance,
 ) {
   const positionData = await getPosition(tokenId, instance);
@@ -56,7 +57,7 @@ export async function buildCollectFeesCallData(
     throw new Error("Position not found");
   }
 
-  const deadline = deadlineParam ?? (await getDefaultDeadline(instance)).toString();
+  const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 
   try {
     const { calldata, value } = V4PositionManager.collectCallParameters(positionData.position, {

@@ -276,7 +276,6 @@ export function SwapDemo() {
             minOutput={minOutputDisplay!}
             outputSymbol={selectedPreset.tokenOut.symbol}
             slippageBps={50}
-            gasEstimate={quoteData.estimatedGasUsed}
           />
         )}
 

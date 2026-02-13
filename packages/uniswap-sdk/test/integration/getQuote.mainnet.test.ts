@@ -10,7 +10,6 @@ describe("getQuote (unichain rpc)", () => {
     const sdk = UniswapSDK.create(client, unichain.id);
     const amountIn = "1000000";
     const expectedAmountOut = 518374739793346n;
-    const expectedGasUsed = 37263n;
 
     const block = await client.getBlock();
     const blockTimestampMs = Number(block.timestamp) * 1000;
@@ -27,7 +26,6 @@ describe("getQuote (unichain rpc)", () => {
     vi.useRealTimers();
 
     expect(quote.amountOut).toBe(expectedAmountOut);
-    expect(quote.estimatedGasUsed).toBe(expectedGasUsed);
     expect(quote.timestamp).toBe(blockTimestampMs);
   });
 });

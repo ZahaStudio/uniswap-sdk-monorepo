@@ -100,7 +100,8 @@ Available hooks:
 
 ```ts
 // Create an instance
-const sdk = UniswapSDK.create(client, chainId, contracts?, cache?);
+const sdk = UniswapSDK.create(client, chainId, options?);
+// options: { contracts?, cache?, defaultDeadline?, defaultSlippageTolerance? }
 
 // Pool & token queries
 await sdk.getPool(poolArgs);                        // Fetch pool state

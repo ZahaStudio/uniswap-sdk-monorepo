@@ -1,9 +1,10 @@
-import { AllowanceTransfer, MaxUint160, PERMIT2_ADDRESS, type PermitBatch } from "@uniswap/permit2-sdk";
+import { AllowanceTransfer, MaxUint160, type PermitBatch } from "@uniswap/permit2-sdk";
 import type { BatchPermitOptions } from "@uniswap/v4-sdk";
 import type { Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import type {
   TypedDataField,
   PreparePermit2BatchDataArgs,
@@ -66,25 +67,16 @@ export async function preparePermit2BatchData(
   params: PreparePermit2BatchDataArgs,
   instance: UniswapSDKInstance,
 ): Promise<PreparePermit2BatchDataResult> {
-  const { tokens, spender, owner, sigDeadline: sigDeadlineParam } = params;
+  const { tokens, spender, owner, deadlineDuration } = params;
 
-  const chainId = instance.chain.id;
-
-  // calculate sigDeadline if not provided
-  let sigDeadline = sigDeadlineParam;
-  if (!sigDeadline) {
-    const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp);
-
-    sigDeadline = Number(blockTimestamp + 60n * 60n); // 1 hour from current block timestamp
-  }
-
+  const sigDeadline = await getDefaultDeadline(instance, deadlineDuration);
   const noNativeTokens = tokens.filter((token) => token.toLowerCase() !== zeroAddress.toLowerCase());
 
   // Fetch allowance details for each token
   const details = await instance.client.multicall({
     allowFailure: false,
     contracts: noNativeTokens.map((token) => ({
-      address: PERMIT2_ADDRESS as `0x${string}`,
+      address: instance.contracts.permit2,
       abi: [
         {
           name: "allowance",
@@ -127,11 +119,15 @@ export async function preparePermit2BatchData(
   const permitBatch = {
     details: results,
     spender,
-    sigDeadline,
+    sigDeadline: sigDeadline.toString(),
   };
 
   // Get the data needed for signing
-  const { domain, types, values } = AllowanceTransfer.getPermitData(permitBatch, PERMIT2_ADDRESS, chainId) as {
+  const { domain, types, values } = AllowanceTransfer.getPermitData(
+    permitBatch,
+    instance.contracts.permit2,
+    instance.chain.id,
+  ) as {
     domain: PreparePermit2BatchDataResult["toSign"]["domain"];
     types: Record<string, TypedDataField[]>;
     values: PermitBatch;

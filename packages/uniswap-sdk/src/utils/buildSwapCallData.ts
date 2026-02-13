@@ -6,6 +6,9 @@ import { utility } from "hookmate/abi";
 import type { Address, Hex } from "viem";
 import { encodeFunctionData } from "viem";
 
+import type { UniswapSDKInstance } from "@/core/sdk";
+import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
+
 /**
  * Command codes for Universal Router operations
  * @see https://docs.uniswap.org/contracts/universal-router/technical-reference
@@ -29,6 +32,9 @@ export type BuildSwapCallDataArgs = {
   zeroForOne: boolean;
   //slippageTolerance?: number
   recipient: Address;
+  /** Deadline duration in seconds from now. Defaults to 300 (5 minutes). */
+  deadlineDuration?: number;
+  /** Optional Permit2 signature for token approval */
   permit2Signature?: {
     signature: Hex;
     owner: Address;
@@ -48,10 +54,12 @@ export type BuildSwapCallDataArgs = {
  * Uniswap V4's Universal Router.
  *
  * @param params - Swap configuration parameters
+ * @param instance - UniswapSDKInstance for block timestamp access
  * @returns encoded calldata
  */
-export function buildSwapCallData(params: BuildSwapCallDataArgs): Hex {
-  const { amountIn, pool, zeroForOne, permit2Signature, recipient, amountOutMinimum, customActions } = params;
+export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
+  const { amountIn, pool, zeroForOne, permit2Signature, recipient, amountOutMinimum, customActions, deadlineDuration } =
+    params;
 
   const v4Planner = new V4Planner();
   const routePlanner = new RoutePlanner();
@@ -72,7 +80,6 @@ export function buildSwapCallData(params: BuildSwapCallDataArgs): Hex {
         hookData: "0x",
       },
     ]);
-
     v4Planner.addSettle(zeroForOne ? pool.currency0 : pool.currency1, true);
     v4Planner.addTake(zeroForOne ? pool.currency1 : pool.currency0, recipient);
   }
@@ -81,7 +88,7 @@ export function buildSwapCallData(params: BuildSwapCallDataArgs): Hex {
     routePlanner.addCommand(CommandType.PERMIT2_PERMIT, [permit2Signature.permit, permit2Signature.signature]);
   }
 
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 5); // 5 minutes
+  const deadline = await getDefaultDeadline(instance, deadlineDuration);
   const encodedActions = v4Planner.finalize();
 
   routePlanner.addCommand(CommandType.V4_SWAP, [v4Planner.actions, v4Planner.params]);
@@ -89,13 +96,10 @@ export function buildSwapCallData(params: BuildSwapCallDataArgs): Hex {
   const inputs = [permit2Signature ? routePlanner.inputs[0] : undefined, encodedActions].filter(Boolean) as Hex[];
 
   // Encode final calldata
+  // Note: The deadline is for the execution deadline, while permit2 signatures have their own separate deadlines within the permit data structure.
   return encodeFunctionData({
     abi: utility.UniversalRouterArtifact.abi,
     functionName: "execute",
-    args: [
-      routePlanner.commands as Hex,
-      inputs, // b
-      BigInt(permit2Signature?.permit.sigDeadline.toString() ?? deadline),
-    ],
+    args: [routePlanner.commands as Hex, inputs, deadline],
   });
 }

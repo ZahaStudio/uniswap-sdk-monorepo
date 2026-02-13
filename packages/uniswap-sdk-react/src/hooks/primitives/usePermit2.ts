@@ -176,7 +176,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
   const signingKind: Permit2SignedResult["kind"] =
     relevantCount === 0 ? "none" : relevantCount === 1 ? "single" : "batch";
 
-  const permit2Address = sdk?.getContractAddress("permit2") ?? zeroAddress;
+  const permit2Address = sdk.getContractAddress("permit2") ?? zeroAddress;
 
   const approval0 = useTokenApproval(
     {
@@ -223,7 +223,6 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
 
     try {
       setSignErrorState(undefined);
-      const sigDeadline = Math.floor(Date.now() / 1000) + 60 * 15; // 15 minutes
 
       if (signingKind === "single") {
         const singleToken = token0IsRelevant ? token0.address : token1.address;
@@ -232,7 +231,6 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
           token: singleToken,
           spender,
           owner: connectedAddress,
-          sigDeadline,
         });
 
         const signature = await signTypedData.signTypedDataAsync({
@@ -258,7 +256,6 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
         tokens: batchTokens,
         spender,
         owner: connectedAddress,
-        sigDeadline,
       });
 
       const signature = await signTypedData.signTypedDataAsync({

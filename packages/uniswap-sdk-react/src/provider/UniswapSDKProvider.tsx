@@ -14,6 +14,14 @@ export interface UniswapSDKConfig {
    * Key is chainId, value is contract addresses to override defaults.
    */
   contracts?: Record<number, V4Contracts>;
+  /**
+   * Default deadline offset in seconds (default: 600 = 10 minutes).
+   */
+  defaultDeadline?: number;
+  /**
+   * Default slippage tolerance in basis points (default: 50 = 0.5%).
+   */
+  defaultSlippageTolerance?: number;
 }
 
 /**
@@ -71,12 +79,16 @@ export function UniswapSDKProvider({ children, config = {} }: UniswapSDKProvider
         return cached;
       }
 
-      const instance = UniswapSDK.create(publicClient, chainId, config.contracts?.[chainId]);
+      const instance = UniswapSDK.create(publicClient, chainId, {
+        contracts: config.contracts?.[chainId],
+        defaultDeadline: config.defaultDeadline,
+        defaultSlippageTolerance: config.defaultSlippageTolerance,
+      });
       sdkCache.set(chainId, instance);
 
       return instance;
     },
-    [config.contracts],
+    [config.contracts, config.defaultDeadline, config.defaultSlippageTolerance],
   );
 
   return (
