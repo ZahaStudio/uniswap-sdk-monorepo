@@ -28,7 +28,6 @@ function shouldShowExecutionError(message: string): boolean {
 
 export function SwapDemo() {
   const { isConnected } = useAccount();
-
   const [selectedPreset, setSelectedPreset] = useState<SwapPairPreset>(SWAP_PRESETS[1]!);
   const [amountInput, setAmountInput] = useState(selectedPreset.defaultAmount);
 
@@ -342,7 +341,7 @@ export function SwapDemo() {
               </button>
 
               {/* Individual step button (when not using executeAll) */}
-              {quoteData && currentStep !== "quote" && currentStep !== "completed" && (
+              {quoteData && !executing && (currentStep === "approval" || currentStep === "permit2") && (
                 <button
                   onClick={handleExecuteStep}
                   disabled={executing || hasInsufficientBalance}
