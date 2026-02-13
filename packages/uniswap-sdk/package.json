@@ -23,7 +23,6 @@
     "@acme/tsconfig": "workspace:*",
     "@types/node": "catalog:",
     "eslint": "catalog:",
-    "prool": "^0.0.23",
     "tsdown": "catalog:",
     "typescript": "^5.9.3",
     "viem": "catalog:",
