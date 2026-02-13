@@ -13,8 +13,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "changeset publish",
-    "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 1 --mnemonic-seed-unsafe 1337 --block-time 12"
+    "release": "changeset publish"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.2",

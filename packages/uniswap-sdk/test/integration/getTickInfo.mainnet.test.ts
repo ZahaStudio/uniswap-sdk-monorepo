@@ -1,38 +1,15 @@
-import { type PublicClient, createPublicClient, http } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
-import { MAINNET_POOL_KEY } from "@/test/fixtures/mainnet";
-import { startForkNode, stopForkNode } from "@/test/integration/forkNode";
+import { UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
+import { createPinnedUnichainClient } from "@/test/integration/pinnedClient";
 
-describe("getTickInfo (unichain fork)", () => {
-  let forkUrl: string | null = null;
-  let forkNode: Awaited<ReturnType<typeof startForkNode>> | null = null;
-
-  beforeAll(async () => {
-    forkNode = await startForkNode();
-    forkUrl = forkNode.url;
-  });
-
-  afterAll(async () => {
-    if (forkNode) {
-      await stopForkNode(forkNode);
-    }
-  });
-
+describe("getTickInfo (unichain rpc)", () => {
   it("reads tick info for an uninitialized tick", async () => {
-    if (!forkUrl) {
-      throw new Error("Fork node URL was not initialized.");
-    }
-
-    const client = createPublicClient({
-      chain: unichain,
-      transport: http(forkUrl),
-    }) as PublicClient;
-
+    const client = createPinnedUnichainClient();
     const sdk = UniswapSDK.create(client, unichain.id);
     const tickInfo = await sdk.getTickInfo({
-      poolKey: MAINNET_POOL_KEY,
+      poolKey: UNICHAIN_POOL_KEY,
       tick: 0,
     });
 
@@ -43,18 +20,10 @@ describe("getTickInfo (unichain fork)", () => {
   });
 
   it("reads tick info for an initialized tick", async () => {
-    if (!forkUrl) {
-      throw new Error("Fork node URL was not initialized.");
-    }
-
-    const client = createPublicClient({
-      chain: unichain,
-      transport: http(forkUrl),
-    }) as PublicClient;
-
+    const client = createPinnedUnichainClient();
     const sdk = UniswapSDK.create(client, unichain.id);
     const tickInfo = await sdk.getTickInfo({
-      poolKey: MAINNET_POOL_KEY,
+      poolKey: UNICHAIN_POOL_KEY,
       tick: -200680,
     });
 
