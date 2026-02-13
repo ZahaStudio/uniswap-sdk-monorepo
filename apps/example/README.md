@@ -2,29 +2,20 @@
 
 ## Overview
 
-This app demonstrates how to build real user flows with `@zahastudio/uniswap-sdk-react` on Uniswap V4.
-It includes a demo to:
-- **Swap (`/swap`)**: quote and execute token swaps with `useSwap`
+This app demonstrates how to build real user flows with `@zahastudio/uniswap-sdk-react` on Uniswap V4. This app includes the following demos:
 
-By default, the app runs against `Ethereum mainnet` (chain ID `1`).
+- **Swap**: Quoting, Approval, Permit2 and Swap execution flow
+- **Position Management**: Uniswap v4 Position Management via the Position Manager
 
-## What this app demonstrates
+By default, the app runs against `Ethereum Mainnet` (Chain ID: `1`).
 
-### Swap demo
-
-- Preset pairs:
-  - `ETH -> USDC`
-  - `USDC -> USDT`
-- Multi-step execution flow handled by the SDK (`quote`, `approval`, `permit2`, `swap`)
-- Quote refresh and transaction status tracking
-
-## Prerequisites
+## Requirements
 
 - Node.js `>= 24`
 - `pnpm`
-- A browser wallet (for example MetaMask)
+- A browser wallet (We recommend Rabby if you plan on using custom network)
 
-## Run locally
+## Running Locally
 
 From the monorepo root:
 
@@ -34,29 +25,29 @@ From the monorepo root:
    pnpm install
    ```
 
-2. Build and start dev servers
+2. Start dev process (internally runs both package builders and the example app)
 
    ```bash
-   pnpm build && pnpm dev
+   pnpm dev
    ```
 
 3. Open the example app
    ```text
-   http://localhost:3002
+   http://localhost:3000
    ```
 
 ## Environment variables
 
 - `NEXT_PUBLIC_MAINNET_RPC_URL` (optional)
-  - Overrides the Ethereum mainnet RPC URL used by the app
+  - Overrides the Ethereum Mainnet RPC URL used by the app
   - Useful for running against a local Anvil fork
 
-## Running on Anvil (mainnet fork)
+## Running Anvil (Mainnet Fork)
 
-1. Point the app to your local RPC
+1. Update env with local RPC
 
    ```bash
-   export NEXT_PUBLIC_MAINNET_RPC_URL=http://127.0.0.1:8545
+   export NEXT_PUBLIC_MAINNET_RPC_URL="http://127.0.0.1:8545"
    ```
 
 2. Start Anvil from the monorepo root
@@ -66,13 +57,13 @@ From the monorepo root:
    ```
 
 3. Configure your wallet
-   - Update the `Ethereum mainnet` RPC URL to `http://127.0.0.1:8545`
-   - Import one of the private keys printed by Anvil (funded accounts)
+   - Update the `Ethereum Mainnet` RPC URL to `http://127.0.0.1:8545`
+   - Import one of the private keys printed by Anvil
 
 4. Start the app
 
    ```bash
-   pnpm build && pnpm dev
+   pnpm dev
    ```
 
 5. Interact with the demos to execute ETH/USDC or USDC/USDT swaps
