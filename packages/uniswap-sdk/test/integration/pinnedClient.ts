@@ -3,7 +3,7 @@ import { unichain } from "viem/chains";
 
 import { UNICHAIN_FORK_BLOCK_NUMBER } from "@/test/fixtures/unichain";
 
-const UNICHAIN_RPC_URL = "https://unichain.drpc.org";
+const UNICHAIN_RPC_URL = "https://mainnet.unichain.org";
 
 export function createPinnedUnichainClient(blockNumber: bigint = BigInt(UNICHAIN_FORK_BLOCK_NUMBER)): PublicClient {
   const client = createPublicClient({
