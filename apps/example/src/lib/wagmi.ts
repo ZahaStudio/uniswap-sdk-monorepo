@@ -9,7 +9,7 @@ export const wagmiConfig = getDefaultConfig({
   projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "demo",
   chains: [mainnet],
   transports: {
-    [mainnet.id]: http("http://127.0.0.1:8545"),
+    [mainnet.id]: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL),
   },
   ssr: false,
 });
