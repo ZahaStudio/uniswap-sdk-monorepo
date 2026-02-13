@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 
-import { Providers } from "./providers";
+import { ClientProviders } from "./client-providers";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Uniswap SDK — Swap Example",
-  description: "Example app demonstrating the useSwap hook from @zahastudio/uniswap-sdk-react",
+  title: "Uniswap SDK — Example",
+  description: "",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className="dark"
     >
       <body className="bg-background min-h-screen antialiased">
-        <Providers>{children}</Providers>
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

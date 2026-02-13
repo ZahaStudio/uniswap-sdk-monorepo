@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useSwap, useToken, type SwapStep } from "@zahastudio/uniswap-sdk-react";
@@ -18,6 +18,8 @@ import {
   formatTokenAmount,
 } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
+
+const QUOTE_REFRESH_INTERVAL = 30_000;
 
 function shouldShowExecutionError(message: string): boolean {
   const normalizedMessage = message.toLowerCase();
@@ -63,7 +65,7 @@ export function SwapDemo() {
     },
     {
       enabled: amountInRaw > 0n,
-      refetchInterval: 15_000, // refresh quote every 15s
+      refetchInterval: QUOTE_REFRESH_INTERVAL,
       chainId: 1,
     },
   );
@@ -73,6 +75,37 @@ export function SwapDemo() {
   const quoteData = steps.quote.data;
   const quoteLoading = steps.quote.isLoading;
   const quoteError = steps.quote.error;
+  const quoteRefetch = steps.quote.refetch;
+  const isFetchingQuote = steps.quote.isFetching;
+
+  const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
+  const swapTxHash = steps.swap.transaction.txHash;
+
+  // Countdown timer for next auto-refresh
+  const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(QUOTE_REFRESH_INTERVAL / 1000);
+  const lastRefreshRef = useRef(Date.now());
+
+  useEffect(() => {
+    if (!quoteData || isSwapConfirmed) return;
+    lastRefreshRef.current = Date.now();
+    setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
+  }, [quoteData, isSwapConfirmed]);
+
+  useEffect(() => {
+    if (!quoteData || isSwapConfirmed) return;
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - lastRefreshRef.current;
+      const remaining = Math.max(0, Math.ceil((QUOTE_REFRESH_INTERVAL - elapsed) / 1000));
+      setSecondsUntilRefresh(remaining);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [quoteData, isSwapConfirmed]);
+
+  const handleRefreshQuote = useCallback(() => {
+    quoteRefetch();
+    lastRefreshRef.current = Date.now();
+    setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
+  }, [quoteRefetch]);
 
   const outputDisplay = quoteData
     ? formatTokenAmount(quoteData.amountOut, selectedPreset.tokenOut.decimals)
@@ -131,10 +164,11 @@ export function SwapDemo() {
     reset();
     setTxError(null);
     setExecuting(false);
-  }, [reset]);
-
-  const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
-  const swapTxHash = steps.swap.transaction.txHash;
+    // Refresh quote for the next swap
+    quoteRefetch();
+    lastRefreshRef.current = Date.now();
+    setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
+  }, [reset, quoteRefetch]);
 
   return (
     <div className="w-full max-w-120 space-y-4">
@@ -200,6 +234,43 @@ export function SwapDemo() {
           readOnly
           loading={quoteLoading}
         />
+
+        {/* Refresh quote */}
+        {quoteData && !isSwapConfirmed && (
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-text-tertiary text-xs">
+              Quote refreshes in {secondsUntilRefresh}s
+            </span>
+            <button
+              onClick={handleRefreshQuote}
+              disabled={isFetchingQuote || executing}
+              className="text-accent hover:text-accent-hover flex items-center gap-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                className={cn(isFetchingQuote && "animate-spin")}
+              >
+                <path
+                  d="M21 12a9 9 0 1 1-2.636-6.364"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M21 3v6h-6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Refresh quote
+            </button>
+          </div>
+        )}
 
         {/* Swap details */}
         {quoteData && (

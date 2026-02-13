@@ -24,6 +24,23 @@ interface StepItem {
 }
 
 export function StepIndicator({ currentStep, approval, permit2, swapTx, isNativeInput }: StepIndicatorProps) {
+  const getStepLoading = (stepId: SwapStep): string | undefined => {
+    if (stepId === "approval") {
+      const s = approval.transaction.status;
+      if (s === "pending") return "Awaiting wallet...";
+      if (s === "confirming") return "Confirming...";
+    }
+    if (stepId === "permit2") {
+      if (permit2.isPending) return "Awaiting signature...";
+    }
+    if (stepId === "swap") {
+      const s = swapTx.status;
+      if (s === "pending") return "Awaiting wallet...";
+      if (s === "confirming") return "Confirming...";
+    }
+    return undefined;
+  };
+
   const allSteps: StepItem[] = [
     {
       id: "quote",
@@ -69,6 +86,7 @@ export function StepIndicator({ currentStep, approval, permit2, swapTx, isNative
       <div className="space-y-1">
         {allSteps.map((step, i) => {
           const status = getStepStatus(step.id);
+          const loadingLabel = getStepLoading(step.id);
           return (
             <div
               key={step.id}
@@ -130,6 +148,35 @@ export function StepIndicator({ currentStep, approval, permit2, swapTx, isNative
                 </div>
                 <div className="text-text-muted text-[11px]">{step.description}</div>
               </div>
+
+              {/* Loading indicator */}
+              {loadingLabel && (
+                <div className="flex items-center gap-1.5 pt-0.5">
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="text-accent animate-spin"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      className="opacity-20"
+                    />
+                    <path
+                      d="M22 12a10 10 0 0 0-10-10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="text-accent text-[11px] font-medium whitespace-nowrap">{loadingLabel}</span>
+                </div>
+              )}
             </div>
           );
         })}

@@ -97,6 +97,10 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
   const txHashRef = useRef<Hex | undefined>(undefined);
 
+  // Store onSuccess in a ref so the receipt effect doesn't re-fire
+  // when the caller passes an unstable (inline) callback.
+  const onSuccessRef = useRef(onSuccess);
+
   // Ref-based promise resolver for waitForConfirmation()
   const confirmResolverRef = useRef<{
     resolve: (receipt: TransactionReceipt) => void;
@@ -115,13 +119,13 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
 
   useEffect(() => {
     if (receipt.data) {
-      onSuccess?.(receipt.data);
+      onSuccessRef.current?.(receipt.data);
       if (confirmResolverRef.current) {
         confirmResolverRef.current.resolve(receipt.data);
         confirmResolverRef.current = null;
       }
     }
-  }, [receipt.data, onSuccess]);
+  }, [receipt.data]);
 
   useEffect(() => {
     if (receipt.error) {
