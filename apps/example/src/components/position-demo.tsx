@@ -277,9 +277,7 @@ export function PositionDemo() {
               <div className="border-border-muted border-t pt-1.5">
                 <div className="flex items-center justify-between">
                   <span className="text-text-muted text-xs">Liquidity</span>
-                  <span className="text-text-secondary font-mono text-xs">
-                    {data.position.liquidity.toString()}
-                  </span>
+                  <span className="text-text-secondary font-mono text-xs">{data.position.liquidity.toString()}</span>
                 </div>
               </div>
             </div>
@@ -287,12 +285,30 @@ export function PositionDemo() {
             {/* Pool details */}
             <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
               <div className="text-text-muted text-xs font-medium">Pool Details</div>
-              <DetailRow label="Pool ID" value={truncateAddress(data.poolId)} />
-              <DetailRow label="Fee tier" value={`${data.pool.fee / 10000}%`} />
-              <DetailRow label="Tick spacing" value={data.pool.tickSpacing.toString()} />
-              <DetailRow label="Current tick" value={data.currentTick.toString()} />
-              <DetailRow label="Tick lower" value={data.position.tickLower.toString()} />
-              <DetailRow label="Tick upper" value={data.position.tickUpper.toString()} />
+              <DetailRow
+                label="Pool ID"
+                value={truncateAddress(data.poolId)}
+              />
+              <DetailRow
+                label="Fee tier"
+                value={`${data.pool.fee / 10000}%`}
+              />
+              <DetailRow
+                label="Tick spacing"
+                value={data.pool.tickSpacing.toString()}
+              />
+              <DetailRow
+                label="Current tick"
+                value={data.currentTick.toString()}
+              />
+              <DetailRow
+                label="Tick lower"
+                value={data.position.tickLower.toString()}
+              />
+              <DetailRow
+                label="Tick upper"
+                value={data.position.tickUpper.toString()}
+              />
             </div>
           </div>
 
@@ -315,9 +331,7 @@ export function PositionDemo() {
               </div>
             </div>
 
-            {collectError && (
-              <div className="bg-error-muted text-error rounded-lg p-2.5 text-xs">{collectError}</div>
-            )}
+            {collectError && <div className="bg-error-muted text-error rounded-lg p-2.5 text-xs">{collectError}</div>}
 
             {collectFees.transaction.status !== "idle" && (
               <TxStatusBanner
@@ -388,9 +402,7 @@ export function PositionDemo() {
               ))}
             </div>
 
-            {removeError && (
-              <div className="bg-error-muted text-error rounded-lg p-2.5 text-xs">{removeError}</div>
-            )}
+            {removeError && <div className="bg-error-muted text-error rounded-lg p-2.5 text-xs">{removeError}</div>}
 
             {removeLiquidity.transaction.status !== "idle" && (
               <TxStatusBanner

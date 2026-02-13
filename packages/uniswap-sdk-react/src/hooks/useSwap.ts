@@ -124,8 +124,8 @@ function assertPermit2Satisfied(isRequired: boolean, isSigned: boolean): void {
  *   { refetchInterval: 12000 },
  * );
  *
- * // Show quote
- * const { data: quote } = swap.steps.quote.query;
+ * // Show quote (steps.quote is a UseQueryResult)
+ * const { data: quote } = swap.steps.quote;
  *
  * // Step through the flow
  * if (swap.steps.approval.isRequired) {

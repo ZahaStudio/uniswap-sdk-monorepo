@@ -13,9 +13,10 @@ export interface GetPoolKeyFromPoolIdParams {
 
 /**
  * Retrieves the pool key information for a given pool ID.
- * @param params Parameters containing the pool ID
+ * @param poolId - The pool ID as a hex string
+ * @param instance - UniswapSDKInstance
  * @returns Promise resolving to the pool key containing currency0, currency1, fee, tickSpacing, and hooks
- * @throws Error if SDK instance is not found
+ * @throws Error if pool key cannot be fetched from the contract
  */
 export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKInstance): Promise<PoolKey> {
   const { client, contracts, chain, cache } = instance;

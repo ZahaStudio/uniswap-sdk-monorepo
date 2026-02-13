@@ -14,8 +14,8 @@ export type { GetPositionInfoResponse, GetPositionResponse } from "@/common/posi
  * instances from the Uniswap V4 SDK. It validates that the position has liquidity and returns
  * objects ready for use in swaps, calculations, and other SDK operations.
  *
- * @param params Position parameters including token ID
- * @param instance UniswapSDKInstance
+ * @param tokenId - The NFT token ID of the position
+ * @param instance - UniswapSDKInstance
  * @returns Promise<GetPositionResponse> - Complete position with SDK instances
  * @throws Error if position data cannot be fetched, position doesn't exist, or liquidity is 0
  */

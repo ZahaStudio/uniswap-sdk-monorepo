@@ -20,7 +20,7 @@ export interface BuildCollectFeesCallDataArgs {
   recipient: string;
 
   /**
-   * Optional deadline for the transaction (default: 5 minutes from now).
+   * Optional deadline for the transaction (default: 10 minutes from current block timestamp).
    */
   deadline?: string;
 }
@@ -29,7 +29,7 @@ export interface BuildCollectFeesCallDataArgs {
  * Builds the calldata and value required to collect fees from a Uniswap v4 position.
  *
  * @param params - The parameters for collecting fees.
- * @param instance - The UniDevKit instance for accessing pool state.
+ * @param instance - UniswapSDKInstance for accessing pool state.
  * @returns An object containing the calldata and the value to send with the transaction.
  *
  * @example

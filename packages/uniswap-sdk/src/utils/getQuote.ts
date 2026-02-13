@@ -93,7 +93,7 @@ export interface QuoteResponse {
  * This function uses the provided pool instance to simulate the quote.
  *
  * @param params - The parameters required for the quote, including pool and amount.
- * @param instance - UniDevKitV4 instance for contract interaction
+ * @param instance - UniswapSDKInstance for contract interaction
  * @returns A Promise that resolves to the quote result, including the amount out and gas estimate.
  * @throws Will throw an error if:
  * - Simulation fails (e.g., insufficient liquidity, invalid parameters)

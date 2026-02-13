@@ -282,32 +282,33 @@ export class UniswapSDK {
   }
 
   /**
-   * Generates V4PositionManager calldata for removing liquidity from existing positions.
+   * Fetches position data and generates V4PositionManager calldata for removing liquidity.
    *
-   * This method uses V4PositionManager.removeCallParameters to create burn calldata for
-   * reducing or completely removing liquidity from a position. It calculates the appropriate
-   * amounts based on the liquidity percentage to remove. No blockchain calls are made -
-   * this is purely a calldata generation method.
+   * This method fetches the position from the blockchain via `getPosition()`, then uses
+   * V4PositionManager.removeCallParameters to create burn calldata for reducing or completely
+   * removing liquidity from a position. If no deadline is provided, it fetches the current
+   * block timestamp to compute one.
    *
    * @param args @type {BuildRemoveLiquidityCallDataArgs} - Parameters for liquidity removal
    * @returns Promise - Calldata and value for the burn transaction
-   * @throws Error if position data is invalid or removal parameters are incorrect
+   * @throws Error if position data cannot be fetched or removal parameters are incorrect
    */
   public async buildRemoveLiquidityCallData(args: BuildRemoveLiquidityCallDataArgs) {
     return buildRemoveLiquidityCallData(args, this.instance);
   }
 
   /**
-   * Generates V4PositionManager calldata for collecting accumulated fees from positions.
+   * Fetches position data and generates V4PositionManager calldata for collecting fees.
    *
-   * This method uses V4PositionManager.collectCallParameters to create calldata for
-   * collecting fees earned by a liquidity position. It handles both currency0 and currency1
-   * fee collection with proper recipient addressing. No blockchain calls are made -
-   * this is purely a calldata generation method.
+   * This method fetches the position from the blockchain via `getPosition()`, then uses
+   * V4PositionManager.collectCallParameters to create calldata for collecting fees earned
+   * by a liquidity position. It handles both currency0 and currency1 fee collection with
+   * proper recipient addressing. If no deadline is provided, it fetches the current block
+   * timestamp to compute one.
    *
    * @param args @type {BuildCollectFeesCallDataArgs} - Fee collection parameters
    * @returns Promise - Calldata and value for the collect transaction
-   * @throws Error if position data is invalid or collection parameters are incorrect
+   * @throws Error if position data cannot be fetched or collection parameters are incorrect
    */
   public async buildCollectFeesCallData(args: BuildCollectFeesCallDataArgs) {
     return buildCollectFeesCallData(args, this.instance);
@@ -332,10 +333,10 @@ export class UniswapSDK {
   /**
    * Prepares Permit2 single token approval data using the Permit2 SDK.
    *
-   * This method creates a single permit structure that allows the Universal Router to spend
-   * one token. It's typically used for swaps where only one token approval is needed.
-   * No blockchain calls are made - this is purely a permit data generation method.
-   * Use the returned toSign.values for signing the permit data.
+   * This method fetches the current allowance from the Permit2 contract and, if no
+   * sigDeadline is provided, reads the current block timestamp. It then creates a single
+   * permit structure that allows a spender to use one token. Typically used for swaps
+   * where only one token approval is needed. Use the returned toSign.values for signing.
    *
    * @param args @type {PreparePermit2DataArgs} - Single permit parameters for one token
    * @returns Promise<PreparePermit2DataResult> - Structured permit data ready for signing

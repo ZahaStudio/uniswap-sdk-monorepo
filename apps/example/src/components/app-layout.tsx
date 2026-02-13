@@ -43,9 +43,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <main className="flex flex-1 flex-col items-center justify-center pb-16">
-          {children}
-        </main>
+        <main className="flex flex-1 flex-col items-center justify-center pb-16">{children}</main>
 
         <footer className="text-text-muted flex items-center justify-center py-6 text-xs">
           <span>

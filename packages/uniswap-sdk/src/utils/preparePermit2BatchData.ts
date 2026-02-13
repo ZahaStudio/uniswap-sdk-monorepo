@@ -30,7 +30,12 @@ import type {
  * 2. Sign the permit data using your signer:
  * ```typescript
  * // viem
- * const signature = await signer._signTypedData(permitData.toSign)
+ * const signature = await walletClient.signTypedData({
+ *   domain: permitData.toSign.domain,
+ *   types: permitData.toSign.types,
+ *   primaryType: permitData.toSign.primaryType,
+ *   message: permitData.toSign.message,
+ * })
  *
  * // ethers
  * const signature = await signer.signTypedData(
@@ -70,7 +75,7 @@ export async function preparePermit2BatchData(
   if (!sigDeadline) {
     const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp);
 
-    sigDeadline = Number(blockTimestamp + 60n * 60n); // 30 minutes from current block timestamp
+    sigDeadline = Number(blockTimestamp + 60n * 60n); // 1 hour from current block timestamp
   }
 
   const noNativeTokens = tokens.filter((token) => token.toLowerCase() !== zeroAddress.toLowerCase());

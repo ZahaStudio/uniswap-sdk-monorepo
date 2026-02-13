@@ -26,7 +26,7 @@ export interface BuildRemoveLiquidityCallDataArgs {
   slippageTolerance?: number;
 
   /**
-   * The deadline for the transaction. (default: 5 minutes from now)
+   * The deadline for the transaction. (default: 10 minutes from current block timestamp)
    */
   deadline?: string;
 }

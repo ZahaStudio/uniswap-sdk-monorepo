@@ -238,9 +238,7 @@ export function SwapDemo() {
         {/* Refresh quote */}
         {quoteData && !isSwapConfirmed && (
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-text-tertiary text-xs">
-              Quote refreshes in {secondsUntilRefresh}s
-            </span>
+            <span className="text-text-tertiary text-xs">Quote refreshes in {secondsUntilRefresh}s</span>
             <button
               onClick={handleRefreshQuote}
               disabled={isFetchingQuote || executing}

@@ -130,9 +130,15 @@ export const allowanceAbi = [
  * }, instance)
  * ```
  *
- * 2. Sign the permit data using your signer (viem):
+ * 2. Sign the permit data using your signer:
  * ```typescript
- * const signature = await signer._signTypedData(permitData.toSign)
+ * // viem
+ * const signature = await walletClient.signTypedData({
+ *   domain: permitData.toSign.domain,
+ *   types: permitData.toSign.types,
+ *   primaryType: permitData.toSign.primaryType,
+ *   message: permitData.toSign.message,
+ * })
  *
  * // ethers
  * const signature = await signer.signTypedData(
@@ -155,8 +161,8 @@ export const allowanceAbi = [
  * }, instance)
  * ```
  *
- * @param params - Parameters for preparing the permit2 batch data
- * @returns Promise resolving to the permit2 batch data and helper functions
+ * @param params - Parameters for preparing the permit2 single-token data
+ * @returns Promise resolving to the permit2 data and helper functions
  * @throws Error if any required dependencies are missing
  */
 export async function preparePermit2Data(
@@ -174,7 +180,7 @@ export async function preparePermit2Data(
   let sigDeadline = sigDeadlineParam;
   if (!sigDeadline) {
     const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp);
-    sigDeadline = Number(blockTimestamp + 60n * 60n); // 30 minutes from current block timestamp
+    sigDeadline = Number(blockTimestamp + 60n * 60n); // 1 hour from current block timestamp
   }
 
   // Fetch allowance details for each token

@@ -7,7 +7,7 @@ import type { Address } from "viem";
  */
 export function assertSdkInitialized(sdk: UniswapSDK | null | undefined): asserts sdk is UniswapSDK {
   if (!sdk) {
-    throw new Error("SDK not initialized. Ensure <UniswapProvider> is mounted and configured.");
+    throw new Error("SDK not initialized. Ensure <UniswapSDKProvider> is mounted and configured.");
   }
 }
 

@@ -52,7 +52,7 @@ type BaseAddLiquidityArgs = {
 
   /**
    * Unix timestamp (in seconds) after which the transaction will revert.
-   * Defaults to current block timestamp + 1800 (30 minutes).
+   * Defaults to current block timestamp + 600 (10 minutes).
    */
   deadline?: string;
 
@@ -104,7 +104,7 @@ export interface BuildAddLiquidityCallDataResult {
  * deadline, and Permit2 batch signature for token approvals.
  *
  * @param params - The full set of parameters for building the add liquidity calldata.
- * @param instance - An instance of the UniDevKitV4 context, providing access to the connected RPC client.
+ * @param instance - UniswapSDKInstance providing access to the connected RPC client.
  *
  * @returns An object containing:
  * - `calldata`: The ABI-encoded calldata for the `mint` operation.
