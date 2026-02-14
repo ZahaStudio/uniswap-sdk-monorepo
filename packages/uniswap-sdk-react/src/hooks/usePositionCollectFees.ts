@@ -15,8 +15,8 @@ import { assertSdkInitialized } from "@/utils/assertions";
 export interface CollectFeesArgs {
   /** Address to receive the collected fees */
   recipient: string;
-  /** Unix timestamp deadline (optional) */
-  deadline?: string;
+  /** Deadline duration in seconds from current block timestamp (optional) */
+  deadlineDuration?: number;
 }
 
 /**
@@ -82,7 +82,7 @@ export function usePositionCollectFees(
       const { calldata, value } = await sdk.buildCollectFeesCallData({
         tokenId,
         recipient: args.recipient,
-        deadline: args.deadline,
+        deadlineDuration: args.deadlineDuration,
       });
 
       return transaction.sendTransaction({

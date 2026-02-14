@@ -1,10 +1,11 @@
 import type { PermitBatch, PermitSingle } from "@uniswap/permit2-sdk";
-import { AllowanceTransfer, MaxUint160, PERMIT2_ADDRESS } from "@uniswap/permit2-sdk";
+import { AllowanceTransfer, MaxUint160 } from "@uniswap/permit2-sdk";
 import type { BatchPermitOptions } from "@uniswap/v4-sdk";
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
 export interface TypedDataField {
   name: string;
@@ -19,8 +20,8 @@ interface BasePermit2Data {
   spender: Address | string;
   /** User's wallet address */
   owner: Address | string;
-  /** Signature deadline in seconds */
-  sigDeadline?: number;
+  /** Deadline duration in seconds from current block timestamp. Defaults to the SDK instance's defaultDeadline. */
+  deadlineDuration?: number;
 }
 
 /**
@@ -169,23 +170,17 @@ export async function preparePermit2Data(
   params: PreparePermit2DataArgs,
   instance: UniswapSDKInstance,
 ): Promise<PreparePermit2DataResult> {
-  const { token, spender, owner, sigDeadline: sigDeadlineParam } = params;
-  const chainId = instance.chain.id;
+  const { token, spender, owner, deadlineDuration } = params;
 
   if (token.toLowerCase() === zeroAddress.toLowerCase()) {
     throw new Error("Native tokens are not supported for permit2");
   }
 
-  // calculate sigDeadline if not provided
-  let sigDeadline = sigDeadlineParam;
-  if (!sigDeadline) {
-    const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp);
-    sigDeadline = Number(blockTimestamp + 60n * 60n); // 1 hour from current block timestamp
-  }
+  const sigDeadline = await getDefaultDeadline(instance, deadlineDuration);
 
   // Fetch allowance details for each token
   const details = await instance.client.readContract({
-    address: PERMIT2_ADDRESS as `0x${string}`,
+    address: instance.contracts.permit2,
     abi: allowanceAbi,
     functionName: "allowance",
     args: [owner as `0x${string}`, token as `0x${string}`, spender as `0x${string}`],
@@ -204,7 +199,11 @@ export async function preparePermit2Data(
 
   // Create the permit object
   // Get the data needed for signing
-  const { domain, types, values } = AllowanceTransfer.getPermitData(permit, PERMIT2_ADDRESS, chainId) as {
+  const { domain, types, values } = AllowanceTransfer.getPermitData(
+    permit,
+    instance.contracts.permit2,
+    instance.chain.id,
+  ) as {
     domain: PreparePermit2DataResult["toSign"]["domain"];
     types: Record<string, TypedDataField[]>;
     values: PermitSingle;

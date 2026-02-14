@@ -1,11 +1,32 @@
+import type { Currency } from "@uniswap/sdk-core";
 import { Pool, Position as V4Position } from "@uniswap/v4-sdk";
 
-import type { GetPositionResponse } from "@/common/positions";
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { getPositionInfo } from "@/utils/getPositionInfo";
 import { getTokens } from "@/utils/getTokens";
 
-export type { GetPositionInfoResponse, GetPositionResponse } from "@/common/positions";
+export type { GetPositionInfoResponse } from "@/utils/getPositionInfo";
+
+/**
+ * Complete position data with initialized SDK instances.
+ * Returns fully usable Position and Pool objects from the Uniswap V4 SDK.
+ */
+export interface GetPositionResponse {
+  /** The position instance from Uniswap V4 SDK */
+  position: V4Position;
+  /** The pool instance from Uniswap V4 SDK with current state */
+  pool: Pool;
+  /** The first token in the pool pair */
+  currency0: Currency;
+  /** The second token in the pool pair */
+  currency1: Currency;
+  /** The unique identifier of the pool */
+  poolId: `0x${string}`;
+  /** The unique identifier of the position */
+  tokenId: string;
+  /** The current price tick of the pool */
+  currentTick: number;
+}
 
 /**
  * Retrieves a complete Uniswap V4 position with initialized SDK instances.

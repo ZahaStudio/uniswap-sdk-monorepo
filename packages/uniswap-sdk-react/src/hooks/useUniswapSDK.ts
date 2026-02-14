@@ -11,8 +11,8 @@ import { UniswapSDKContext } from "../provider/UniswapSDKProvider";
  * Return type for the useUniswapSDK hook.
  */
 export interface UseUniswapSDKReturn {
-  /** The SDK instance (null until initialized) */
-  sdk: UniswapSDK | null;
+  /** The SDK instance */
+  sdk: UniswapSDK;
   /** Whether the SDK is initialized */
   isInitialized: boolean;
   /** The effective chain ID being used */
@@ -79,7 +79,7 @@ export function useUniswapSDK(options: UseUniswapSDKOptions = {}): UseUniswapSDK
 
   const sdk = useMemo(() => {
     if (!publicClient) {
-      return null;
+      throw new Error(`No public client available for chain ID ${effectiveChainId}`);
     }
 
     const instance = context.getSdk({

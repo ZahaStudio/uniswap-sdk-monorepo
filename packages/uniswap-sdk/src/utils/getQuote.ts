@@ -63,7 +63,6 @@ export interface SwapExactInSingle extends Partial<UniswapSwapExactInSingle> {
  * ```typescript
  * const response: QuoteResponse = {
  *   amountOut: 950000n,
- *   estimatedGasUsed: 150000n,
  *   timestamp: 1703123456789
  * };
  * ```
@@ -74,12 +73,6 @@ export interface QuoteResponse {
    * @returns The output amount as a bigint
    */
   amountOut: bigint;
-
-  /**
-   * The estimated gas used for the transaction.
-   * @returns Gas estimate as a bigint
-   */
-  estimatedGasUsed: bigint;
 
   /**
    * The timestamp when the quote was fetched.
@@ -128,11 +121,10 @@ export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKIn
     });
 
     // Extract the results
-    const [amountOut, gasEstimate] = simulation.result;
+    const [amountOut] = simulation.result;
 
     return {
       amountOut,
-      estimatedGasUsed: gasEstimate,
       timestamp: Date.now(),
     };
   } catch (error) {
