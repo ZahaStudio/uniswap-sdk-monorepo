@@ -10,11 +10,11 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,mjs,md,json,css}\"",
     "changeset": "changeset",
-    "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 1 --mnemonic-seed-unsafe 1337 --block-time 12",
     "version": "changeset version",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 1 --mnemonic-seed-unsafe 1337 --block-time 12"
   },
   "devDependencies": {
     "@changesets/changelog-github": "^0.5.2",
