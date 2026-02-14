@@ -2,7 +2,6 @@ import { encodeSqrtRatioX96, nearestUsableTick, TickMath } from "@uniswap/v3-sdk
 import type { BatchPermitOptions, Pool } from "@uniswap/v4-sdk";
 import { Position, V4PositionManager } from "@uniswap/v4-sdk";
 
-import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/common/constants";
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
@@ -51,10 +50,10 @@ type BaseAddLiquidityArgs = {
   slippageTolerance?: number;
 
   /**
-   * Unix timestamp (in seconds) after which the transaction will revert.
-   * Defaults to current block timestamp + 600 (10 minutes).
+   * Deadline duration in seconds from current block timestamp.
+   * Defaults to the SDK instance's defaultDeadline (600 = 10 minutes).
    */
-  deadline?: string;
+  deadlineDuration?: number;
 
   /**
    * Optional Permit2 batch signature for token approvals.
@@ -145,13 +144,13 @@ export async function buildAddLiquidityCallData(
     recipient,
     tickLower: tickLowerParam,
     tickUpper: tickUpperParam,
-    slippageTolerance = DEFAULT_SLIPPAGE_TOLERANCE,
-    deadline: deadlineParam,
+    slippageTolerance = instance.defaultSlippageTolerance,
+    deadlineDuration,
     permit2BatchSignature,
   } = params;
 
   try {
-    const deadline = deadlineParam ?? (await getDefaultDeadline(instance)).toString();
+    const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 
     const slippagePercent = percentFromBips(slippageTolerance);
     const createPool = pool.liquidity.toString() === "0";
@@ -212,13 +211,7 @@ export async function buildAddLiquidityCallData(
       createPool,
       sqrtPriceX96,
       useNative: nativeCurrency,
-      batchPermit: permit2BatchSignature
-        ? {
-            owner: permit2BatchSignature.owner,
-            permitBatch: permit2BatchSignature.permitBatch,
-            signature: permit2BatchSignature.signature,
-          }
-        : undefined,
+      batchPermit: permit2BatchSignature,
     });
 
     return {

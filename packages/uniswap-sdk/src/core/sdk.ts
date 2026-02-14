@@ -3,37 +3,34 @@ import type { Pool } from "@uniswap/v4-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
-import type { GetPositionInfoResponse, GetPositionResponse } from "@/common/positions";
 import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
-import type { BuildAddLiquidityArgs, BuildAddLiquidityCallDataResult } from "@/utils/buildAddLiquidityCallData";
-import { buildAddLiquidityCallData } from "@/utils/buildAddLiquidityCallData";
-import type { BuildCollectFeesCallDataArgs } from "@/utils/buildCollectFeesCallData";
-import { buildCollectFeesCallData } from "@/utils/buildCollectFeesCallData";
-import type { BuildRemoveLiquidityCallDataArgs } from "@/utils/buildRemoveLiquidityCallData";
-import { buildRemoveLiquidityCallData } from "@/utils/buildRemoveLiquidityCallData";
-import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
-import { buildSwapCallData } from "@/utils/buildSwapCallData";
+import {
+  buildAddLiquidityCallData,
+  type BuildAddLiquidityArgs,
+  type BuildAddLiquidityCallDataResult,
+} from "@/utils/buildAddLiquidityCallData";
+import { buildCollectFeesCallData, type BuildCollectFeesCallDataArgs } from "@/utils/buildCollectFeesCallData";
+import {
+  buildRemoveLiquidityCallData,
+  type BuildRemoveLiquidityCallDataArgs,
+} from "@/utils/buildRemoveLiquidityCallData";
+import { buildSwapCallData, type BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import { getChainById } from "@/utils/chains";
-import type { PoolArgs } from "@/utils/getPool";
-import { getPool } from "@/utils/getPool";
-import { getPosition } from "@/utils/getPosition";
-import { getPositionInfo } from "@/utils/getPositionInfo";
-import type { QuoteResponse, SwapExactInSingle } from "@/utils/getQuote";
-import { getQuote } from "@/utils/getQuote";
-import type { GetTickInfoArgs, TickInfoResponse } from "@/utils/getTickInfo";
-import { getTickInfo } from "@/utils/getTickInfo";
-import type { GetTokensArgs } from "@/utils/getTokens";
-import { getTokens } from "@/utils/getTokens";
-import type { GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
-import { getUncollectedFees } from "@/utils/getUncollectedFees";
+import { getPool, type PoolArgs } from "@/utils/getPool";
+import { getPosition, type GetPositionResponse } from "@/utils/getPosition";
+import { getPositionInfo, type GetPositionInfoResponse } from "@/utils/getPositionInfo";
+import { getQuote, type QuoteResponse, type SwapExactInSingle } from "@/utils/getQuote";
+import { getTickInfo, type GetTickInfoArgs, type TickInfoResponse } from "@/utils/getTickInfo";
+import { getTokens, type GetTokensArgs } from "@/utils/getTokens";
+import { getUncollectedFees, type GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
 import { preparePermit2BatchData } from "@/utils/preparePermit2BatchData";
-import type {
-  PreparePermit2BatchDataArgs,
-  PreparePermit2BatchDataResult,
-  PreparePermit2DataArgs,
-  PreparePermit2DataResult,
+import {
+  preparePermit2Data,
+  type PreparePermit2BatchDataArgs,
+  type PreparePermit2BatchDataResult,
+  type PreparePermit2DataArgs,
+  type PreparePermit2DataResult,
 } from "@/utils/preparePermit2Data";
-import { preparePermit2Data } from "@/utils/preparePermit2Data";
 
 /**
  * Configuration for V4 contracts.
@@ -55,6 +52,20 @@ export type V4Contracts = {
 };
 
 /**
+ * Options for creating a UniswapSDK instance.
+ */
+export type UniswapSDKOptions = {
+  /** Optional overrides for contract addresses */
+  contracts?: V4Contracts;
+  /** Optional cache adapter */
+  cache?: CacheAdapter;
+  /** Default deadline offset in seconds (default: 600 = 10 minutes) */
+  defaultDeadline?: number;
+  /** Default slippage tolerance in basis points (default: 50 = 0.5%) */
+  defaultSlippageTolerance?: number;
+};
+
+/**
  * Internal instance type for UniswapSDK.
  * Represents the state of a single SDK instance.
  */
@@ -67,6 +78,10 @@ export type UniswapSDKInstance = {
   contracts: V4Contracts;
   /** Cache adapter */
   cache: CacheAdapter;
+  /** Default deadline offset in seconds */
+  defaultDeadline: number;
+  /** Default slippage tolerance in basis points */
+  defaultSlippageTolerance: number;
 };
 
 /**
@@ -77,16 +92,21 @@ export type UniswapSDKInstance = {
 export class UniswapSDK {
   private instance: UniswapSDKInstance;
 
-  private constructor(client: PublicClient, chain: Chain, contracts: V4Contracts, cache?: CacheAdapter) {
-    if (!cache) {
-      cache = createDefaultCache();
-    }
-
+  private constructor(
+    client: PublicClient,
+    chain: Chain,
+    contracts: V4Contracts,
+    cache: CacheAdapter,
+    defaultDeadline: number,
+    defaultSlippageTolerance: number,
+  ) {
     this.instance = {
       client,
       chain,
       contracts,
       cache,
+      defaultDeadline,
+      defaultSlippageTolerance,
     };
   }
 
@@ -95,30 +115,45 @@ export class UniswapSDK {
    *
    * @param client - Viem public client for the target chain
    * @param chainId - Chain ID for the target network (defaults to client.chain.id)
-   * @param contracts - Optional overrides for contract addresses
-   * @param cache - Optional cache adapter
+   * @param options - Optional configuration: contracts, cache, defaultDeadline, defaultSlippageTolerance
    */
-  public static create(
-    client: PublicClient,
-    chainId: number,
-    contracts?: V4Contracts,
-    cache?: CacheAdapter,
-  ): UniswapSDK {
+  public static create(client: PublicClient, chainId: number, options: UniswapSDKOptions = {}): UniswapSDK {
     const chain = getChainById(chainId);
     const uniswapContracts = getUniswapContracts(chainId);
 
-    if (!contracts) {
-      contracts = {
+    const {
+      contracts,
+      cache = createDefaultCache(),
+      defaultDeadline = 10 * 60, // 10 minutes
+      defaultSlippageTolerance = 50, // 0.5%
+    } = options;
+
+    const resolvedContracts =
+      contracts ??
+      ({
         poolManager: uniswapContracts.v4.poolManager,
         positionManager: uniswapContracts.v4.positionManager,
         quoter: uniswapContracts.v4.quoter,
         stateView: uniswapContracts.v4.stateView,
         universalRouter: uniswapContracts.utility.universalRouter,
         permit2: uniswapContracts.utility.permit2,
-      } satisfies V4Contracts;
-    }
+      } satisfies V4Contracts);
 
-    return new UniswapSDK(client, chain, contracts, cache);
+    return new UniswapSDK(client, chain, resolvedContracts, cache, defaultDeadline, defaultSlippageTolerance);
+  }
+
+  /**
+   * Returns the default deadline offset in seconds.
+   */
+  public get defaultDeadline(): number {
+    return this.instance.defaultDeadline;
+  }
+
+  /**
+   * Returns the default slippage tolerance in basis points.
+   */
+  public get defaultSlippageTolerance(): number {
+    return this.instance.defaultSlippageTolerance;
   }
 
   /**
@@ -254,15 +289,15 @@ export class UniswapSDK {
    *
    * This method uses the V4Planner from the Uniswap V4 SDK to build swap actions and parameters.
    * It creates SWAP_EXACT_IN_SINGLE actions with settle and take operations, and optionally
-   * includes Permit2 signatures for token approvals. No blockchain calls are made - this is
-   * purely a calldata generation method that returns Universal Router calldata.
+   * includes Permit2 signatures for token approvals. Fetches the current block timestamp to
+   * compute the transaction deadline.
    *
    * @param args @type {BuildSwapCallDataArgs} - Swap configuration including pool, amounts, and recipient
-   * @returns Hex - Encoded Universal Router calldata ready for transaction execution
+   * @returns Promise<Hex> - Encoded Universal Router calldata ready for transaction execution
    * @throws Error if swap parameters are invalid or calldata generation fails
    */
-  public buildSwapCallData(args: BuildSwapCallDataArgs) {
-    return buildSwapCallData(args);
+  public async buildSwapCallData(args: BuildSwapCallDataArgs) {
+    return buildSwapCallData(args, this.instance);
   }
 
   /**
