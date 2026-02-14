@@ -12,6 +12,7 @@ export * from "@/utils/getTickInfo";
 export * from "@/utils/getTokens";
 export * from "@/utils/getUncollectedFees";
 export * from "@/utils/preparePermit2Data";
+export * from "@/utils/chains";
 export * from "@/helpers/swap";
 
 export type { PoolKey } from "@uniswap/v4-sdk";

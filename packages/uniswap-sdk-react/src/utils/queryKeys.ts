@@ -16,6 +16,19 @@ export const positionKeys = {
 };
 
 /**
+ * Query key factory for token-related queries.
+ * Enables efficient cache invalidation and prefetching.
+ */
+export const tokenKeys = {
+  /** Base key for all token queries */
+  all: [PACKAGE_KEY, "useToken"] as const,
+
+  /** Key for a specific token by address, account, and chainId */
+  detail: (tokenAddress: string, account?: string, chainId?: number) =>
+    [...tokenKeys.all, tokenAddress, account, chainId] as const,
+};
+
+/**
  * Query key factory for swap-related queries.
  * Enables efficient cache invalidation and prefetching.
  */

@@ -44,17 +44,20 @@ export function SwapDemo() {
     [amountInput, selectedPreset.tokenIn.decimals],
   );
 
-  const tokenIn = useToken(selectedPreset.tokenIn.address, {
-    enabled: isConnected,
-    chainId: 1,
-    refetchInterval: 15_000,
-  });
+  const { query: tokenInQuery } = useToken(
+    { tokenAddress: selectedPreset.tokenIn.address },
+    {
+      enabled: isConnected,
+      chainId: 1,
+      refetchInterval: 15_000,
+    },
+  );
 
   const handleMaxClick = useCallback(() => {
-    if (tokenIn.balance) {
-      setAmountInput(tokenIn.balance.formatted);
+    if (tokenInQuery.data?.balance) {
+      setAmountInput(tokenInQuery.data.balance.formatted);
     }
-  }, [tokenIn.balance]);
+  }, [tokenInQuery.data?.balance]);
 
   const swap = useSwap(
     {
@@ -199,8 +202,8 @@ export function SwapDemo() {
           value={amountInput}
           onChange={setAmountInput}
           disabled={executing || isSwapConfirmed}
-          balance={tokenIn.balance?.formatted}
-          balanceLoading={tokenIn.isLoadingBalance}
+          balance={tokenInQuery.data?.balance?.formatted}
+          balanceLoading={tokenInQuery.isLoading}
           onMaxClick={handleMaxClick}
         />
 
