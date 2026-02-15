@@ -236,7 +236,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
         domain: prepareResult.toSign.domain,
         types: prepareResult.toSign.types,
         primaryType: prepareResult.toSign.primaryType,
-        message: prepareResult.toSign.message,
+        message: prepareResult.toSign.message as unknown as Record<string, unknown>,
       });
 
       const result: Permit2SignedResult = {

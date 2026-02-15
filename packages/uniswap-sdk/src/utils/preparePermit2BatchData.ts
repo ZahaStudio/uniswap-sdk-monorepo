@@ -1,15 +1,10 @@
-import { AllowanceTransfer, MaxUint160, type PermitBatch } from "@uniswap/permit2-sdk";
+import { AllowanceTransfer, MaxUint160, type PermitBatch, type PermitBatchData } from "@uniswap/permit2-sdk";
 import type { BatchPermitOptions } from "@uniswap/v4-sdk";
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
-
-interface TypedDataField {
-  name: string;
-  type: string;
-}
 
 /**
  * Base interface for Permit2 data
@@ -44,10 +39,10 @@ interface BasePermit2DataResult {
       name: string;
       version: string;
       chainId: number;
-      verifyingContract: `0x${string}`;
+      verifyingContract: Address;
     };
     /** Types of the permit2 data */
-    types: Record<string, TypedDataField[]>;
+    types: PermitBatchData["types"];
     /** Values of the permit2 data */
     values: PermitBatch;
     /** Primary type of the permit2 data */
@@ -187,7 +182,7 @@ export async function preparePermit2BatchData(
     instance.chain.id,
   ) as {
     domain: PreparePermit2BatchDataResult["toSign"]["domain"];
-    types: Record<string, TypedDataField[]>;
+    types: PermitBatchData["types"];
     values: PermitBatch;
   };
 
