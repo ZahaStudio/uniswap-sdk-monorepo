@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { estimateGas } from "@wagmi/core";
 import type { Address, Hex, TransactionReceipt } from "viem";
-import { useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { useConfig, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 
 /**
  * Transaction lifecycle status.
  *
  * - `idle` — No transaction in flight
- * - `pending` — Waiting for user wallet signature
+ * - `pending` — Estimating gas and/or waiting for user wallet signature
  * - `confirming` — Transaction broadcast, waiting for on-chain confirmation
  * - `confirmed` — Transaction confirmed on-chain
  * - `error` — A step in the lifecycle failed
@@ -94,8 +95,10 @@ export interface UseTransactionReturn {
 export function useTransaction(options: UseTransactionOptions = {}): UseTransactionReturn {
   const { onSuccess, confirmations = 1 } = options;
 
+  const config = useConfig();
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
   const txHashRef = useRef<Hex | undefined>(undefined);
+  const [isPreparingTx, setIsPreparingTx] = useState(false);
 
   // Store onSuccess in a ref so the receipt effect doesn't re-fire
   // when the caller passes an unstable (inline) callback.
@@ -142,22 +145,38 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     if (error) return "error";
     if (receipt.isSuccess) return "confirmed";
     if (txHash && receipt.isLoading) return "confirming";
-    if (send.isPending) return "pending";
+    if (send.isPending || isPreparingTx) return "pending";
     return "idle";
   })();
 
   const sendTransaction = useCallback(
     async (params: SendTransactionParams): Promise<Hex> => {
+      const value = params.value ?? 0n;
+
+      setIsPreparingTx(true);
+      let gasLimit: bigint;
+      try {
+        const estimated = await estimateGas(config, {
+          to: params.to,
+          data: params.data,
+          value,
+        });
+        gasLimit = estimated * 2n;
+      } finally {
+        setIsPreparingTx(false);
+      }
+
       const hash = await send.sendTransactionAsync({
         to: params.to,
         data: params.data,
-        value: params.value ?? 0n,
+        value,
+        gas: gasLimit,
       });
       txHashRef.current = hash;
       setTxHash(hash);
       return hash;
     },
-    [send],
+    [send, config],
   );
 
   const waitForConfirmation = useCallback((): Promise<TransactionReceipt> => {

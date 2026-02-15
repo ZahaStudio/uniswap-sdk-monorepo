@@ -159,14 +159,10 @@ export async function buildAddLiquidityCallData(
     const tickUpper = tickUpperParam ?? nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing);
 
     if (tickLower % pool.tickSpacing !== 0) {
-      throw new Error(
-        `tickLower (${tickLower}) is not a multiple of tickSpacing (${pool.tickSpacing}).`,
-      );
+      throw new Error(`tickLower (${tickLower}) is not a multiple of tickSpacing (${pool.tickSpacing}).`);
     }
     if (tickUpper % pool.tickSpacing !== 0) {
-      throw new Error(
-        `tickUpper (${tickUpper}) is not a multiple of tickSpacing (${pool.tickSpacing}).`,
-      );
+      throw new Error(`tickUpper (${tickUpper}) is not a multiple of tickSpacing (${pool.tickSpacing}).`);
     }
 
     let sqrtPriceX96: string;
@@ -216,7 +212,7 @@ export async function buildAddLiquidityCallData(
       slippageTolerance: slippagePercent,
       createPool,
       sqrtPriceX96,
-      useNative: [pool.currency1, pool.currency0].find((e) => e.isNative),
+      useNative: pool.currency0.isNative ? pool.currency0 : undefined, // Only token0 can be native
       batchPermit: permit2BatchSignature,
     });
 

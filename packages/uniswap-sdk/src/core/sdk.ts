@@ -1,5 +1,5 @@
 import type { Currency } from "@uniswap/sdk-core";
-import type { Pool } from "@uniswap/v4-sdk";
+import type { Pool, PoolKey } from "@uniswap/v4-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
@@ -16,7 +16,7 @@ import {
 } from "@/utils/buildRemoveLiquidityCallData";
 import { buildSwapCallData, type BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import { getChainById } from "@/utils/chains";
-import { getPool, type PoolArgs } from "@/utils/getPool";
+import { getPool } from "@/utils/getPool";
 import { getPosition, type GetPositionResponse } from "@/utils/getPosition";
 import { getPositionInfo, type GetPositionInfoResponse } from "@/utils/getPositionInfo";
 import { getQuote, type QuoteResponse, type SwapExactInSingle } from "@/utils/getQuote";
@@ -174,12 +174,12 @@ export class UniswapSDK {
    * calling getSlot0() and getLiquidity() in a single transaction. It then uses the Uniswap V4 SDK's
    * Pool constructor with the live data to create a fully initialized pool instance.
    *
-   * @param args @type {PoolArgs} - Pool configuration including currencies, fee tier, tick spacing, and hooks
+   * @param poolKey - V4 pool key: currency0, currency1, fee, tickSpacing, hooks
    * @returns Promise<Pool> - A fully initialized Pool instance with current market state
    * @throws Error if pool data cannot be fetched or pool doesn't exist
    */
-  public async getPool(args: PoolArgs): Promise<Pool> {
-    return getPool(args, this.instance);
+  public async getPool(poolKey: PoolKey): Promise<Pool> {
+    return getPool(poolKey, this.instance);
   }
 
   /**

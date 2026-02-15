@@ -104,7 +104,7 @@ interface KeyedState<T> {
 const EMPTY_TOKEN: UsePermit2Token = { address: zeroAddress, amount: 0n };
 
 function isNonNative(token: UsePermit2Token): boolean {
-  return token.address.toLowerCase() !== zeroAddress.toLowerCase() && token.amount > 0n;
+  return token.address.toLowerCase() !== zeroAddress.toLowerCase();
 }
 
 function createPermit2InputsKey(
@@ -173,8 +173,6 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
 
   const relevantCount = (token0IsRelevant ? 1 : 0) + (token1IsRelevant ? 1 : 0);
   const signingKind: Permit2SignedResult["kind"] = relevantCount === 0 ? "none" : "batch";
-
-  console.log({ relevantCount, signingKind });
 
   const permit2Address = sdk.getContractAddress("permit2") ?? zeroAddress;
 
@@ -313,7 +311,6 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
     }
 
     if (signed) {
-      console.log({ signed });
       return signed;
     }
 
