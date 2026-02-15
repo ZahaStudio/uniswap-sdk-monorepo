@@ -24,8 +24,8 @@ export interface IncreaseLiquidityArgs {
   recipient: string;
   /** Slippage tolerance in basis points (optional, default: 50 = 0.5%) */
   slippageTolerance?: number;
-  /** Unix timestamp deadline (optional, default: 30 minutes from now) */
-  deadline?: string;
+  /** Deadline duration in seconds from current block timestamp (optional) */
+  deadlineDuration?: number;
 }
 
 /**
@@ -127,7 +127,7 @@ export function usePositionIncreaseLiquidity(
     position?.currency1?.isNative ? zeroAddress : (position?.currency1?.wrapped?.address ?? zeroAddress)
   ) as Address;
 
-  const positionManager = (sdk?.getContractAddress("positionManager") ?? zeroAddress) as Address;
+  const positionManager = (sdk.getContractAddress("positionManager") ?? zeroAddress) as Address;
 
   const permit2 = usePermit2(
     {
@@ -172,7 +172,7 @@ export function usePositionIncreaseLiquidity(
         amount1: args.amount1,
         recipient: args.recipient,
         slippageTolerance: args.slippageTolerance,
-        deadline: args.deadline,
+        deadlineDuration: args.deadlineDuration,
         permit2BatchSignature: batchPermit,
       });
 

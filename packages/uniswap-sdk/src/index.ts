@@ -1,7 +1,5 @@
 export * from "@/core/sdk";
 export * from "@/errors";
-export * from "@/common/constants";
-export * from "@/common/positions";
 export * from "@/utils/buildAddLiquidityCallData";
 export * from "@/utils/buildCollectFeesCallData";
 export * from "@/utils/buildRemoveLiquidityCallData";
@@ -14,6 +12,7 @@ export * from "@/utils/getTickInfo";
 export * from "@/utils/getTokens";
 export * from "@/utils/getUncollectedFees";
 export * from "@/utils/preparePermit2Data";
+export * from "@/utils/chains";
 export * from "@/helpers/swap";
 
 export type { PoolKey } from "@uniswap/v4-sdk";

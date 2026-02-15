@@ -5,7 +5,6 @@ import { useCallback } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   calculateMinimumOutput,
-  DEFAULT_SLIPPAGE_TOLERANCE,
   type FeeTier,
   type PoolKey,
   type QuoteResponse,
@@ -145,18 +144,14 @@ function assertPermit2Satisfied(isRequired: boolean, isSigned: boolean): void {
  * ```
  */
 export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): UseSwapReturn {
-  const {
-    poolKey,
-    amountIn,
-    zeroForOne,
-    recipient: recipientOverride,
-    slippageBps = DEFAULT_SLIPPAGE_TOLERANCE,
-  } = params;
+  const { poolKey, amountIn, zeroForOne, recipient: recipientOverride, slippageBps: slippageBpsParam } = params;
   const { enabled = true, refetchInterval = false, chainId: chainIdOverride } = options;
 
   const { sdk, chainId } = useUniswapSDK({ chainId: chainIdOverride });
   const { address: connectedAddress } = useAccount();
   const recipient = recipientOverride ?? connectedAddress;
+
+  const slippageBps = slippageBpsParam ?? sdk.defaultSlippageTolerance;
 
   const inputToken = (zeroForOne ? poolKey.currency0 : poolKey.currency1) as Address;
   const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
@@ -166,7 +161,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isQuoteEnabled = enabled && hasValidAmount && !!sdk;
   const isSwapEnabled = isQuoteEnabled && isWalletReady;
 
-  const universalRouter = sdk?.getContractAddress("universalRouter") ?? zeroAddress;
+  const universalRouter = sdk.getContractAddress("universalRouter") ?? zeroAddress;
 
   const quoteQuery = useQuery({
     queryKey: swapKeys.quote(poolKey, amountIn, zeroForOne, slippageBps, chainId),
@@ -236,7 +231,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         hooks: poolKey.hooks as Address,
       });
 
-      const calldata = sdk.buildSwapCallData({
+      const calldata = await sdk.buildSwapCallData({
         pool,
         amountIn,
         amountOutMinimum: quote.minAmountOut,

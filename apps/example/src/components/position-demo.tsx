@@ -70,7 +70,7 @@ export function PositionDemo() {
   );
 
   // ── Owner check ────────────────────────────────────────────────────────────
-  const positionManagerAddress = sdk?.getContractAddress("positionManager") as Address | undefined;
+  const positionManagerAddress = sdk.getContractAddress("positionManager") as Address | undefined;
   const ownerTokenId = activeTokenId ? BigInt(activeTokenId) : 0n;
   const { data: owner, isLoading: ownerLoading } = useReadContract({
     address: positionManagerAddress!,

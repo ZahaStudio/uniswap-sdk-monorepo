@@ -1,6 +1,5 @@
 import { V4PositionManager } from "@uniswap/v4-sdk";
 
-import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/common/constants";
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
@@ -26,9 +25,10 @@ export interface BuildRemoveLiquidityCallDataArgs {
   slippageTolerance?: number;
 
   /**
-   * The deadline for the transaction. (default: 10 minutes from current block timestamp)
+   * Deadline duration in seconds from current block timestamp.
+   * Defaults to the SDK instance's defaultDeadline (600 = 10 minutes).
    */
-  deadline?: string;
+  deadlineDuration?: number;
 }
 
 /**
@@ -52,7 +52,7 @@ export interface BuildRemoveLiquidityCallDataArgs {
  * ```
  */
 export async function buildRemoveLiquidityCallData(
-  { liquidityPercentage, deadline: deadlineParam, slippageTolerance, tokenId }: BuildRemoveLiquidityCallDataArgs,
+  { liquidityPercentage, deadlineDuration, slippageTolerance, tokenId }: BuildRemoveLiquidityCallDataArgs,
   instance: UniswapSDKInstance,
 ) {
   // Get position data
@@ -61,10 +61,10 @@ export async function buildRemoveLiquidityCallData(
     throw new Error("Position not found");
   }
 
-  const deadline = deadlineParam ?? (await getDefaultDeadline(instance)).toString();
+  const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 
   const { calldata, value } = V4PositionManager.removeCallParameters(positionData.position, {
-    slippageTolerance: percentFromBips(slippageTolerance ?? DEFAULT_SLIPPAGE_TOLERANCE),
+    slippageTolerance: percentFromBips(slippageTolerance ?? instance.defaultSlippageTolerance),
     deadline,
     liquidityPercentage: percentFromBips(liquidityPercentage),
     tokenId,

@@ -89,7 +89,7 @@ Available hooks:
 | `usePositionIncreaseLiquidity()` | Add liquidity to an existing position                 |
 | `usePositionRemoveLiquidity()`   | Remove liquidity from a position                      |
 | `usePositionCollectFees()`       | Collect accrued fees                                  |
-| `useToken()`                     | Fetch token metadata                                  |
+| `useToken()`                     | Fetch token metadata and balance (primitive)          |
 | `usePermit2()`                   | Permit2 signature workflow (includes approval)        |
 | `useTokenApproval()`             | ERC20 approval workflow                               |
 | `useTransaction()`               | Transaction lifecycle management                      |
@@ -100,7 +100,8 @@ Available hooks:
 
 ```ts
 // Create an instance
-const sdk = UniswapSDK.create(client, chainId, contracts?, cache?);
+const sdk = UniswapSDK.create(client, chainId, options?);
+// options: { contracts?, cache?, defaultDeadline?, defaultSlippageTolerance? }
 
 // Pool & token queries
 await sdk.getPool(poolArgs);                        // Fetch pool state

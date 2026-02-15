@@ -17,8 +17,8 @@ export interface RemoveLiquidityArgs {
   liquidityPercentage: number;
   /** Slippage tolerance in basis points (optional, default: 50 = 0.5%) */
   slippageTolerance?: number;
-  /** Unix timestamp deadline (optional, default: 30 minutes from now) */
-  deadline?: string;
+  /** Deadline duration in seconds from current block timestamp (optional) */
+  deadlineDuration?: number;
 }
 
 /**
@@ -85,7 +85,7 @@ export function usePositionRemoveLiquidity(
         tokenId,
         liquidityPercentage: args.liquidityPercentage,
         slippageTolerance: args.slippageTolerance,
-        deadline: args.deadline,
+        deadlineDuration: args.deadlineDuration,
       });
 
       return transaction.sendTransaction({
