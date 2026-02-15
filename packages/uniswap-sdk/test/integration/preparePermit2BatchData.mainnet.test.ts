@@ -36,7 +36,7 @@ describe("preparePermit2BatchData (unichain rpc)", () => {
       },
     ]);
     expect(prepared.permitBatch.spender.toLowerCase()).toBe(spender.toLowerCase());
-    expect(BigInt(prepared.permitBatch.sigDeadline)).toBe(expectedSigDeadline);
+    expect(BigInt(prepared.permitBatch.sigDeadline.toString())).toBe(expectedSigDeadline);
 
     expect(signed.owner.toLowerCase()).toBe(TEST_OWNER.toLowerCase());
     expect(signed.signature).toBe(TEST_SIGNATURE);
