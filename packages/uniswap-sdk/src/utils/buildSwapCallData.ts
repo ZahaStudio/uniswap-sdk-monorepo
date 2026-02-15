@@ -85,7 +85,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   }
 
   if (permit2Signature) {
-    routePlanner.addCommand(CommandType.PERMIT2_PERMIT, [permit2Signature.permit, permit2Signature.signature]);
+    routePlanner.addCommand(CommandType.PERMIT2_PERMIT_BATCH, [permit2Signature.permit, permit2Signature.signature]);
   }
 
   const deadline = await getDefaultDeadline(instance, deadlineDuration);

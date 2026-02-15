@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
@@ -112,28 +112,31 @@ export function usePositionIncreaseLiquidity(
   params: UsePositionParams,
   options: UsePositionIncreaseLiquidityOptions = {},
 ): UsePositionIncreaseLiquidityReturn {
-  const { tokenId } = params;
   const { chainId: overrideChainId, amount0 = 0n, amount1 = 0n, onSuccess } = options;
 
   const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
-  const { query } = usePosition({ tokenId }, { chainId: overrideChainId });
+  const { query } = usePosition(params, { chainId: overrideChainId });
 
   const position = query.data;
 
-  const token0Address = (
-    position?.currency0?.isNative ? zeroAddress : (position?.currency0?.wrapped?.address ?? zeroAddress)
-  ) as Address;
-  const token1Address = (
-    position?.currency1?.isNative ? zeroAddress : (position?.currency1?.wrapped?.address ?? zeroAddress)
-  ) as Address;
+  const tokenAddresses = useMemo(() => {
+    if (!position) {
+      return [zeroAddress, zeroAddress] as [Address, Address];
+    }
 
-  const positionManager = (sdk.getContractAddress("positionManager") ?? zeroAddress) as Address;
+    const token0 = position.currency0.isNative ? zeroAddress : (position.currency0.wrapped.address as Address);
+    const token1 = position.currency1.isNative ? zeroAddress : (position.currency1.wrapped.address as Address);
+
+    return [token0, token1] as [Address, Address];
+  }, [position]);
+
+  const positionManager = sdk.getContractAddress("positionManager");
 
   const permit2 = usePermit2(
     {
       tokens: [
-        { address: token0Address, amount: amount0 },
-        { address: token1Address, amount: amount1 },
+        { address: tokenAddresses[0], amount: amount0 },
+        { address: tokenAddresses[1], amount: amount1 },
       ],
       spender: positionManager,
     },

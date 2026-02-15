@@ -150,13 +150,24 @@ export async function buildAddLiquidityCallData(
   } = params;
 
   try {
-    const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
+    const deadline = await getDefaultDeadline(instance, deadlineDuration);
 
     const slippagePercent = percentFromBips(slippageTolerance);
     const createPool = pool.liquidity.toString() === "0";
 
     const tickLower = tickLowerParam ?? nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing);
     const tickUpper = tickUpperParam ?? nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing);
+
+    if (tickLower % pool.tickSpacing !== 0) {
+      throw new Error(
+        `tickLower (${tickLower}) is not a multiple of tickSpacing (${pool.tickSpacing}).`,
+      );
+    }
+    if (tickUpper % pool.tickSpacing !== 0) {
+      throw new Error(
+        `tickUpper (${tickUpper}) is not a multiple of tickSpacing (${pool.tickSpacing}).`,
+      );
+    }
 
     let sqrtPriceX96: string;
     if (createPool) {
@@ -198,19 +209,14 @@ export async function buildAddLiquidityCallData(
       throw new Error("Invalid input: at least one of amount0 or amount1 must be defined.");
     }
 
-    // Get native currency from pool currencies
-    const currency0 = pool.currency0;
-    const currency1 = pool.currency1;
-    const nativeCurrency = currency0.isNative ? currency0 : currency1.isNative ? currency1 : undefined;
-
     // Build calldata
     const { calldata, value } = V4PositionManager.addCallParameters(position, {
       recipient,
-      deadline,
+      deadline: deadline.toString(),
       slippageTolerance: slippagePercent,
       createPool,
       sqrtPriceX96,
-      useNative: nativeCurrency,
+      useNative: [pool.currency1, pool.currency0].find((e) => e.isNative),
       batchPermit: permit2BatchSignature,
     });
 

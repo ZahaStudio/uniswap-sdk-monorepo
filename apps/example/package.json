@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "next build",
-    "start": "next start",
-    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start --webpack",
+    "dev": "next dev --webpack",
     "lint": "eslint .",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf .next"
   },

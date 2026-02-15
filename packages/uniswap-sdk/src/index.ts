@@ -14,5 +14,8 @@ export * from "@/utils/getUncollectedFees";
 export * from "@/utils/preparePermit2Data";
 export * from "@/utils/chains";
 export * from "@/helpers/swap";
+export * from "@/helpers/tokens";
 
-export type { PoolKey } from "@uniswap/v4-sdk";
+export type { PoolKey, Pool } from "@uniswap/v4-sdk";
+export { Position } from "@uniswap/v4-sdk";
+export { nearestUsableTick, TickMath } from "@uniswap/v3-sdk";

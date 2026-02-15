@@ -195,7 +195,12 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   const permit2 = usePermit2(
     {
-      tokens: [{ address: inputToken, amount: amountIn }],
+      tokens: [
+        {
+          address: inputToken,
+          amount: amountIn,
+        },
+      ],
       spender: universalRouter,
     },
     {
@@ -221,7 +226,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         throw new Error("Permit2 signature required");
       }
 
-      const permit2Signature = permit2Signed?.kind === "single" ? permit2Signed.data : undefined;
+      const permit2Signature = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
 
       const pool = await sdk.getPool({
         currencyA: poolKey.currency0 as Address,

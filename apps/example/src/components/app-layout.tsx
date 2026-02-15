@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { href: "/swap", label: "Swap" },
   { href: "/position", label: "Position" },
+  { href: "/create-position", label: "Create Position" },
 ];
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

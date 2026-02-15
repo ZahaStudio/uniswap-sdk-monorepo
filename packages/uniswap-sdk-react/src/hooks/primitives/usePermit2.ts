@@ -173,8 +173,9 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
   const token1IsRelevant = isNonNative(token1);
 
   const relevantCount = (token0IsRelevant ? 1 : 0) + (token1IsRelevant ? 1 : 0);
-  const signingKind: Permit2SignedResult["kind"] =
-    relevantCount === 0 ? "none" : relevantCount === 1 ? "single" : "batch";
+  const signingKind: Permit2SignedResult["kind"] = relevantCount === 0 ? "none" : "batch";
+
+  console.log({ relevantCount, signingKind });
 
   const permit2Address = sdk.getContractAddress("permit2") ?? zeroAddress;
 
@@ -247,6 +248,8 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
         setSignedState({ key: inputsKey, value: result });
         return result;
       }
+
+      console.log("Signing batch");
 
       const batchTokens: Address[] = [];
       if (token0IsRelevant) batchTokens.push(token0.address);
@@ -337,8 +340,10 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
     }
 
     if (signed) {
+      console.log({ signed });
       return signed;
     }
+
     return permit2Sign();
   }, [token0IsRelevant, token1IsRelevant, approval0, approval1, signed, permit2Sign]);
 

@@ -5,10 +5,11 @@ import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
-import type {
-  TypedDataField,
-  PreparePermit2BatchDataArgs,
-  PreparePermit2BatchDataResult,
+import {
+  type TypedDataField,
+  type PreparePermit2BatchDataArgs,
+  type PreparePermit2BatchDataResult,
+  allowanceAbi,
 } from "@/utils/preparePermit2Data";
 
 /**
@@ -77,41 +78,19 @@ export async function preparePermit2BatchData(
     allowFailure: false,
     contracts: noNativeTokens.map((token) => ({
       address: instance.contracts.permit2,
-      abi: [
-        {
-          name: "allowance",
-          type: "function",
-          stateMutability: "view",
-          inputs: [
-            { name: "owner", type: "address" },
-            { name: "token", type: "address" },
-            { name: "spender", type: "address" },
-          ],
-          outputs: [
-            {
-              components: [
-                { name: "amount", type: "uint160" },
-                { name: "expiration", type: "uint48" },
-                { name: "nonce", type: "uint48" },
-              ],
-              name: "details",
-              type: "tuple",
-            },
-          ],
-        },
-      ] as const,
+      abi: allowanceAbi,
       functionName: "allowance",
       args: [owner, token, spender],
     })),
   });
 
   const results = noNativeTokens.map((token, index) => {
-    const { expiration, nonce } = details[index];
+    const { nonce } = details[index];
     return {
       token,
       amount: MaxUint160.toString(),
-      expiration: Number(expiration),
-      nonce: Number(nonce),
+      expiration: sigDeadline.toString(),
+      nonce: nonce.toString(),
     };
   });
 

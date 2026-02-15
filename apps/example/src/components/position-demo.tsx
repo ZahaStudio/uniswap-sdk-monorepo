@@ -47,7 +47,7 @@ export function PositionDemo() {
   const { sdk } = useUniswapSDK({ chainId: 1 });
 
   const [tokenIdInput, setTokenIdInput] = useState("");
-  const [activeTokenId, setActiveTokenId] = useState("");
+  const [activeTokenId, setActiveTokenId] = useState("158325");
 
   const handleLoad = useCallback(() => {
     const trimmed = tokenIdInput.trim();

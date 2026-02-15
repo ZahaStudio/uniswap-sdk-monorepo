@@ -65,7 +65,7 @@ export function usePositionCollectFees(
   const { chainId: overrideChainId, onSuccess } = options;
 
   const { sdk } = useUniswapSDK({ chainId: overrideChainId });
-  const { query } = usePosition({ tokenId }, { chainId: overrideChainId });
+  const { query } = usePosition(params, { chainId: overrideChainId });
 
   const transaction = useTransaction({
     onSuccess: () => {
