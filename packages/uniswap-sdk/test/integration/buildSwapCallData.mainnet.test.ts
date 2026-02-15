@@ -22,7 +22,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
 
-    const calldata = sdk.buildSwapCallData({
+    const calldata = await sdk.buildSwapCallData({
       amountIn: 1_000_000n,
       amountOutMinimum: 0n,
       pool,
