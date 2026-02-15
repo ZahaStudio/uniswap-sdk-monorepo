@@ -79,13 +79,19 @@ input[type="number"] {
 
 /* Subtle glow on accent elements */
 .glow-accent {
-  box-shadow: 0 0 20px rgba(252, 114, 255, 0.15), 0 0 60px rgba(252, 114, 255, 0.05);
+  box-shadow:
+    0 0 20px rgba(252, 114, 255, 0.15),
+    0 0 60px rgba(252, 114, 255, 0.05);
 }
 
 /* Shimmer loading effect */
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 .shimmer {
   background: linear-gradient(90deg, transparent 30%, var(--color-surface-hover) 50%, transparent 70%);
