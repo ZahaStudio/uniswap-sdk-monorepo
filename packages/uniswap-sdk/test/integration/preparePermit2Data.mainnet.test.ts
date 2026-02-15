@@ -13,6 +13,8 @@ describe("preparePermit2Data (unichain rpc)", () => {
     const client = createPinnedUnichainClient();
     const sdk = UniswapSDK.create(client, unichain.id);
     const spender = sdk.getContractAddress("universalRouter");
+    const block = await client.getBlock();
+    const expectedSigDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
 
     const prepared = await sdk.preparePermit2Data({
       token: UNICHAIN_TOKENS.USDC,
@@ -27,8 +29,8 @@ describe("preparePermit2Data (unichain rpc)", () => {
     expect(prepared.permit.details.token.toLowerCase()).toBe(UNICHAIN_TOKENS.USDC.toLowerCase());
     expect(prepared.permit.spender.toLowerCase()).toBe(spender.toLowerCase());
     expect(prepared.permit.details.nonce).toBe("0");
-    expect(prepared.permit.details.expiration).toBe("1770381227");
-    expect(prepared.permit.sigDeadline).toBe(1770381227);
+    expect(prepared.permit.details.expiration).toBe(expectedSigDeadline.toString());
+    expect(prepared.permit.sigDeadline).toBe(expectedSigDeadline);
 
     expect(signed.owner.toLowerCase()).toBe(TEST_OWNER.toLowerCase());
     expect(signed.signature).toBe(TEST_SIGNATURE);
