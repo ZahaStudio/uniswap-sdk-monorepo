@@ -23,14 +23,11 @@ import { getQuote, type QuoteResponse, type SwapExactInSingle } from "@/utils/ge
 import { getTickInfo, type GetTickInfoArgs, type TickInfoResponse } from "@/utils/getTickInfo";
 import { getTokens, type GetTokensArgs } from "@/utils/getTokens";
 import { getUncollectedFees, type GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
-import { preparePermit2BatchData } from "@/utils/preparePermit2BatchData";
 import {
-  preparePermit2Data,
+  preparePermit2BatchData,
   type PreparePermit2BatchDataArgs,
   type PreparePermit2BatchDataResult,
-  type PreparePermit2DataArgs,
-  type PreparePermit2DataResult,
-} from "@/utils/preparePermit2Data";
+} from "@/utils/preparePermit2BatchData";
 
 /**
  * Configuration for V4 contracts.
@@ -365,19 +362,4 @@ export class UniswapSDK {
     return preparePermit2BatchData(args, this.instance);
   }
 
-  /**
-   * Prepares Permit2 single token approval data using the Permit2 SDK.
-   *
-   * This method fetches the current allowance from the Permit2 contract and, if no
-   * sigDeadline is provided, reads the current block timestamp. It then creates a single
-   * permit structure that allows a spender to use one token. Typically used for swaps
-   * where only one token approval is needed. Use the returned toSign.values for signing.
-   *
-   * @param args @type {PreparePermit2DataArgs} - Single permit parameters for one token
-   * @returns Promise<PreparePermit2DataResult> - Structured permit data ready for signing
-   * @throws Error if permit data generation fails or parameters are invalid
-   */
-  public async preparePermit2Data(args: PreparePermit2DataArgs): Promise<PreparePermit2DataResult> {
-    return preparePermit2Data(args, this.instance);
-  }
 }

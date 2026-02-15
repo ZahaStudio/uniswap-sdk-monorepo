@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { type PreparePermit2DataResult, type PreparePermit2BatchDataResult } from "@zahastudio/uniswap-sdk";
+import { type PreparePermit2BatchDataResult } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount, useSignTypedData } from "wagmi";
@@ -51,7 +51,6 @@ export interface UsePermit2Options {
  */
 export type Permit2SignedResult =
   | { kind: "none" }
-  | { kind: "single"; data: ReturnType<PreparePermit2DataResult["buildPermit2DataWithSignature"]> }
   | { kind: "batch"; data: ReturnType<PreparePermit2BatchDataResult["buildPermit2BatchDataWithSignature"]> };
 
 /**
@@ -120,10 +119,10 @@ function createPermit2InputsKey(
 
 /**
  * Reusable hook that manages the full Permit2 lifecycle:
- * ERC-20 approval(s) to the Permit2 contract, then off-chain Permit2 signing.
+ * ERC-20 approval(s) to the Permit2 contract, then off-chain Permit2 batch signing.
  *
- * Supports both single-token (swaps) and multi-token (liquidity) flows.
- * Automatically detects which mode to use based on the number of non-native
+ * Always uses batch permit2 signing regardless of token count.
+ * Automatically detects whether signing is needed based on the number of non-native
  * tokens provided. Native tokens (zeroAddress) are skipped entirely.
  *
  * @param params - Tokens and spender address
@@ -138,7 +137,7 @@ function createPermit2InputsKey(
  * });
  *
  * const signed = await permit2.approveAndSign();
- * if (signed.kind === "single") {
+ * if (signed.kind === "batch") {
  *   sdk.buildSwapCallData({ permit2Signature: signed.data });
  * }
  * ```
@@ -224,32 +223,6 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
 
     try {
       setSignErrorState(undefined);
-
-      if (signingKind === "single") {
-        const singleToken = token0IsRelevant ? token0.address : token1.address;
-
-        const prepareResult = await sdk.preparePermit2Data({
-          token: singleToken,
-          spender,
-          owner: connectedAddress,
-        });
-
-        const signature = await signTypedData.signTypedDataAsync({
-          domain: prepareResult.toSign.domain,
-          types: prepareResult.toSign.types,
-          primaryType: prepareResult.toSign.primaryType,
-          message: prepareResult.toSign.message,
-        });
-
-        const result: Permit2SignedResult = {
-          kind: "single",
-          data: prepareResult.buildPermit2DataWithSignature(signature),
-        };
-        setSignedState({ key: inputsKey, value: result });
-        return result;
-      }
-
-      console.log("Signing batch");
 
       const batchTokens: Address[] = [];
       if (token0IsRelevant) batchTokens.push(token0.address);

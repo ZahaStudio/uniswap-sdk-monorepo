@@ -1,7 +1,6 @@
-import type { PermitSingle } from "@uniswap/permit2-sdk";
 import { CommandType, RoutePlanner } from "@uniswap/universal-router-sdk";
 import { Actions, V4Planner } from "@uniswap/v4-sdk";
-import type { Pool } from "@uniswap/v4-sdk";
+import type { BatchPermitOptions, Pool } from "@uniswap/v4-sdk";
 import { utility } from "hookmate/abi";
 import type { Address, Hex } from "viem";
 import { encodeFunctionData } from "viem";
@@ -14,7 +13,6 @@ import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
  * @see https://docs.uniswap.org/contracts/universal-router/technical-reference
  */
 export const COMMANDS = {
-  PERMIT2_PERMIT: 0x0a,
   SWAP_EXACT_IN_SINGLE: 0x06,
   SETTLE_ALL: 0x0c,
   TAKE_ALL: 0x0f,
@@ -34,12 +32,8 @@ export type BuildSwapCallDataArgs = {
   recipient: Address;
   /** Deadline duration in seconds from now. Defaults to 300 (5 minutes). */
   deadlineDuration?: number;
-  /** Optional Permit2 signature for token approval */
-  permit2Signature?: {
-    signature: Hex;
-    owner: Address;
-    permit: PermitSingle;
-  };
+  /** Optional Permit2 batch signature for token approval */
+  permit2Signature?: BatchPermitOptions;
   /** Custom actions to override default swap behavior. If not provided, uses default SWAP_EXACT_IN_SINGLE */
   customActions?: {
     action: Actions;
@@ -85,7 +79,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   }
 
   if (permit2Signature) {
-    routePlanner.addCommand(CommandType.PERMIT2_PERMIT_BATCH, [permit2Signature.permit, permit2Signature.signature]);
+    routePlanner.addCommand(CommandType.PERMIT2_PERMIT_BATCH, [permit2Signature.permitBatch, permit2Signature.signature]);
   }
 
   const deadline = await getDefaultDeadline(instance, deadlineDuration);

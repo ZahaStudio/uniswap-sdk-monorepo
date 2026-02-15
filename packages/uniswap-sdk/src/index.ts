@@ -11,7 +11,7 @@ export * from "@/utils/getQuote";
 export * from "@/utils/getTickInfo";
 export * from "@/utils/getTokens";
 export * from "@/utils/getUncollectedFees";
-export * from "@/utils/preparePermit2Data";
+export * from "@/utils/preparePermit2BatchData";
 export * from "@/utils/chains";
 export * from "@/helpers/swap";
 export * from "@/helpers/tokens";

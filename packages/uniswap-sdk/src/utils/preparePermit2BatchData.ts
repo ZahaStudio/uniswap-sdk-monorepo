@@ -1,16 +1,95 @@
 import { AllowanceTransfer, MaxUint160, type PermitBatch } from "@uniswap/permit2-sdk";
 import type { BatchPermitOptions } from "@uniswap/v4-sdk";
-import type { Hex } from "viem";
+import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
-import {
-  type TypedDataField,
-  type PreparePermit2BatchDataArgs,
-  type PreparePermit2BatchDataResult,
-  allowanceAbi,
-} from "@/utils/preparePermit2Data";
+
+export interface TypedDataField {
+  name: string;
+  type: string;
+}
+
+/**
+ * Base interface for Permit2 data
+ */
+interface BasePermit2Data {
+  /** Address that will be allowed to spend the tokens */
+  spender: Address | string;
+  /** User's wallet address */
+  owner: Address | string;
+  /** Deadline duration in seconds from current block timestamp. Defaults to the SDK instance's defaultDeadline. */
+  deadlineDuration?: number;
+}
+
+/**
+ * Interface for the arguments required to generate a Permit2 batch signature
+ */
+export interface PreparePermit2BatchDataArgs extends BasePermit2Data {
+  /** Array of token addresses to permit */
+  tokens: (Address | string)[];
+}
+
+/**
+ * Base interface for Permit2 data result
+ */
+interface BasePermit2DataResult {
+  /** User's wallet address */
+  owner: Address | string;
+  /** Data needed to sign the permit2 data */
+  toSign: {
+    /** Domain of the permit2 data */
+    domain: {
+      name: string;
+      version: string;
+      chainId: number;
+      verifyingContract: `0x${string}`;
+    };
+    /** Types of the permit2 data */
+    types: Record<string, TypedDataField[]>;
+    /** Values of the permit2 data */
+    values: PermitBatch;
+    /** Primary type of the permit2 data */
+    primaryType: "PermitBatch";
+    /** Message of the permit2 data */
+    message: Record<string, unknown>;
+  };
+}
+
+/**
+ * Interface for the return value of the batch permit function
+ */
+export interface PreparePermit2BatchDataResult extends BasePermit2DataResult {
+  /** Function to build the permit2 batch data with a signature */
+  buildPermit2BatchDataWithSignature: (signature: string | Hex) => BatchPermitOptions;
+  /** Permit2 batch data */
+  permitBatch: PermitBatch;
+}
+
+export const allowanceAbi = [
+  {
+    name: "allowance",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "token", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [
+      {
+        components: [
+          { name: "amount", type: "uint160" },
+          { name: "expiration", type: "uint48" },
+          { name: "nonce", type: "uint48" },
+        ],
+        name: "details",
+        type: "tuple",
+      },
+    ],
+  },
+] as const;
 
 /**
  * Prepares the permit2 batch data for multiple tokens
