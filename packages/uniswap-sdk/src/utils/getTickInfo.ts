@@ -1,6 +1,7 @@
 import type { SwapExactInSingle as UniswapSwapExactInSingle } from "@uniswap/v4-sdk";
 import { Pool } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
+import type { Address } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { getTokens } from "@/utils/getTokens";
@@ -28,7 +29,7 @@ export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKIns
 
   // Create Token instances for currency0 and currency1 in the provided order
   const tokens = await getTokens(
-    { addresses: [poolKey.currency0 as `0x${string}`, poolKey.currency1 as `0x${string}`] },
+    { addresses: [poolKey.currency0 as Address, poolKey.currency1 as Address] },
     instance,
   );
 
@@ -44,8 +45,8 @@ export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKIns
     currency1,
     poolKey.fee,
     poolKey.tickSpacing,
-    poolKey.hooks as `0x${string}`,
-  ) as `0x${string}`;
+    poolKey.hooks as Address,
+  ) as Address;
 
   // Read tick info
   const result = await client.readContract({
@@ -57,12 +58,8 @@ export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKIns
 
   // V4 StateView getTickInfo returns:
   // (uint128 liquidityGross, int128 liquidityNet, uint256 feeGrowthOutside0X128, uint256 feeGrowthOutside1X128)
-  const [liquidityGross, liquidityNet, feeGrowthOutside0X128, feeGrowthOutside1X128] = result as unknown as [
-    bigint,
-    bigint,
-    bigint,
-    bigint,
-  ];
+  const typedResult = result as readonly [bigint, bigint, bigint, bigint];
+  const [liquidityGross, liquidityNet, feeGrowthOutside0X128, feeGrowthOutside1X128] = typedResult;
 
   return {
     liquidityGross,

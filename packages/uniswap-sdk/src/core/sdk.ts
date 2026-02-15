@@ -8,6 +8,7 @@ import {
   buildAddLiquidityCallData,
   type BuildAddLiquidityArgs,
   type BuildAddLiquidityCallDataResult,
+  type BuildCallDataResult,
 } from "@/utils/buildAddLiquidityCallData";
 import { buildCollectFeesCallData, type BuildCollectFeesCallDataArgs } from "@/utils/buildCollectFeesCallData";
 import {
@@ -33,7 +34,7 @@ import {
  * Configuration for V4 contracts.
  * Contains addresses for all required Uniswap V4 contracts.
  */
-export type V4Contracts = {
+export interface V4Contracts {
   /** Address of the pool manager contract */
   poolManager: Address;
   /** Address of the position manager contract */
@@ -46,12 +47,12 @@ export type V4Contracts = {
   universalRouter: Address;
   /** Address of the Permit2 contract */
   permit2: Address;
-};
+}
 
 /**
  * Options for creating a UniswapSDK instance.
  */
-export type UniswapSDKOptions = {
+export interface UniswapSDKOptions {
   /** Optional overrides for contract addresses */
   contracts?: V4Contracts;
   /** Optional cache adapter */
@@ -60,13 +61,13 @@ export type UniswapSDKOptions = {
   defaultDeadline?: number;
   /** Default slippage tolerance in basis points (default: 50 = 0.5%) */
   defaultSlippageTolerance?: number;
-};
+}
 
 /**
  * Internal instance type for UniswapSDK.
  * Represents the state of a single SDK instance.
  */
-export type UniswapSDKInstance = {
+export interface UniswapSDKInstance {
   /** Viem public client */
   client: PublicClient;
   /** Chain */
@@ -79,7 +80,7 @@ export type UniswapSDKInstance = {
   defaultDeadline: number;
   /** Default slippage tolerance in basis points */
   defaultSlippageTolerance: number;
-};
+}
 
 /**
  * Main class for interacting with Uniswap V4 contracts.
@@ -325,7 +326,7 @@ export class UniswapSDK {
    * @returns Promise - Calldata and value for the burn transaction
    * @throws Error if position data cannot be fetched or removal parameters are incorrect
    */
-  public async buildRemoveLiquidityCallData(args: BuildRemoveLiquidityCallDataArgs) {
+  public async buildRemoveLiquidityCallData(args: BuildRemoveLiquidityCallDataArgs): Promise<BuildCallDataResult> {
     return buildRemoveLiquidityCallData(args, this.instance);
   }
 
@@ -342,7 +343,7 @@ export class UniswapSDK {
    * @returns Promise - Calldata and value for the collect transaction
    * @throws Error if position data cannot be fetched or collection parameters are incorrect
    */
-  public async buildCollectFeesCallData(args: BuildCollectFeesCallDataArgs) {
+  public async buildCollectFeesCallData(args: BuildCollectFeesCallDataArgs): Promise<BuildCallDataResult> {
     return buildCollectFeesCallData(args, this.instance);
   }
 

@@ -1,15 +1,16 @@
 import { encodeSqrtRatioX96, nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
 import type { BatchPermitOptions, Pool } from "@uniswap/v4-sdk";
 import { Position, V4PositionManager } from "@uniswap/v4-sdk";
+import type { Address } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
 /**
- * Common base parameters for building add liquidity call data.
+ * Parameters for building add liquidity call data.
  */
-type BaseAddLiquidityArgs = {
+export interface BuildAddLiquidityArgs {
   /**
    * The Uniswap V4 pool to add liquidity to.
    */
@@ -28,7 +29,7 @@ type BaseAddLiquidityArgs = {
   /**
    * Address that will receive the position (NFT).
    */
-  recipient: string;
+  recipient: Address;
 
   /**
    * Lower tick boundary for the position.
@@ -59,25 +60,23 @@ type BaseAddLiquidityArgs = {
    * Optional Permit2 batch signature for token approvals.
    */
   permit2BatchSignature?: BatchPermitOptions;
-};
+}
 
-export type BuildAddLiquidityArgs = BaseAddLiquidityArgs;
+/**
+ * Common result shape for calldata-building functions.
+ * Contains the encoded calldata and the native value to send.
+ */
+export interface BuildCallDataResult {
+  /** Encoded calldata for the transaction */
+  calldata: string;
+  /** Amount of native currency to send with the transaction (stringified bigint) */
+  value: string;
+}
 
 /**
  * Result of building add liquidity call data.
  */
-export interface BuildAddLiquidityCallDataResult {
-  /**
-   * Encoded calldata for the `mint` operation via V4PositionManager.
-   */
-  calldata: string;
-
-  /**
-   * Amount of native currency to send with the transaction (if needed).
-   * Stringified bigint.
-   */
-  value: string;
-}
+export interface BuildAddLiquidityCallDataResult extends BuildCallDataResult {}
 
 /**
  * Builds the calldata and native value required to add liquidity to a Uniswap V4 pool.

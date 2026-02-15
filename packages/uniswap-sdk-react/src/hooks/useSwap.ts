@@ -46,12 +46,6 @@ export interface QuoteData extends QuoteResponse {
 }
 
 /**
- * Permit2 signing step state — re-exported from the primitive hook.
- * @see UsePermit2SignStep
- */
-export type { UsePermit2SignStep };
-
-/**
  * Swap execution step state.
  */
 export interface UseSwapExecuteStep {

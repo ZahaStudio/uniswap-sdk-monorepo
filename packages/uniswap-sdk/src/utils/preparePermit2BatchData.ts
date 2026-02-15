@@ -6,7 +6,7 @@ import { zeroAddress } from "viem";
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
-export interface TypedDataField {
+interface TypedDataField {
   name: string;
   type: string;
 }
@@ -16,9 +16,9 @@ export interface TypedDataField {
  */
 interface BasePermit2Data {
   /** Address that will be allowed to spend the tokens */
-  spender: Address | string;
+  spender: Address;
   /** User's wallet address */
-  owner: Address | string;
+  owner: Address;
   /** Deadline duration in seconds from current block timestamp. Defaults to the SDK instance's defaultDeadline. */
   deadlineDuration?: number;
 }
@@ -28,7 +28,7 @@ interface BasePermit2Data {
  */
 export interface PreparePermit2BatchDataArgs extends BasePermit2Data {
   /** Array of token addresses to permit */
-  tokens: (Address | string)[];
+  tokens: Address[];
 }
 
 /**
@@ -36,7 +36,7 @@ export interface PreparePermit2BatchDataArgs extends BasePermit2Data {
  */
 interface BasePermit2DataResult {
   /** User's wallet address */
-  owner: Address | string;
+  owner: Address;
   /** Data needed to sign the permit2 data */
   toSign: {
     /** Domain of the permit2 data */
@@ -52,8 +52,8 @@ interface BasePermit2DataResult {
     values: PermitBatch;
     /** Primary type of the permit2 data */
     primaryType: "PermitBatch";
-    /** Message of the permit2 data */
-    message: Record<string, unknown>;
+    /** Message of the permit2 data (PermitBatch values for wagmi signTypedData) */
+    message: PermitBatch;
   };
 }
 
@@ -208,7 +208,7 @@ export async function preparePermit2BatchData(
       types,
       values,
       primaryType: "PermitBatch",
-      message: values as unknown as Record<string, unknown>,
+      message: values,
     },
   };
 }

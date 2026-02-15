@@ -20,7 +20,7 @@
     "next": "^16.1.6",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "tailwind-merge": "^3.4.0",
+    "tailwind-merge": "^3.4.1",
     "viem": "catalog:",
     "wagmi": "catalog:"
   },

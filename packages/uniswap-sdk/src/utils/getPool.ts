@@ -75,6 +75,6 @@ export async function getPool(poolKey: PoolKey, instance: UniswapSDKInstance): P
 
     return pool;
   } catch (error) {
-    throw new Error(`Error creating pool instance: ${(error as Error).message}`);
+    throw new Error(`Error creating pool instance: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

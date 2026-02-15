@@ -12,6 +12,7 @@ import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@
 import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import type { UseMutationHookOptions } from "@/types/hooks";
 import { assertSdkInitialized } from "@/utils/assertions";
 import { poolKeys } from "@/utils/queryKeys";
 
@@ -20,7 +21,7 @@ import { poolKeys } from "@/utils/queryKeys";
  */
 export interface CreatePositionArgs {
   /** Recipient address for the position NFT */
-  recipient: string;
+  recipient: Address;
   /** Slippage tolerance in basis points (optional, default: 50 = 0.5%) */
   slippageTolerance?: number;
   /** Deadline duration in seconds from current block timestamp (optional) */
@@ -73,12 +74,7 @@ export interface UseCreatePositionParams {
 /**
  * Options for the useCreatePosition hook.
  */
-export interface UseCreatePositionOptions {
-  /** Override chain ID */
-  chainId?: number;
-  /** Callback fired when the transaction is confirmed */
-  onSuccess?: () => void;
-}
+export interface UseCreatePositionOptions extends UseMutationHookOptions {}
 
 /**
  * Return type for the useCreatePosition hook.

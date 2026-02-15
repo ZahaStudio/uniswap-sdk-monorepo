@@ -10,18 +10,19 @@ import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import type { UseMutationHookOptions } from "@/types/hooks";
 import { assertSdkInitialized } from "@/utils/assertions";
 
 /**
  * Arguments for increasing liquidity on a position.
  */
 export interface IncreaseLiquidityArgs {
-  /** Amount of token0 to add (as string) */
-  amount0?: string;
-  /** Amount of token1 to add (as string) */
-  amount1?: string;
+  /** Amount of token0 to add */
+  amount0?: bigint;
+  /** Amount of token1 to add */
+  amount1?: bigint;
   /** Recipient address for the position NFT */
-  recipient: string;
+  recipient: Address;
   /** Slippage tolerance in basis points (optional, default: 50 = 0.5%) */
   slippageTolerance?: number;
   /** Deadline duration in seconds from current block timestamp (optional) */
@@ -36,15 +37,11 @@ export type IncreaseLiquidityStep = "approval0" | "approval1" | "permit2" | "exe
 /**
  * Options for the usePositionIncreaseLiquidity hook.
  */
-export interface UsePositionIncreaseLiquidityOptions {
-  /** Override chain ID */
-  chainId?: number;
+export interface UsePositionIncreaseLiquidityOptions extends UseMutationHookOptions {
   /** Amount of token0 for proactive approval checking */
   amount0?: bigint;
   /** Amount of token1 for proactive approval checking */
   amount1?: bigint;
-  /** Callback fired when the transaction is confirmed */
-  onSuccess?: () => void;
 }
 
 /**
@@ -171,8 +168,8 @@ export function usePositionIncreaseLiquidity(
         pool: position.pool,
         tickLower: position.position.tickLower,
         tickUpper: position.position.tickUpper,
-        amount0: args.amount0,
-        amount1: args.amount1,
+        amount0: args.amount0?.toString(),
+        amount1: args.amount1?.toString(),
         recipient: args.recipient,
         slippageTolerance: args.slippageTolerance,
         deadlineDuration: args.deadlineDuration,

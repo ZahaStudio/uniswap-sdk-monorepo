@@ -4,14 +4,6 @@ import { v4 } from "hookmate/abi";
 import type { UniswapSDKInstance } from "@/core/sdk";
 
 /**
- * Parameters required for retrieving pool key information.
- */
-export interface GetPoolKeyFromPoolIdParams {
-  /** The 32-byte pool ID in hex format (0x...) */
-  poolId: `0x${string}`;
-}
-
-/**
  * Retrieves the pool key information for a given pool ID.
  * @param poolId - The pool ID as a hex string
  * @param instance - UniswapSDKInstance

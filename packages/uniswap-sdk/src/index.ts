@@ -13,6 +13,7 @@ export * from "@/utils/getTokens";
 export * from "@/utils/getUncollectedFees";
 export * from "@/utils/preparePermit2BatchData";
 export * from "@/utils/chains";
+export * from "@/helpers/cache";
 export * from "@/helpers/swap";
 export * from "@/helpers/tokens";
 

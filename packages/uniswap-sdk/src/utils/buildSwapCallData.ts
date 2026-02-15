@@ -22,13 +22,12 @@ export const COMMANDS = {
 /**
  * Parameters for building a V4 swap
  */
-export type BuildSwapCallDataArgs = {
+export interface BuildSwapCallDataArgs {
   amountIn: bigint;
   amountOutMinimum: bigint;
   pool: Pool;
   /** The direction of the swap, true for currency0 to currency1, false for currency1 to currency0 */
   zeroForOne: boolean;
-  //slippageTolerance?: number
   recipient: Address;
   /** Deadline duration in seconds from now. Defaults to 300 (5 minutes). */
   deadlineDuration?: number;
@@ -39,7 +38,7 @@ export type BuildSwapCallDataArgs = {
     action: Actions;
     parameters: unknown[];
   }[];
-};
+}
 
 /**
  * Builds calldata for a Uniswap V4 swap
