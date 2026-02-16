@@ -32,7 +32,6 @@ overrides:
   typescript: ^5.9.3
   react-native: '-'
   abitype>zod: '-'
-  '@react-native-async-storage/async-storage': '-'
 
 importers:
 
@@ -2439,7 +2438,7 @@ packages:
   '@walletconnect/keyvaluestorage@1.1.1':
     resolution: {integrity: sha512-V7ZQq2+mSxAq7MrRqDxanTzu2RcElfK1PfNYiaVnJgJ7Q7G7hTVwF8voIBx92qsRyGHZihrwNPHuZd1aKkd0rA==}
     peerDependencies:
-      '@react-native-async-storage/async-storage': '*'
+      '@react-native-async-storage/async-storage': 1.x
     peerDependenciesMeta:
       '@react-native-async-storage/async-storage':
         optional: true
