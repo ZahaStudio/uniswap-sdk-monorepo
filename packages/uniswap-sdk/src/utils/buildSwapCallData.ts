@@ -1,4 +1,4 @@
-import { CommandType, RoutePlanner } from "@uniswap/universal-router-sdk";
+import { CommandType, ROUTER_AS_RECIPIENT, RoutePlanner, WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 import { Actions, V4Planner } from "@uniswap/v4-sdk";
 import type { BatchPermitOptions, Pool } from "@uniswap/v4-sdk";
 import { utility } from "hookmate/abi";
@@ -38,6 +38,8 @@ export interface BuildSwapCallDataArgs {
     action: Actions;
     parameters: unknown[];
   }[];
+  /** When true, wraps/unwraps native ETH for WETH-denominated pools. The caller must send msg.value for input. */
+  useNativeETH?: boolean;
 }
 
 /**
@@ -51,11 +53,37 @@ export interface BuildSwapCallDataArgs {
  * @returns encoded calldata
  */
 export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
-  const { amountIn, pool, zeroForOne, permit2Signature, recipient, amountOutMinimum, customActions, deadlineDuration } =
-    params;
+  const {
+    amountIn,
+    pool,
+    zeroForOne,
+    permit2Signature,
+    recipient,
+    amountOutMinimum,
+    customActions,
+    deadlineDuration,
+    useNativeETH,
+  } = params;
 
   const v4Planner = new V4Planner();
   const routePlanner = new RoutePlanner();
+
+  // Determine if WRAP_ETH or UNWRAP_WETH is needed for WETH-denominated pools
+  let wrapInput = false;
+  let unwrapOutput = false;
+
+  if (useNativeETH) {
+    const chainId = instance.chain.id;
+    const wethAddress = WETH_ADDRESS(chainId).toLowerCase();
+    const inputCurrency = (zeroForOne ? pool.poolKey.currency0 : pool.poolKey.currency1).toLowerCase();
+    const outputCurrency = (zeroForOne ? pool.poolKey.currency1 : pool.poolKey.currency0).toLowerCase();
+
+    if (inputCurrency === wethAddress) {
+      wrapInput = true;
+    } else if (outputCurrency === wethAddress) {
+      unwrapOutput = true;
+    }
+  }
 
   // Use custom actions if provided, otherwise use default SWAP_EXACT_IN_SINGLE
   if (customActions && customActions.length > 0) {
@@ -74,25 +102,38 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
       },
     ]);
     v4Planner.addSettle(zeroForOne ? pool.currency0 : pool.currency1, true);
-    v4Planner.addTake(zeroForOne ? pool.currency1 : pool.currency0, recipient);
-  }
-
-  if (permit2Signature) {
-    routePlanner.addCommand(CommandType.PERMIT2_PERMIT_BATCH, [permit2Signature.permitBatch, permit2Signature.signature]);
+    v4Planner.addTake(zeroForOne ? pool.currency1 : pool.currency0, unwrapOutput ? ROUTER_AS_RECIPIENT : recipient);
   }
 
   const deadline = await getDefaultDeadline(instance, deadlineDuration);
   const encodedActions = v4Planner.finalize();
 
-  routePlanner.addCommand(CommandType.V4_SWAP, [v4Planner.actions, v4Planner.params]);
+  // Build commands and inputs in execution order
+  const finalInputs: Hex[] = [];
 
-  const inputs = [permit2Signature ? routePlanner.inputs[0] : undefined, encodedActions].filter(Boolean) as Hex[];
+  if (permit2Signature) {
+    routePlanner.addCommand(CommandType.PERMIT2_PERMIT_BATCH, [permit2Signature.permitBatch, permit2Signature.signature]);
+    finalInputs.push(routePlanner.inputs.at(-1) as Hex);
+  }
+
+  if (wrapInput) {
+    routePlanner.addCommand(CommandType.WRAP_ETH, [ROUTER_AS_RECIPIENT, amountIn.toString()]);
+    finalInputs.push(routePlanner.inputs.at(-1) as Hex);
+  }
+
+  routePlanner.addCommand(CommandType.V4_SWAP, [v4Planner.actions, v4Planner.params]);
+  finalInputs.push(encodedActions as Hex);
+
+  if (unwrapOutput) {
+    routePlanner.addCommand(CommandType.UNWRAP_WETH, [recipient, amountOutMinimum.toString()]);
+    finalInputs.push(routePlanner.inputs.at(-1) as Hex);
+  }
 
   // Encode final calldata
   // Note: The deadline is for the execution deadline, while permit2 signatures have their own separate deadlines within the permit data structure.
   return encodeFunctionData({
     abi: utility.UniversalRouterArtifact.abi,
     functionName: "execute",
-    args: [routePlanner.commands as Hex, inputs, deadline],
+    args: [routePlanner.commands as Hex, finalInputs, deadline],
   });
 }

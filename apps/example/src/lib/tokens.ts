@@ -1,6 +1,10 @@
-import { sortTokens } from "@zahastudio/uniswap-sdk";
+import { sortTokens, type PoolKey } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
+
+// ---------------------------------------------------------------------------
+// Token display types
+// ---------------------------------------------------------------------------
 
 export interface TokenInfo {
   address: Address;
@@ -10,88 +14,85 @@ export interface TokenInfo {
   logoUrl: string;
 }
 
-export const ETH: TokenInfo = {
-  address: zeroAddress,
-  symbol: "ETH",
-  name: "Ether",
-  decimals: 18,
-  logoUrl: "https://token-icons.s3.amazonaws.com/eth.png",
+/** Logo URL registry keyed by lowercase address. */
+const TOKEN_LOGOS: Record<string, string> = {
+  [zeroAddress]: "https://token-icons.s3.amazonaws.com/eth.png",
+  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "https://token-icons.s3.amazonaws.com/eth.png",
+  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48":
+    "https://token-icons.s3.amazonaws.com/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.png",
+  "0xdac17f958d2ee523a2206206994597c13d831ec7":
+    "https://token-icons.s3.amazonaws.com/0xdac17f958d2ee523a2206206994597c13d831ec7.png",
 };
-
-export const USDC: TokenInfo = {
-  address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-  symbol: "USDC",
-  name: "USD Coin",
-  decimals: 6,
-  logoUrl: "https://token-icons.s3.amazonaws.com/0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.png",
-};
-
-export const USDT: TokenInfo = {
-  address: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-  symbol: "USDT",
-  name: "Tether USD",
-  decimals: 6,
-  logoUrl: "https://token-icons.s3.amazonaws.com/0xdac17f958d2ee523a2206206994597c13d831ec7.png",
-};
-
-export interface SwapPairPreset {
-  id: string;
-  label: string;
-  tokenIn: TokenInfo;
-  tokenOut: TokenInfo;
-  /** Fee tier in pips (e.g. 500 = 0.05%, 3000 = 0.3%) */
-  fee: number;
-  tickSpacing: number;
-  /** Default input amount (human-readable) */
-  defaultAmount: string;
-}
-
-const HOOKS_ADDRESS = zeroAddress;
-
-// USDC → USDT (both ERC-20, 0.01% fee tier)
-export const USDC_USDT_PAIR: SwapPairPreset = {
-  id: "usdc-usdt",
-  label: "USDC → USDT",
-  tokenIn: USDC,
-  tokenOut: USDT,
-  fee: 100,
-  tickSpacing: 1,
-  defaultAmount: "200",
-};
-
-// ETH → USDC (native ETH, 0.3% fee tier)
-export const ETH_USDC_PAIR: SwapPairPreset = {
-  id: "eth-usdc",
-  label: "ETH → USDC",
-  tokenIn: ETH,
-  tokenOut: USDC,
-  fee: 3000,
-  tickSpacing: 60,
-  defaultAmount: "0.5",
-};
-
-export const SWAP_PRESETS: SwapPairPreset[] = [ETH_USDC_PAIR, USDC_USDT_PAIR];
 
 /**
- * Build a PoolKey from a swap pair preset.
- * currency0/currency1 must be sorted.
+ * Build a TokenInfo from on-chain data + logo registry.
+ * Falls back to a placeholder logo when the address isn't in the registry.
  */
-export function getPoolKeyFromPreset(preset: SwapPairPreset) {
-  const [currency0, currency1] = sortTokens(preset.tokenIn.address, preset.tokenOut.address);
-  // zeroForOne = true when tokenIn is currency0
-  const zeroForOne = preset.tokenIn.address.toLowerCase() === currency0.toLowerCase();
-
+export function buildTokenInfo(address: Address, symbol: string, name: string, decimals: number): TokenInfo {
   return {
-    poolKey: {
-      currency0,
-      currency1,
-      fee: preset.fee,
-      tickSpacing: preset.tickSpacing,
-      hooks: HOOKS_ADDRESS,
-    },
-    zeroForOne,
+    address,
+    symbol,
+    name,
+    decimals,
+    logoUrl: TOKEN_LOGOS[address.toLowerCase()] ?? "",
   };
 }
+
+// ---------------------------------------------------------------------------
+// Pool presets
+// ---------------------------------------------------------------------------
+
+export interface PoolPreset {
+  /** Human-readable identifier (e.g. "eth-usdc") */
+  poolId: string;
+  /** Pre-sorted pool key (currency0 < currency1) */
+  poolKey: PoolKey;
+  /** Default swap direction: true = currency0 → currency1 */
+  zeroForOne: boolean;
+}
+
+function makePoolKey(
+  tokenA: Address,
+  tokenB: Address,
+  fee: number,
+  tickSpacing: number,
+  hooks: Address = zeroAddress,
+): PoolKey {
+  const [currency0, currency1] = sortTokens(tokenA, tokenB);
+  return { currency0, currency1, fee, tickSpacing, hooks };
+}
+
+// Addresses
+const WETH_ADDR = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" as Address;
+const USDC_ADDR = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address;
+const USDT_ADDR = "0xdAC17F958D2ee523a2206206994597C13D831ec7" as Address;
+
+// ETH/USDC (native ETH pool, 0.3% fee tier)
+export const ETH_USDC_POOL: PoolPreset = {
+  poolId: "eth-usdc",
+  poolKey: makePoolKey(zeroAddress, USDC_ADDR, 3000, 60),
+  zeroForOne: true,
+};
+
+// USDC/USDT (both ERC-20, 0.01% fee tier)
+export const USDC_USDT_POOL: PoolPreset = {
+  poolId: "usdc-usdt",
+  poolKey: makePoolKey(USDC_ADDR, USDT_ADDR, 100, 1),
+  zeroForOne: true,
+};
+
+// WETH/USDC (WETH pool, 0.05% fee tier)
+export const WETH_USDC_POOL: PoolPreset = {
+  poolId: "usdc-weth",
+  poolKey: makePoolKey(USDC_ADDR, WETH_ADDR, 500, 10),
+  zeroForOne: true,
+};
+
+export const POOL_PRESETS: PoolPreset[] = [ETH_USDC_POOL, USDC_USDT_POOL, WETH_USDC_POOL];
+
+// ---------------------------------------------------------------------------
+// Amount helpers
+// ---------------------------------------------------------------------------
 
 /**
  * Format a bigint token amount to human-readable string.

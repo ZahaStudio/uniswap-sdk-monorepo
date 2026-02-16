@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
     config.resolve.fallback = {
       fs: false,
       buffer: false,
+      net: false,
+      tls: false,
+      "@react-native-async-storage/async-storage": false,
     };
 
     return config;
