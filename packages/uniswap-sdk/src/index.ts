@@ -20,3 +20,4 @@ export * from "@/helpers/tokens";
 export type { PoolKey, Pool } from "@uniswap/v4-sdk";
 export { Position } from "@uniswap/v4-sdk";
 export { nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
+export type { Currency } from "@uniswap/sdk-core";

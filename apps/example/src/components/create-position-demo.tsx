@@ -4,7 +4,8 @@ import { useState, useMemo, useCallback } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { sortTokens } from "@zahastudio/uniswap-sdk";
-import { useCreatePosition, type CreatePositionStep } from "@zahastudio/uniswap-sdk-react";
+import { useCreatePosition, type AddLiquidityStep } from "@zahastudio/uniswap-sdk-react";
+
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
@@ -46,7 +47,7 @@ function shouldShowExecutionError(message: string): boolean {
   return !normalized.includes("user rejected") && !normalized.includes("user denied");
 }
 
-function getStepActionLabel(step: CreatePositionStep): string {
+function getStepActionLabel(step: AddLiquidityStep): string {
   switch (step) {
     case "approval0":
       return "Approve token0";
@@ -204,7 +205,7 @@ export function CreatePositionDemo() {
       {/* Lifecycle panel (left) */}
       <div className="sticky top-6 hidden w-72 shrink-0 space-y-4 lg:block">
         {isConnected && hasAmount && pool && (
-          <CreatePositionStepIndicator
+          <AddLiquidityStepIndicator
             currentStep={currentStep}
             steps={steps}
             isNativeToken0={sortedToken0.address === zeroAddress}
@@ -440,18 +441,18 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CreatePositionStepIndicator({
+function AddLiquidityStepIndicator({
   currentStep,
   steps,
   isNativeToken0,
   isNativeToken1,
 }: {
-  currentStep: CreatePositionStep;
+  currentStep: AddLiquidityStep;
   steps: ReturnType<typeof useCreatePosition>["steps"];
   isNativeToken0: boolean;
   isNativeToken1: boolean;
 }) {
-  const getStepLoading = (stepId: CreatePositionStep): string | undefined => {
+  const getStepLoading = (stepId: AddLiquidityStep): string | undefined => {
     if (stepId === "approval0") {
       const s = steps.approvalToken0.transaction.status;
       if (s === "pending") return "Awaiting wallet...";
@@ -474,7 +475,7 @@ function CreatePositionStepIndicator({
   };
 
   interface StepItem {
-    id: CreatePositionStep;
+    id: AddLiquidityStep;
     label: string;
     description: string;
   }
@@ -484,7 +485,7 @@ function CreatePositionStepIndicator({
       ? []
       : [
           {
-            id: "approval0" as CreatePositionStep,
+            id: "approval0" as AddLiquidityStep,
             label: "Approve Token0",
             description: "Allow Permit2 to spend token0",
           },
@@ -493,7 +494,7 @@ function CreatePositionStepIndicator({
       ? []
       : [
           {
-            id: "approval1" as CreatePositionStep,
+            id: "approval1" as AddLiquidityStep,
             label: "Approve Token1",
             description: "Allow Permit2 to spend token1",
           },
@@ -501,7 +502,7 @@ function CreatePositionStepIndicator({
     ...(!isNativeToken0 || !isNativeToken1
       ? [
           {
-            id: "permit2" as CreatePositionStep,
+            id: "permit2" as AddLiquidityStep,
             label: "Permit2",
             description: "Sign off-chain spending permit",
           },
@@ -514,8 +515,8 @@ function CreatePositionStepIndicator({
     },
   ];
 
-  const getStepStatus = (stepId: CreatePositionStep) => {
-    const order: CreatePositionStep[] = ["approval0", "approval1", "permit2", "execute", "completed"];
+  const getStepStatus = (stepId: AddLiquidityStep) => {
+    const order: AddLiquidityStep[] = ["approval0", "approval1", "permit2", "execute", "completed"];
     const currentIdx = order.indexOf(currentStep);
     const stepIdx = order.indexOf(stepId);
 

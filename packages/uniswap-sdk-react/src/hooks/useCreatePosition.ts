@@ -6,11 +6,14 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { Position, nearestUsableTick, TickMath } from "@zahastudio/uniswap-sdk";
 import type { PoolKey, Pool } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
-import { zeroAddress } from "viem";
 
-import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
+import {
+  useAddLiquidityPipeline,
+  type AddLiquidityStep,
+} from "@/hooks/primitives/useAddLiquidityPipeline";
+import { type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
-import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
+import { type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseMutationHookOptions } from "@/types/hooks";
 import { assertSdkInitialized } from "@/utils/assertions";
@@ -27,11 +30,6 @@ export interface CreatePositionArgs {
   /** Deadline duration in seconds from current block timestamp (optional) */
   deadlineDuration?: number;
 }
-
-/**
- * Current step in the create position lifecycle.
- */
-export type CreatePositionStep = "approval0" | "approval1" | "permit2" | "execute" | "completed";
 
 /**
  * Calculated position amounts derived from the user-provided input.
@@ -101,7 +99,7 @@ export interface UseCreatePositionReturn {
   /** Resolved tick range, null while pool is loading */
   tickRange: ResolvedTickRange | null;
   /** The first incomplete required step */
-  currentStep: CreatePositionStep;
+  currentStep: AddLiquidityStep;
   /** Execute all remaining required steps sequentially. Returns tx hash. */
   executeAll: (args: CreatePositionArgs) => Promise<Hex>;
   /** Reset all mutation state (approvals, permit2, transaction) */
@@ -234,51 +232,8 @@ export function useCreatePosition(
     }
   }, [pool, tickRange, amount0, amount1]);
 
-  const tokenAddresses = useMemo(() => {
-    if (!pool) {
-      return [zeroAddress, zeroAddress] as [Address, Address];
-    }
-
-    const token0 = pool.currency0.isNative ? zeroAddress : pool.currency0.wrapped.address;
-    const token1 = pool.currency1.isNative ? zeroAddress : pool.currency1.wrapped.address;
-
-    return [token0, token1] as [Address, Address];
-  }, [pool]);
-
-  const positionManager = sdk.getContractAddress("positionManager");
-
-  // Use calculated amounts for permit2 approvals
-  const permit2Amount0 = calculatedPosition?.amount0 ?? 0n;
-  const permit2Amount1 = calculatedPosition?.amount1 ?? 0n;
-
-  const permit2Hook = usePermit2(
-    {
-      tokens: [
-        {
-          address: tokenAddresses[0],
-          amount: permit2Amount0,
-        },
-        {
-          address: tokenAddresses[1],
-          amount: permit2Amount1,
-        },
-      ],
-      spender: positionManager,
-    },
-    {
-      enabled: !!pool,
-      chainId,
-    },
-  );
-
-  const transaction = useTransaction({
-    onSuccess: () => {
-      onSuccess?.();
-    },
-  });
-
-  const executeWithPermit = useCallback(
-    async (args: CreatePositionArgs, signedPermit2?: Permit2SignedResult): Promise<Hex> => {
+  const buildCalldata = useCallback(
+    async ({ batchPermit, args }: { batchPermit: unknown; args: CreatePositionArgs }) => {
       if (!pool) {
         throw new Error("Pool not loaded. Wait for pool query to complete before creating a position.");
       }
@@ -286,16 +241,8 @@ export function useCreatePosition(
         throw new Error("Tick range not resolved. Wait for pool query to complete.");
       }
       assertSdkInitialized(sdk);
-      const permit2Signed = signedPermit2 ?? permit2Hook.permit2.signed;
-      if (permit2Hook.permit2.isRequired && !permit2Signed) {
-        throw new Error("Permit2 signature required");
-      }
 
-      const batchPermit = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
-
-      // Pass only the user-provided amount so buildAddLiquidityCallData uses
-      // fromAmount0/fromAmount1 (matching the hook's calculation)
-      const { calldata, value } = await sdk.buildAddLiquidityCallData({
+      return sdk.buildAddLiquidityCallData({
         pool,
         tickLower: tickRange.tickLower,
         tickUpper: tickRange.tickUpper,
@@ -304,61 +251,28 @@ export function useCreatePosition(
         recipient: args.recipient,
         slippageTolerance: args.slippageTolerance,
         deadlineDuration: args.deadlineDuration,
-        permit2BatchSignature: batchPermit,
-      });
-
-      return transaction.sendTransaction({
-        to: positionManager,
-        data: calldata as Hex,
-        value: BigInt(value),
+        permit2BatchSignature: batchPermit as Parameters<typeof sdk.buildAddLiquidityCallData>[0]["permit2BatchSignature"],
       });
     },
-    [pool, tickRange, sdk, permit2Hook.permit2, amount0, amount1, transaction, positionManager],
+    [pool, tickRange, sdk, amount0, amount1],
   );
 
-  const execute = useCallback(
-    async (args: CreatePositionArgs): Promise<Hex> => executeWithPermit(args),
-    [executeWithPermit],
-  );
-
-  const executeAll = useCallback(
-    async (args: CreatePositionArgs): Promise<Hex> => {
-      const signedPermit2 = await permit2Hook.approveAndSign();
-      return executeWithPermit(args, signedPermit2);
-    },
-    [permit2Hook, executeWithPermit],
-  );
-
-  const currentStep: CreatePositionStep = (() => {
-    if (permit2Hook.currentStep !== "ready") {
-      return permit2Hook.currentStep;
-    }
-    if (transaction.status !== "confirmed") {
-      return "execute";
-    }
-    return "completed";
-  })();
-
-  const reset = useCallback(() => {
-    permit2Hook.reset();
-    transaction.reset();
-  }, [permit2Hook, transaction]);
+  const pipeline = useAddLiquidityPipeline<CreatePositionArgs>({
+    currencies: pool ? [pool.currency0, pool.currency1] : undefined,
+    permit2Amounts: [calculatedPosition?.amount0 ?? 0n, calculatedPosition?.amount1 ?? 0n],
+    enabled: !!pool,
+    chainId: overrideChainId,
+    onSuccess,
+    buildCalldata,
+  });
 
   return {
     pool: poolQuery,
-    steps: {
-      approvalToken0: permit2Hook.approvals[0],
-      approvalToken1: permit2Hook.approvals[1],
-      permit2: permit2Hook.permit2,
-      execute: {
-        transaction,
-        execute,
-      },
-    },
+    steps: pipeline.steps,
     position: calculatedPosition,
     tickRange,
-    currentStep,
-    executeAll,
-    reset,
+    currentStep: pipeline.currentStep,
+    executeAll: pipeline.executeAll,
+    reset: pipeline.reset,
   };
 }

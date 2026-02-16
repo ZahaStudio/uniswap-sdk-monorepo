@@ -39,7 +39,7 @@ export interface SwapPairPreset {
   label: string;
   tokenIn: TokenInfo;
   tokenOut: TokenInfo;
-  /** Fee tier in centibips (e.g. 500 = 0.05%, 3000 = 0.3%) */
+  /** Fee tier in pips (e.g. 500 = 0.05%, 3000 = 0.3%) */
   fee: number;
   tickSpacing: number;
   /** Default input amount (human-readable) */

@@ -1,13 +1,16 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 
 import type { Address, Hex } from "viem";
-import { zeroAddress } from "viem";
 
-import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
+import {
+  useAddLiquidityPipeline,
+  type AddLiquidityStep,
+} from "@/hooks/primitives/useAddLiquidityPipeline";
+import { type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
-import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
+import { type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseMutationHookOptions } from "@/types/hooks";
@@ -28,11 +31,6 @@ export interface IncreaseLiquidityArgs {
   /** Deadline duration in seconds from current block timestamp (optional) */
   deadlineDuration?: number;
 }
-
-/**
- * Current step in the increase liquidity lifecycle.
- */
-export type IncreaseLiquidityStep = "approval0" | "approval1" | "permit2" | "execute" | "completed";
 
 /**
  * Options for the usePositionIncreaseLiquidity hook.
@@ -63,7 +61,7 @@ export interface UsePositionIncreaseLiquidityReturn {
     };
   };
   /** The first incomplete required step */
-  currentStep: IncreaseLiquidityStep;
+  currentStep: AddLiquidityStep;
   /** Execute all remaining required steps sequentially. Returns tx hash. */
   executeAll: (args: IncreaseLiquidityArgs) => Promise<Hex>;
   /** Reset all mutation state (approvals, permit2, transaction) */
@@ -111,60 +109,24 @@ export function usePositionIncreaseLiquidity(
 ): UsePositionIncreaseLiquidityReturn {
   const { chainId: overrideChainId, amount0 = 0n, amount1 = 0n, onSuccess } = options;
 
-  const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
+  const { sdk } = useUniswapSDK({ chainId: overrideChainId });
   const { query } = usePosition(params, { chainId: overrideChainId });
 
   const position = query.data;
 
-  const tokenAddresses = useMemo(() => {
-    if (!position) {
-      return [zeroAddress, zeroAddress] as [Address, Address];
-    }
+  const onPipelineSuccess = useCallback(() => {
+    query.refetch();
+    onSuccess?.();
+  }, [query, onSuccess]);
 
-    const token0 = position.currency0.isNative ? zeroAddress : (position.currency0.wrapped.address as Address);
-    const token1 = position.currency1.isNative ? zeroAddress : (position.currency1.wrapped.address as Address);
-
-    return [token0, token1] as [Address, Address];
-  }, [position]);
-
-  const positionManager = sdk.getContractAddress("positionManager");
-
-  const permit2 = usePermit2(
-    {
-      tokens: [
-        { address: tokenAddresses[0], amount: amount0 },
-        { address: tokenAddresses[1], amount: amount1 },
-      ],
-      spender: positionManager,
-    },
-    {
-      enabled: !!position,
-      chainId,
-    },
-  );
-
-  const transaction = useTransaction({
-    onSuccess: () => {
-      query.refetch();
-      onSuccess?.();
-    },
-  });
-
-  const executeWithPermit = useCallback(
-    async (args: IncreaseLiquidityArgs, signedPermit2?: Permit2SignedResult): Promise<Hex> => {
+  const buildCalldata = useCallback(
+    async ({ batchPermit, args }: { batchPermit: unknown; args: IncreaseLiquidityArgs }) => {
       if (!position) {
         throw new Error("Position not loaded. Wait for query to complete before increasing liquidity.");
       }
       assertSdkInitialized(sdk);
-      const permit2Signed = signedPermit2 ?? permit2.permit2.signed;
-      if (permit2.permit2.isRequired && !permit2Signed) {
-        throw new Error("Permit2 signature required");
-      }
 
-      const batchPermit = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
-
-      const positionManagerAddress = sdk.getContractAddress("positionManager");
-      const { calldata, value } = await sdk.buildAddLiquidityCallData({
+      return sdk.buildAddLiquidityCallData({
         pool: position.pool,
         tickLower: position.position.tickLower,
         tickUpper: position.position.tickUpper,
@@ -173,58 +135,25 @@ export function usePositionIncreaseLiquidity(
         recipient: args.recipient,
         slippageTolerance: args.slippageTolerance,
         deadlineDuration: args.deadlineDuration,
-        permit2BatchSignature: batchPermit,
-      });
-
-      return transaction.sendTransaction({
-        to: positionManagerAddress,
-        data: calldata as Hex,
-        value: BigInt(value),
+        permit2BatchSignature: batchPermit as Parameters<typeof sdk.buildAddLiquidityCallData>[0]["permit2BatchSignature"],
       });
     },
-    [position, sdk, permit2.permit2.isRequired, permit2.permit2.signed, transaction],
+    [position, sdk],
   );
 
-  const execute = useCallback(
-    async (args: IncreaseLiquidityArgs): Promise<Hex> => executeWithPermit(args),
-    [executeWithPermit],
-  );
-
-  const executeAll = useCallback(
-    async (args: IncreaseLiquidityArgs): Promise<Hex> => {
-      const signedPermit2 = await permit2.approveAndSign();
-      return executeWithPermit(args, signedPermit2);
-    },
-    [permit2, executeWithPermit],
-  );
-
-  const currentStep: IncreaseLiquidityStep = (() => {
-    if (permit2.currentStep !== "ready") {
-      return permit2.currentStep;
-    }
-    if (transaction.status !== "confirmed") {
-      return "execute";
-    }
-    return "completed";
-  })();
-
-  const reset = useCallback(() => {
-    permit2.reset();
-    transaction.reset();
-  }, [permit2, transaction]);
+  const pipeline = useAddLiquidityPipeline<IncreaseLiquidityArgs>({
+    currencies: position ? [position.currency0, position.currency1] : undefined,
+    permit2Amounts: [amount0, amount1],
+    enabled: !!position,
+    chainId: overrideChainId,
+    onSuccess: onPipelineSuccess,
+    buildCalldata,
+  });
 
   return {
-    steps: {
-      approvalToken0: permit2.approvals[0],
-      approvalToken1: permit2.approvals[1],
-      permit2: permit2.permit2,
-      execute: {
-        transaction,
-        execute,
-      },
-    },
-    currentStep,
-    executeAll,
-    reset,
+    steps: pipeline.steps,
+    currentStep: pipeline.currentStep,
+    executeAll: pipeline.executeAll,
+    reset: pipeline.reset,
   };
 }
