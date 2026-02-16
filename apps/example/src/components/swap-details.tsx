@@ -8,10 +8,9 @@ interface SwapDetailsProps {
   minOutput: string;
   outputSymbol: string;
   slippageBps: number;
-  gasEstimate: bigint;
 }
 
-export function SwapDetails({ minOutput, outputSymbol, slippageBps, gasEstimate }: SwapDetailsProps) {
+export function SwapDetails({ minOutput, outputSymbol, slippageBps }: SwapDetailsProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -52,10 +51,6 @@ export function SwapDetails({ minOutput, outputSymbol, slippageBps, gasEstimate 
           <DetailRow
             label="Min. received"
             value={`${minOutput} ${outputSymbol}`}
-          />
-          <DetailRow
-            label="Est. gas"
-            value={`${gasEstimate.toLocaleString()} units`}
           />
           <DetailRow
             label="Route"

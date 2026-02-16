@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { type PreparePermit2DataResult, type PreparePermit2BatchDataResult } from "@zahastudio/uniswap-sdk";
+import { type PreparePermit2BatchDataResult } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount, useSignTypedData } from "wagmi";
@@ -51,7 +51,6 @@ export interface UsePermit2Options {
  */
 export type Permit2SignedResult =
   | { kind: "none" }
-  | { kind: "single"; data: ReturnType<PreparePermit2DataResult["buildPermit2DataWithSignature"]> }
   | { kind: "batch"; data: ReturnType<PreparePermit2BatchDataResult["buildPermit2BatchDataWithSignature"]> };
 
 /**
@@ -105,7 +104,7 @@ interface KeyedState<T> {
 const EMPTY_TOKEN: UsePermit2Token = { address: zeroAddress, amount: 0n };
 
 function isNonNative(token: UsePermit2Token): boolean {
-  return token.address.toLowerCase() !== zeroAddress.toLowerCase() && token.amount > 0n;
+  return token.address.toLowerCase() !== zeroAddress.toLowerCase();
 }
 
 function createPermit2InputsKey(
@@ -120,10 +119,10 @@ function createPermit2InputsKey(
 
 /**
  * Reusable hook that manages the full Permit2 lifecycle:
- * ERC-20 approval(s) to the Permit2 contract, then off-chain Permit2 signing.
+ * ERC-20 approval(s) to the Permit2 contract, then off-chain Permit2 batch signing.
  *
- * Supports both single-token (swaps) and multi-token (liquidity) flows.
- * Automatically detects which mode to use based on the number of non-native
+ * Always uses batch permit2 signing regardless of token count.
+ * Automatically detects whether signing is needed based on the number of non-native
  * tokens provided. Native tokens (zeroAddress) are skipped entirely.
  *
  * @param params - Tokens and spender address
@@ -138,7 +137,7 @@ function createPermit2InputsKey(
  * });
  *
  * const signed = await permit2.approveAndSign();
- * if (signed.kind === "single") {
+ * if (signed.kind === "batch") {
  *   sdk.buildSwapCallData({ permit2Signature: signed.data });
  * }
  * ```
@@ -173,10 +172,9 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
   const token1IsRelevant = isNonNative(token1);
 
   const relevantCount = (token0IsRelevant ? 1 : 0) + (token1IsRelevant ? 1 : 0);
-  const signingKind: Permit2SignedResult["kind"] =
-    relevantCount === 0 ? "none" : relevantCount === 1 ? "single" : "batch";
+  const signingKind: Permit2SignedResult["kind"] = relevantCount === 0 ? "none" : "batch";
 
-  const permit2Address = sdk?.getContractAddress("permit2") ?? zeroAddress;
+  const permit2Address = sdk.getContractAddress("permit2") ?? zeroAddress;
 
   const approval0 = useTokenApproval(
     {
@@ -223,32 +221,6 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
 
     try {
       setSignErrorState(undefined);
-      const sigDeadline = Math.floor(Date.now() / 1000) + 60 * 15; // 15 minutes
-
-      if (signingKind === "single") {
-        const singleToken = token0IsRelevant ? token0.address : token1.address;
-
-        const prepareResult = await sdk.preparePermit2Data({
-          token: singleToken,
-          spender,
-          owner: connectedAddress,
-          sigDeadline,
-        });
-
-        const signature = await signTypedData.signTypedDataAsync({
-          domain: prepareResult.toSign.domain,
-          types: prepareResult.toSign.types,
-          primaryType: prepareResult.toSign.primaryType,
-          message: prepareResult.toSign.message,
-        });
-
-        const result: Permit2SignedResult = {
-          kind: "single",
-          data: prepareResult.buildPermit2DataWithSignature(signature),
-        };
-        setSignedState({ key: inputsKey, value: result });
-        return result;
-      }
 
       const batchTokens: Address[] = [];
       if (token0IsRelevant) batchTokens.push(token0.address);
@@ -258,14 +230,13 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
         tokens: batchTokens,
         spender,
         owner: connectedAddress,
-        sigDeadline,
       });
 
       const signature = await signTypedData.signTypedDataAsync({
         domain: prepareResult.toSign.domain,
         types: prepareResult.toSign.types,
         primaryType: prepareResult.toSign.primaryType,
-        message: prepareResult.toSign.message,
+        message: prepareResult.toSign.message as unknown as Record<string, unknown>,
       });
 
       const result: Permit2SignedResult = {
@@ -342,6 +313,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
     if (signed) {
       return signed;
     }
+
     return permit2Sign();
   }, [token0IsRelevant, token1IsRelevant, approval0, approval1, signed, permit2Sign]);
 

@@ -13,12 +13,14 @@
     "build": "tsdown",
     "dev": "tsdown --watch",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
     "viem": ">=2.0.0",
     "@tanstack/react-query": ">=5.0.0",
+    "@wagmi/core": ">=2.0.0",
     "wagmi": ">=2.0.0"
   },
   "dependencies": {

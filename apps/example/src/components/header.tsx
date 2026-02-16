@@ -1,10 +1,22 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { cn } from "@/lib/utils";
+
+const TABS = [
+  { href: "/swap", label: "Swap" },
+  { href: "/position", label: "Position" },
+  { href: "/create-position", label: "Create Position" },
+];
 
 export function Header() {
+  const pathname = usePathname();
+
   return (
-    <header className="flex items-center justify-between">
+    <header className="bg-background/80 fixed inset-x-0 top-0 z-50 mx-auto flex max-w-6xl items-center justify-between px-4 py-4 backdrop-blur-md">
       <div className="flex items-center gap-3">
         <div className="bg-accent/10 flex h-9 w-9 items-center justify-center rounded-lg">
           <svg
@@ -28,6 +40,23 @@ export function Header() {
           <span className="bg-accent/10 text-accent ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-medium">EXAMPLE</span>
         </div>
       </div>
+
+      <nav className="flex justify-center gap-1.5">
+        {TABS.map((tab) => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={cn(
+              "rounded-lg px-5 py-2 text-sm font-medium transition-all",
+              pathname === tab.href
+                ? "border-accent/30 bg-accent-muted text-accent border"
+                : "text-text-secondary hover:text-text hover:bg-surface-hover border border-transparent",
+            )}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </nav>
 
       <ConnectButton />
     </header>

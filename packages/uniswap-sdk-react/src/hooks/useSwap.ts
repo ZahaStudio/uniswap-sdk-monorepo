@@ -5,8 +5,6 @@ import { useCallback } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   calculateMinimumOutput,
-  DEFAULT_SLIPPAGE_TOLERANCE,
-  type FeeTier,
   type PoolKey,
   type QuoteResponse,
   type SwapExactInSingle,
@@ -16,9 +14,9 @@ import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
 import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
+import { useToken } from "@/hooks/primitives/useToken";
 import type { UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
-import { useToken } from "@/hooks/useToken";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
 import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions";
@@ -47,12 +45,6 @@ export interface QuoteData extends QuoteResponse {
   /** Minimum output after applying slippage tolerance */
   minAmountOut: bigint;
 }
-
-/**
- * Permit2 signing step state — re-exported from the primitive hook.
- * @see UsePermit2SignStep
- */
-export type { UsePermit2SignStep };
 
 /**
  * Swap execution step state.
@@ -98,12 +90,6 @@ export interface UseSwapReturn {
   reset: () => void;
 }
 
-function assertPermit2Satisfied(isRequired: boolean, isSigned: boolean): void {
-  if (isRequired && !isSigned) {
-    throw new Error("Permit2 signature required");
-  }
-}
-
 /**
  * Hook to manage the full Uniswap V4 swap lifecycle.
  *
@@ -146,18 +132,14 @@ function assertPermit2Satisfied(isRequired: boolean, isSigned: boolean): void {
  * ```
  */
 export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): UseSwapReturn {
-  const {
-    poolKey,
-    amountIn,
-    zeroForOne,
-    recipient: recipientOverride,
-    slippageBps = DEFAULT_SLIPPAGE_TOLERANCE,
-  } = params;
+  const { poolKey, amountIn, zeroForOne, recipient: recipientOverride, slippageBps: slippageBpsParam } = params;
   const { enabled = true, refetchInterval = false, chainId: chainIdOverride } = options;
 
   const { sdk, chainId } = useUniswapSDK({ chainId: chainIdOverride });
   const { address: connectedAddress } = useAccount();
   const recipient = recipientOverride ?? connectedAddress;
+
+  const slippageBps = slippageBpsParam ?? sdk.defaultSlippageTolerance;
 
   const inputToken = (zeroForOne ? poolKey.currency0 : poolKey.currency1) as Address;
   const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
@@ -167,11 +149,14 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isQuoteEnabled = enabled && hasValidAmount && !!sdk;
   const isSwapEnabled = isQuoteEnabled && isWalletReady;
 
-  const universalRouter = sdk?.getContractAddress("universalRouter") ?? zeroAddress;
-  const inputTokenState = useToken(inputToken, {
-    enabled: isSwapEnabled,
-    chainId,
-  });
+  const universalRouter = sdk.getContractAddress("universalRouter") ?? zeroAddress;
+  const { query: inputTokenQuery } = useToken(
+    { tokenAddress: inputToken },
+    {
+      enabled: isSwapEnabled,
+      chainId,
+    },
+  );
 
   const quoteQuery = useQuery({
     queryKey: swapKeys.quote(poolKey, amountIn, zeroForOne, slippageBps, chainId),
@@ -205,7 +190,12 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   const permit2 = usePermit2(
     {
-      tokens: [{ address: inputToken, amount: amountIn }],
+      tokens: [
+        {
+          address: inputToken,
+          amount: amountIn,
+        },
+      ],
       spender: universalRouter,
     },
     {
@@ -226,7 +216,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         throw new Error("Quote not available");
       }
 
-      const inputBalanceRaw = inputTokenState.balance?.raw;
+      const inputBalanceRaw = inputTokenQuery.data?.balance?.raw;
       if (inputBalanceRaw !== undefined && amountIn > inputBalanceRaw) {
         throw new Error("Insufficient balance for swap amount");
       }
@@ -236,17 +226,11 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         throw new Error("Permit2 signature required");
       }
 
-      const permit2Signature = permit2Signed?.kind === "single" ? permit2Signed.data : undefined;
+      const permit2Signature = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
 
-      const pool = await sdk.getPool({
-        currencyA: poolKey.currency0 as Address,
-        currencyB: poolKey.currency1 as Address,
-        fee: poolKey.fee as FeeTier,
-        tickSpacing: poolKey.tickSpacing,
-        hooks: poolKey.hooks as Address,
-      });
+      const pool = await sdk.getPool(poolKey);
 
-      const calldata = sdk.buildSwapCallData({
+      const calldata = await sdk.buildSwapCallData({
         pool,
         amountIn,
         amountOutMinimum: quote.minAmountOut,
@@ -262,17 +246,12 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       });
     },
     [
+      sdk,
       connectedAddress,
       quoteQuery.data,
-      inputTokenState.balance?.raw,
-      sdk,
-      permit2.permit2.isRequired,
-      permit2.permit2.signed,
-      poolKey.currency0,
-      poolKey.currency1,
-      poolKey.fee,
-      poolKey.tickSpacing,
-      poolKey.hooks,
+      inputTokenQuery.data?.balance?.raw,
+      permit2.permit2,
+      poolKey,
       amountIn,
       zeroForOne,
       recipient,

@@ -1,14 +1,90 @@
-import { AllowanceTransfer, MaxUint160, PERMIT2_ADDRESS, type PermitBatch } from "@uniswap/permit2-sdk";
+import { AllowanceTransfer, MaxUint160, type PermitBatch, type PermitBatchData } from "@uniswap/permit2-sdk";
 import type { BatchPermitOptions } from "@uniswap/v4-sdk";
-import type { Hex } from "viem";
+import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-import type {
-  TypedDataField,
-  PreparePermit2BatchDataArgs,
-  PreparePermit2BatchDataResult,
-} from "@/utils/preparePermit2Data";
+import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
+
+/**
+ * Base interface for Permit2 data
+ */
+interface BasePermit2Data {
+  /** Address that will be allowed to spend the tokens */
+  spender: Address;
+  /** User's wallet address */
+  owner: Address;
+  /** Deadline duration in seconds from current block timestamp. Defaults to the SDK instance's defaultDeadline. */
+  deadlineDuration?: number;
+}
+
+/**
+ * Interface for the arguments required to generate a Permit2 batch signature
+ */
+export interface PreparePermit2BatchDataArgs extends BasePermit2Data {
+  /** Array of token addresses to permit */
+  tokens: Address[];
+}
+
+/**
+ * Base interface for Permit2 data result
+ */
+interface BasePermit2DataResult {
+  /** User's wallet address */
+  owner: Address;
+  /** Data needed to sign the permit2 data */
+  toSign: {
+    /** Domain of the permit2 data */
+    domain: {
+      name: string;
+      version: string;
+      chainId: number;
+      verifyingContract: Address;
+    };
+    /** Types of the permit2 data */
+    types: PermitBatchData["types"];
+    /** Values of the permit2 data */
+    values: PermitBatch;
+    /** Primary type of the permit2 data */
+    primaryType: "PermitBatch";
+    /** Message of the permit2 data (PermitBatch values for wagmi signTypedData) */
+    message: PermitBatch;
+  };
+}
+
+/**
+ * Interface for the return value of the batch permit function
+ */
+export interface PreparePermit2BatchDataResult extends BasePermit2DataResult {
+  /** Function to build the permit2 batch data with a signature */
+  buildPermit2BatchDataWithSignature: (signature: string | Hex) => BatchPermitOptions;
+  /** Permit2 batch data */
+  permitBatch: PermitBatch;
+}
+
+export const allowanceAbi = [
+  {
+    name: "allowance",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "token", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [
+      {
+        components: [
+          { name: "amount", type: "uint160" },
+          { name: "expiration", type: "uint48" },
+          { name: "nonce", type: "uint48" },
+        ],
+        name: "details",
+        type: "tuple",
+      },
+    ],
+  },
+] as const;
 
 /**
  * Prepares the permit2 batch data for multiple tokens
@@ -66,60 +142,29 @@ export async function preparePermit2BatchData(
   params: PreparePermit2BatchDataArgs,
   instance: UniswapSDKInstance,
 ): Promise<PreparePermit2BatchDataResult> {
-  const { tokens, spender, owner, sigDeadline: sigDeadlineParam } = params;
+  const { tokens, spender, owner, deadlineDuration } = params;
 
-  const chainId = instance.chain.id;
-
-  // calculate sigDeadline if not provided
-  let sigDeadline = sigDeadlineParam;
-  if (!sigDeadline) {
-    const blockTimestamp = await instance.client.getBlock().then((block) => block.timestamp);
-
-    sigDeadline = Number(blockTimestamp + 60n * 60n); // 1 hour from current block timestamp
-  }
-
+  const sigDeadline = await getDefaultDeadline(instance, deadlineDuration);
   const noNativeTokens = tokens.filter((token) => token.toLowerCase() !== zeroAddress.toLowerCase());
 
   // Fetch allowance details for each token
   const details = await instance.client.multicall({
     allowFailure: false,
     contracts: noNativeTokens.map((token) => ({
-      address: PERMIT2_ADDRESS as `0x${string}`,
-      abi: [
-        {
-          name: "allowance",
-          type: "function",
-          stateMutability: "view",
-          inputs: [
-            { name: "owner", type: "address" },
-            { name: "token", type: "address" },
-            { name: "spender", type: "address" },
-          ],
-          outputs: [
-            {
-              components: [
-                { name: "amount", type: "uint160" },
-                { name: "expiration", type: "uint48" },
-                { name: "nonce", type: "uint48" },
-              ],
-              name: "details",
-              type: "tuple",
-            },
-          ],
-        },
-      ] as const,
+      address: instance.contracts.permit2,
+      abi: allowanceAbi,
       functionName: "allowance",
       args: [owner, token, spender],
     })),
   });
 
   const results = noNativeTokens.map((token, index) => {
-    const { expiration, nonce } = details[index];
+    const { nonce } = details[index];
     return {
       token,
       amount: MaxUint160.toString(),
-      expiration: Number(expiration),
-      nonce: Number(nonce),
+      expiration: sigDeadline.toString(),
+      nonce: nonce.toString(),
     };
   });
 
@@ -127,13 +172,17 @@ export async function preparePermit2BatchData(
   const permitBatch = {
     details: results,
     spender,
-    sigDeadline,
+    sigDeadline: sigDeadline.toString(),
   };
 
   // Get the data needed for signing
-  const { domain, types, values } = AllowanceTransfer.getPermitData(permitBatch, PERMIT2_ADDRESS, chainId) as {
+  const { domain, types, values } = AllowanceTransfer.getPermitData(
+    permitBatch,
+    instance.contracts.permit2,
+    instance.chain.id,
+  ) as {
     domain: PreparePermit2BatchDataResult["toSign"]["domain"];
-    types: Record<string, TypedDataField[]>;
+    types: PermitBatchData["types"];
     values: PermitBatch;
   };
 
@@ -154,7 +203,7 @@ export async function preparePermit2BatchData(
       types,
       values,
       primaryType: "PermitBatch",
-      message: values as unknown as Record<string, unknown>,
+      message: values,
     },
   };
 }

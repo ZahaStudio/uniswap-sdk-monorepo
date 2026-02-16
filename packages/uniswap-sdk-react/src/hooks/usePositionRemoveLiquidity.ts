@@ -7,6 +7,7 @@ import type { Hex } from "viem";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import type { UseMutationHookOptions } from "@/types/hooks";
 import { assertSdkInitialized } from "@/utils/assertions";
 
 /**
@@ -17,19 +18,14 @@ export interface RemoveLiquidityArgs {
   liquidityPercentage: number;
   /** Slippage tolerance in basis points (optional, default: 50 = 0.5%) */
   slippageTolerance?: number;
-  /** Unix timestamp deadline (optional, default: 30 minutes from now) */
-  deadline?: string;
+  /** Deadline duration in seconds from current block timestamp (optional) */
+  deadlineDuration?: number;
 }
 
 /**
  * Options for the usePositionRemoveLiquidity hook.
  */
-export interface UsePositionRemoveLiquidityOptions {
-  /** Override chain ID */
-  chainId?: number;
-  /** Callback fired when the transaction is confirmed */
-  onSuccess?: () => void;
-}
+export interface UsePositionRemoveLiquidityOptions extends UseMutationHookOptions {}
 
 /**
  * Return type for the usePositionRemoveLiquidity hook.
@@ -67,7 +63,7 @@ export function usePositionRemoveLiquidity(
   const { chainId: overrideChainId, onSuccess } = options;
 
   const { sdk } = useUniswapSDK({ chainId: overrideChainId });
-  const { query } = usePosition({ tokenId }, { chainId: overrideChainId });
+  const { query } = usePosition(params, { chainId: overrideChainId });
 
   const transaction = useTransaction({
     onSuccess: () => {
@@ -85,7 +81,7 @@ export function usePositionRemoveLiquidity(
         tokenId,
         liquidityPercentage: args.liquidityPercentage,
         slippageTolerance: args.slippageTolerance,
-        deadline: args.deadline,
+        deadlineDuration: args.deadlineDuration,
       });
 
       return transaction.sendTransaction({

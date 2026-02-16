@@ -1,16 +1,16 @@
 import { encodeSqrtRatioX96, nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
 import type { BatchPermitOptions, Pool } from "@uniswap/v4-sdk";
 import { Position, V4PositionManager } from "@uniswap/v4-sdk";
+import type { Address } from "viem";
 
-import { DEFAULT_SLIPPAGE_TOLERANCE } from "@/common/constants";
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
 /**
- * Common base parameters for building add liquidity call data.
+ * Parameters for building add liquidity call data.
  */
-type BaseAddLiquidityArgs = {
+export interface BuildAddLiquidityArgs {
   /**
    * The Uniswap V4 pool to add liquidity to.
    */
@@ -29,7 +29,7 @@ type BaseAddLiquidityArgs = {
   /**
    * Address that will receive the position (NFT).
    */
-  recipient: string;
+  recipient: Address;
 
   /**
    * Lower tick boundary for the position.
@@ -51,34 +51,32 @@ type BaseAddLiquidityArgs = {
   slippageTolerance?: number;
 
   /**
-   * Unix timestamp (in seconds) after which the transaction will revert.
-   * Defaults to current block timestamp + 600 (10 minutes).
+   * Deadline duration in seconds from current block timestamp.
+   * Defaults to the SDK instance's defaultDeadline (600 = 10 minutes).
    */
-  deadline?: string;
+  deadlineDuration?: number;
 
   /**
    * Optional Permit2 batch signature for token approvals.
    */
   permit2BatchSignature?: BatchPermitOptions;
-};
+}
 
-export type BuildAddLiquidityArgs = BaseAddLiquidityArgs;
+/**
+ * Common result shape for calldata-building functions.
+ * Contains the encoded calldata and the native value to send.
+ */
+export interface BuildCallDataResult {
+  /** Encoded calldata for the transaction */
+  calldata: string;
+  /** Amount of native currency to send with the transaction (stringified bigint) */
+  value: string;
+}
 
 /**
  * Result of building add liquidity call data.
  */
-export interface BuildAddLiquidityCallDataResult {
-  /**
-   * Encoded calldata for the `mint` operation via V4PositionManager.
-   */
-  calldata: string;
-
-  /**
-   * Amount of native currency to send with the transaction (if needed).
-   * Stringified bigint.
-   */
-  value: string;
-}
+export interface BuildAddLiquidityCallDataResult extends BuildCallDataResult {}
 
 /**
  * Builds the calldata and native value required to add liquidity to a Uniswap V4 pool.
@@ -145,19 +143,26 @@ export async function buildAddLiquidityCallData(
     recipient,
     tickLower: tickLowerParam,
     tickUpper: tickUpperParam,
-    slippageTolerance = DEFAULT_SLIPPAGE_TOLERANCE,
-    deadline: deadlineParam,
+    slippageTolerance = instance.defaultSlippageTolerance,
+    deadlineDuration,
     permit2BatchSignature,
   } = params;
 
   try {
-    const deadline = deadlineParam ?? (await getDefaultDeadline(instance)).toString();
+    const deadline = await getDefaultDeadline(instance, deadlineDuration);
 
     const slippagePercent = percentFromBips(slippageTolerance);
     const createPool = pool.liquidity.toString() === "0";
 
     const tickLower = tickLowerParam ?? nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing);
     const tickUpper = tickUpperParam ?? nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing);
+
+    if (tickLower % pool.tickSpacing !== 0) {
+      throw new Error(`tickLower (${tickLower}) is not a multiple of tickSpacing (${pool.tickSpacing}).`);
+    }
+    if (tickUpper % pool.tickSpacing !== 0) {
+      throw new Error(`tickUpper (${tickUpper}) is not a multiple of tickSpacing (${pool.tickSpacing}).`);
+    }
 
     let sqrtPriceX96: string;
     if (createPool) {
@@ -199,26 +204,15 @@ export async function buildAddLiquidityCallData(
       throw new Error("Invalid input: at least one of amount0 or amount1 must be defined.");
     }
 
-    // Get native currency from pool currencies
-    const currency0 = pool.currency0;
-    const currency1 = pool.currency1;
-    const nativeCurrency = currency0.isNative ? currency0 : currency1.isNative ? currency1 : undefined;
-
     // Build calldata
     const { calldata, value } = V4PositionManager.addCallParameters(position, {
       recipient,
-      deadline,
+      deadline: deadline.toString(),
       slippageTolerance: slippagePercent,
       createPool,
       sqrtPriceX96,
-      useNative: nativeCurrency,
-      batchPermit: permit2BatchSignature
-        ? {
-            owner: permit2BatchSignature.owner,
-            permitBatch: permit2BatchSignature.permitBatch,
-            signature: permit2BatchSignature.signature,
-          }
-        : undefined,
+      useNative: pool.currency0.isNative ? pool.currency0 : undefined, // Only token0 can be native
+      batchPermit: permit2BatchSignature,
     });
 
     return {

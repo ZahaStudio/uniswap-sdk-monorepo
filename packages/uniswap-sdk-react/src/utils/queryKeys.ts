@@ -16,6 +16,32 @@ export const positionKeys = {
 };
 
 /**
+ * Query key factory for pool-related queries.
+ * Enables efficient cache invalidation and prefetching.
+ */
+export const poolKeys = {
+  /** Base key for all pool queries */
+  all: [PACKAGE_KEY, "usePool"] as const,
+
+  /** Key for a specific pool by currency pair, fee, tick spacing, hooks, and chainId */
+  detail: (currencyA: string, currencyB: string, fee: number, tickSpacing?: number, hooks?: string, chainId?: number) =>
+    [...poolKeys.all, currencyA, currencyB, fee, tickSpacing, hooks, chainId] as const,
+};
+
+/**
+ * Query key factory for token-related queries.
+ * Enables efficient cache invalidation and prefetching.
+ */
+export const tokenKeys = {
+  /** Base key for all token queries */
+  all: [PACKAGE_KEY, "useToken"] as const,
+
+  /** Key for a specific token by address, account, and chainId */
+  detail: (tokenAddress: string, account?: string, chainId?: number) =>
+    [...tokenKeys.all, tokenAddress, account, chainId] as const,
+};
+
+/**
  * Query key factory for swap-related queries.
  * Enables efficient cache invalidation and prefetching.
  */

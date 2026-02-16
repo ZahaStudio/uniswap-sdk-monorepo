@@ -1,5 +1,6 @@
 import type { SwapExactInSingle as UniswapSwapExactInSingle } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
+import type { Address } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
@@ -23,35 +24,32 @@ import type { UniswapSDKInstance } from "@/core/sdk";
  * };
  * ```
  */
-export interface SwapExactInSingle extends Partial<UniswapSwapExactInSingle> {
+export interface SwapExactInSingle {
   /**
    * Pool key with currency addresses, fee, tick spacing, and hooks.
-   * @required Must match Uniswap V4 structure exactly
    */
   poolKey: UniswapSwapExactInSingle["poolKey"];
 
   /**
    * Direction of the swap. True if swapping from currency0 to currency1.
-   * @required Must match Uniswap V4 structure exactly
    */
   zeroForOne: UniswapSwapExactInSingle["zeroForOne"];
 
   /**
    * The amount of tokens being swapped, as string (numberish).
    * Accepts bigint.toString(), number, etc.
-   * @required Must match Uniswap V4 structure exactly
    */
   amountIn: UniswapSwapExactInSingle["amountIn"];
 
   /**
-   * Optional minimum amount out for slippage protection.
-   * @optional Made optional for flexibility, defaults to "0" if not provided
+   * Minimum amount out for slippage protection.
+   * Defaults to "0" if not provided.
    */
   amountOutMinimum?: UniswapSwapExactInSingle["amountOutMinimum"];
 
   /**
-   * Optional additional data for the hooks.
-   * @optional Made optional for flexibility, defaults to "0x" if not provided
+   * Additional data for the hooks.
+   * Defaults to "0x" if not provided.
    */
   hookData?: UniswapSwapExactInSingle["hookData"];
 }
@@ -63,7 +61,6 @@ export interface SwapExactInSingle extends Partial<UniswapSwapExactInSingle> {
  * ```typescript
  * const response: QuoteResponse = {
  *   amountOut: 950000n,
- *   estimatedGasUsed: 150000n,
  *   timestamp: 1703123456789
  * };
  * ```
@@ -74,12 +71,6 @@ export interface QuoteResponse {
    * @returns The output amount as a bigint
    */
   amountOut: bigint;
-
-  /**
-   * The estimated gas used for the transaction.
-   * @returns Gas estimate as a bigint
-   */
-  estimatedGasUsed: bigint;
 
   /**
    * The timestamp when the quote was fetched.
@@ -108,15 +99,15 @@ export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKIn
     // Using SwapExactInSingle structure directly from Uniswap V4 SDK
     const quoteParams = {
       poolKey: {
-        currency0: params.poolKey.currency0 as `0x${string}`,
-        currency1: params.poolKey.currency1 as `0x${string}`,
+        currency0: params.poolKey.currency0 as Address,
+        currency1: params.poolKey.currency1 as Address,
         fee: params.poolKey.fee,
         tickSpacing: params.poolKey.tickSpacing,
-        hooks: params.poolKey.hooks as `0x${string}`,
+        hooks: params.poolKey.hooks as Address,
       },
       zeroForOne: params.zeroForOne,
       exactAmount: BigInt(params.amountIn),
-      hookData: (params.hookData || "0x") as `0x${string}`,
+      hookData: (params.hookData || "0x") as Address,
     };
 
     // Simulate the quote to estimate the amount out
@@ -128,15 +119,14 @@ export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKIn
     });
 
     // Extract the results
-    const [amountOut, gasEstimate] = simulation.result;
+    const [amountOut] = simulation.result;
 
     return {
       amountOut,
-      estimatedGasUsed: gasEstimate,
       timestamp: Date.now(),
     };
   } catch (error) {
     console.error("Error simulating quote:", error);
-    throw new Error(`Failed to fetch quote: ${(error as Error).message}`);
+    throw new Error(`Failed to fetch quote: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
