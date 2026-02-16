@@ -1,5 +1,4 @@
 import { sortTokens } from "@/helpers/tokens";
-import { FeeTier } from "@/utils/getPool";
 
 export const UNICHAIN_TOKENS = {
   ETH: "0x0000000000000000000000000000000000000000",
@@ -15,7 +14,7 @@ const [currency0, currency1] = sortTokens(UNICHAIN_TOKENS.ETH, UNICHAIN_TOKENS.U
 export const UNICHAIN_POOL_KEY = {
   currency0,
   currency1,
-  fee: FeeTier.LOW,
+  fee: 500,
   tickSpacing: 10,
   hooks: "0x0000000000000000000000000000000000000000",
 } as const;

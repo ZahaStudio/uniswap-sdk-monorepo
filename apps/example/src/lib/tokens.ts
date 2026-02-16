@@ -1,3 +1,4 @@
+import { sortTokens } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 
@@ -33,38 +34,21 @@ export const USDT: TokenInfo = {
   logoUrl: "https://token-icons.s3.amazonaws.com/0xdac17f958d2ee523a2206206994597c13d831ec7.png",
 };
 
-export const WETH: TokenInfo = {
-  address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-  symbol: "WETH",
-  name: "Wrapped Ether",
-  decimals: 18,
-  logoUrl: "https://token-icons.s3.amazonaws.com/eth.png",
-};
-
 export interface SwapPairPreset {
   id: string;
   label: string;
   tokenIn: TokenInfo;
   tokenOut: TokenInfo;
-  /** Fee tier in centibips (e.g. 500 = 0.05%, 3000 = 0.3%) */
+  /** Fee tier in pips (e.g. 500 = 0.05%, 3000 = 0.3%) */
   fee: number;
   tickSpacing: number;
   /** Default input amount (human-readable) */
   defaultAmount: string;
 }
 
-/**
- * For Uniswap V4 pool keys, native ETH is represented as the zero address.
- * The pool key's currency0/currency1 must be sorted (lower address first).
- */
-function sortAddresses(a: Address, b: Address): [Address, Address] {
-  return a.toLowerCase() < b.toLowerCase() ? [a, b] : [b, a];
-}
-
 const HOOKS_ADDRESS = zeroAddress;
 
 // USDC → USDT (both ERC-20, 0.01% fee tier)
-const [usdc_usdt_c0, usdc_usdt_c1] = sortAddresses(USDC.address, USDT.address);
 export const USDC_USDT_PAIR: SwapPairPreset = {
   id: "usdc-usdt",
   label: "USDC → USDT",
@@ -76,7 +60,6 @@ export const USDC_USDT_PAIR: SwapPairPreset = {
 };
 
 // ETH → USDC (native ETH, 0.3% fee tier)
-const [eth_usdc_c0, eth_usdc_c1] = sortAddresses(ETH.address, USDC.address);
 export const ETH_USDC_PAIR: SwapPairPreset = {
   id: "eth-usdc",
   label: "ETH → USDC",
@@ -94,7 +77,7 @@ export const SWAP_PRESETS: SwapPairPreset[] = [ETH_USDC_PAIR, USDC_USDT_PAIR];
  * currency0/currency1 must be sorted.
  */
 export function getPoolKeyFromPreset(preset: SwapPairPreset) {
-  const [currency0, currency1] = sortAddresses(preset.tokenIn.address, preset.tokenOut.address);
+  const [currency0, currency1] = sortTokens(preset.tokenIn.address, preset.tokenOut.address);
   // zeroForOne = true when tokenIn is currency0
   const zeroForOne = preset.tokenIn.address.toLowerCase() === currency0.toLowerCase();
 

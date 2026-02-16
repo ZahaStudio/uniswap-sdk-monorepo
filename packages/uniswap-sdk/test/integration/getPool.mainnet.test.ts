@@ -9,13 +9,7 @@ describe("getPool (unichain rpc)", () => {
   it("fetches a pool", async () => {
     const client = createPinnedUnichainClient();
     const sdk = UniswapSDK.create(client, unichain.id);
-    const pool = await sdk.getPool({
-      currencyA: UNICHAIN_POOL_KEY.currency0,
-      currencyB: UNICHAIN_POOL_KEY.currency1,
-      fee: UNICHAIN_POOL_KEY.fee,
-      tickSpacing: UNICHAIN_POOL_KEY.tickSpacing,
-      hooks: UNICHAIN_POOL_KEY.hooks,
-    });
+    const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
     expect(pool.fee).toBe(UNICHAIN_POOL_KEY.fee);
     expect(pool.tickSpacing).toBe(UNICHAIN_POOL_KEY.tickSpacing);

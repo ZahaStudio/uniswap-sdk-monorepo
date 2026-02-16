@@ -163,93 +163,93 @@ export function SwapDemo() {
     }
   }, [executeAll]);
 
+  const handleRefreshAll = useCallback(() => {
+    quoteRefetch();
+    tokenInQuery.refetch();
+    lastRefreshRef.current = Date.now();
+    setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
+  }, [quoteRefetch, tokenInQuery]);
+
   const handleReset = useCallback(() => {
     reset();
     setTxError(null);
     setExecuting(false);
-    // Refresh quote for the next swap
+    // Refresh quote + balance for the next swap
+    tokenInQuery.refetch();
     quoteRefetch();
     lastRefreshRef.current = Date.now();
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
-  }, [reset, quoteRefetch]);
+  }, [reset, quoteRefetch, tokenInQuery]);
 
   return (
-    <div className="w-full max-w-120 space-y-4">
-      {/* Pair selector tabs */}
-      <div className="flex gap-2">
-        {SWAP_PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            onClick={() => handlePresetChange(preset)}
-            className={cn(
-              "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
-              selectedPreset.id === preset.id
-                ? "border-accent/30 bg-accent-muted text-accent"
-                : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
+    <div className="flex w-full items-start justify-center gap-6">
+      {/* Lifecycle panel (left) */}
+      <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
+        {isConnected && quoteData ? (
+          <>
+            <StepIndicator
+              currentStep={currentStep}
+              approval={steps.approval}
+              permit2={steps.permit2}
+              swapTx={steps.swap.transaction}
+              isNativeInput={selectedPreset.tokenIn.address === "0x0000000000000000000000000000000000000000"}
+            />
+            {steps.swap.transaction.status !== "idle" && (
+              <TransactionStatus
+                status={steps.swap.transaction.status}
+                txHash={swapTxHash}
+              />
             )}
-          >
-            {preset.label}
-          </button>
-        ))}
+          </>
+        ) : (
+          <div className="border-border-muted bg-surface rounded-xl border p-4">
+            <div className="text-text-muted mb-3 text-xs font-medium">Swap lifecycle</div>
+            <p className="text-text-muted text-xs">
+              {!isConnected
+                ? "Connect wallet to begin"
+                : !amountInput || amountInput === "0"
+                  ? "Enter an amount to get a quote"
+                  : quoteLoading
+                    ? "Fetching quote..."
+                    : "Enter an amount to get a quote"}
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Swap card */}
-      <div className="border-border-muted bg-surface rounded-2xl border p-4">
-        {/* Input */}
-        <TokenInput
-          label="You pay"
-          token={selectedPreset.tokenIn}
-          value={amountInput}
-          onChange={setAmountInput}
-          disabled={executing || isSwapConfirmed}
-          balance={tokenInQuery.data?.balance?.formatted}
-          balanceLoading={tokenInQuery.isLoading}
-          onMaxClick={handleMaxClick}
-        />
-
-        {/* Arrow divider */}
-        <div className="relative my-1 flex items-center justify-center">
-          <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
-          <div className="border-border-muted bg-surface-raised relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-text-secondary"
+      {/* Main content (right) */}
+      <div className="w-full min-w-120 max-w-120 space-y-4">
+        {/* Pair selector tabs */}
+        <div className="flex gap-2">
+          {SWAP_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => handlePresetChange(preset)}
+              className={cn(
+                "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
+                selectedPreset.id === preset.id
+                  ? "border-accent/30 bg-accent-muted text-accent"
+                  : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
+              )}
             >
-              <path
-                d="M12 5v14M19 12l-7 7-7-7"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
+              {preset.label}
+            </button>
+          ))}
         </div>
 
-        {/* Output */}
-        <TokenInput
-          label="You receive"
-          token={selectedPreset.tokenOut}
-          value={outputDisplay ?? ""}
-          readOnly
-          loading={quoteLoading}
-        />
-
-        {/* Refresh quote */}
-        {quoteData && !isSwapConfirmed && (
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-text-tertiary text-xs">Quote refreshes in {secondsUntilRefresh}s</span>
+        {/* Swap card */}
+        <div className="border-border-muted bg-surface rounded-2xl border p-4">
+          {/* Header with refresh */}
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-text-muted text-xs font-medium">Swap</span>
             <button
-              onClick={handleRefreshQuote}
-              disabled={isFetchingQuote || executing}
-              className="text-accent hover:text-accent-hover flex items-center gap-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handleRefreshAll}
+              disabled={executing || isSwapConfirmed}
+              className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg
-                width="12"
-                height="12"
+                width="14"
+                height="14"
                 viewBox="0 0 24 24"
                 fill="none"
                 className={cn(isFetchingQuote && "animate-spin")}
@@ -268,93 +268,153 @@ export function SwapDemo() {
                   strokeLinejoin="round"
                 />
               </svg>
-              Refresh quote
             </button>
           </div>
-        )}
 
-        {/* Swap details */}
-        {quoteData && (
-          <SwapDetails
-            minOutput={minOutputDisplay!}
-            outputSymbol={selectedPreset.tokenOut.symbol}
-            slippageBps={50}
+          {/* Input */}
+          <TokenInput
+            label="You pay"
+            token={selectedPreset.tokenIn}
+            value={amountInput}
+            onChange={setAmountInput}
+            disabled={executing || isSwapConfirmed}
+            balance={tokenInQuery.data?.balance?.formatted}
+            balanceLoading={tokenInQuery.isLoading}
+            onMaxClick={handleMaxClick}
           />
-        )}
 
-        {/* Error display */}
-        {(quoteError || txError) && (
-          <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">{quoteError?.message ?? txError}</div>
-        )}
-
-        {/* Action button */}
-        <div className="mt-4">
-          {!isConnected ? (
-            <ConnectButton.Custom>
-              {({ openConnectModal }) => (
-                <button
-                  onClick={openConnectModal}
-                  className="glow-accent bg-accent hover:bg-accent-hover w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                >
-                  Connect Wallet
-                </button>
-              )}
-            </ConnectButton.Custom>
-          ) : isSwapConfirmed ? (
-            <button
-              onClick={handleReset}
-              className="bg-success/10 text-success hover:bg-success/20 w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]"
-            >
-              Swap another
-            </button>
-          ) : (
-            <div className="space-y-2">
-              {/* Execute all button */}
-              <button
-                onClick={handleExecuteAll}
-                disabled={executing || !quoteData || quoteLoading || amountInput === "" || amountInput === "0"}
-                className={cn(
-                  "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
-                  "bg-accent hover:bg-accent-hover text-white",
-                  "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
-                )}
+          {/* Arrow divider */}
+          <div className="relative my-1 flex items-center justify-center">
+            <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
+            <div className="border-border-muted bg-surface-raised relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="text-text-secondary"
               >
-                {executing ? getStepActionLabel(currentStep) + "..." : !quoteData ? "Enter an amount" : "Swap"}
-              </button>
+                <path
+                  d="M12 5v14M19 12l-7 7-7-7"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
 
-              {/* Individual step button (when not using executeAll) */}
-              {quoteData && currentStep !== "quote" && currentStep !== "completed" && (
-                <button
-                  onClick={handleExecuteStep}
-                  disabled={executing}
-                  className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
+          {/* Output */}
+          <TokenInput
+            label="You receive"
+            token={selectedPreset.tokenOut}
+            value={outputDisplay ?? ""}
+            readOnly
+            loading={quoteLoading}
+          />
+
+          {/* Refresh quote */}
+          {quoteData && !isSwapConfirmed && (
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-text-tertiary text-xs">Quote refreshes in {secondsUntilRefresh}s</span>
+              <button
+                onClick={handleRefreshQuote}
+                disabled={isFetchingQuote || executing}
+                className="text-accent hover:text-accent-hover flex items-center gap-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className={cn(isFetchingQuote && "animate-spin")}
                 >
-                  {executing ? getStepActionLabel(currentStep) + "..." : `Step: ${getStepActionLabel(currentStep)}`}
-                </button>
-              )}
+                  <path
+                    d="M21 12a9 9 0 1 1-2.636-6.364"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M21 3v6h-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Refresh quote
+              </button>
             </div>
           )}
+
+          {/* Swap details */}
+          {quoteData && (
+            <SwapDetails
+              minOutput={minOutputDisplay!}
+              outputSymbol={selectedPreset.tokenOut.symbol}
+              slippageBps={50}
+            />
+          )}
+
+          {/* Error display */}
+          {(quoteError || txError) && (
+            <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">
+              {quoteError?.message ?? txError}
+            </div>
+          )}
+
+          {/* Action button */}
+          <div className="mt-4">
+            {!isConnected ? (
+              <ConnectButton.Custom>
+                {({ openConnectModal }) => (
+                  <button
+                    onClick={openConnectModal}
+                    className="glow-accent bg-accent hover:bg-accent-hover w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+                  >
+                    Connect Wallet
+                  </button>
+                )}
+              </ConnectButton.Custom>
+            ) : isSwapConfirmed ? (
+              <button
+                onClick={handleReset}
+                className="bg-success/10 text-success hover:bg-success/20 w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]"
+              >
+                Swap another
+              </button>
+            ) : (
+              <div className="space-y-2">
+                {/* Execute all button */}
+                <button
+                  onClick={handleExecuteAll}
+                  disabled={executing || !quoteData || quoteLoading || amountInput === "" || amountInput === "0"}
+                  className={cn(
+                    "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
+                    "bg-accent hover:bg-accent-hover text-white",
+                    "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
+                  )}
+                >
+                  {executing ? getStepActionLabel(currentStep) + "..." : !quoteData ? "Enter an amount" : "Swap"}
+                </button>
+
+                {/* Individual step button (when not using executeAll) */}
+                {quoteData && currentStep !== "quote" && currentStep !== "completed" && (
+                  <button
+                    onClick={handleExecuteStep}
+                    disabled={executing}
+                    className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {executing ? getStepActionLabel(currentStep) + "..." : `Step: ${getStepActionLabel(currentStep)}`}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* Step indicator */}
-      {isConnected && quoteData && (
-        <StepIndicator
-          currentStep={currentStep}
-          approval={steps.approval}
-          permit2={steps.permit2}
-          swapTx={steps.swap.transaction}
-          isNativeInput={selectedPreset.tokenIn.address === "0x0000000000000000000000000000000000000000"}
-        />
-      )}
-
-      {/* Transaction status */}
-      {steps.swap.transaction.status !== "idle" && (
-        <TransactionStatus
-          status={steps.swap.transaction.status}
-          txHash={swapTxHash}
-        />
-      )}
     </div>
   );
 }

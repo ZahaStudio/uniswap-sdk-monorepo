@@ -11,8 +11,13 @@ export * from "@/utils/getQuote";
 export * from "@/utils/getTickInfo";
 export * from "@/utils/getTokens";
 export * from "@/utils/getUncollectedFees";
-export * from "@/utils/preparePermit2Data";
+export * from "@/utils/preparePermit2BatchData";
 export * from "@/utils/chains";
+export * from "@/helpers/cache";
 export * from "@/helpers/swap";
+export * from "@/helpers/tokens";
 
-export type { PoolKey } from "@uniswap/v4-sdk";
+export type { PoolKey, Pool } from "@uniswap/v4-sdk";
+export { Position } from "@uniswap/v4-sdk";
+export { nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
+export type { Currency } from "@uniswap/sdk-core";

@@ -19,3 +19,12 @@ export interface UseHookOptions {
    */
   refetchInterval?: number | false;
 }
+
+/**
+ * Configuration options for mutation-style hooks (create position, increase/remove liquidity, collect fees).
+ * Extends UseHookOptions with an onSuccess callback.
+ */
+export interface UseMutationHookOptions extends Pick<UseHookOptions, "chainId"> {
+  /** Callback fired when the transaction is confirmed */
+  onSuccess?: () => void;
+}

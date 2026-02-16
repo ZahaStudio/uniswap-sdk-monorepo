@@ -2,11 +2,12 @@
 
 import { useCallback } from "react";
 
-import type { Hex } from "viem";
+import type { Address, Hex } from "viem";
 
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import type { UseMutationHookOptions } from "@/types/hooks";
 import { assertSdkInitialized } from "@/utils/assertions";
 
 /**
@@ -14,7 +15,7 @@ import { assertSdkInitialized } from "@/utils/assertions";
  */
 export interface CollectFeesArgs {
   /** Address to receive the collected fees */
-  recipient: string;
+  recipient: Address;
   /** Deadline duration in seconds from current block timestamp (optional) */
   deadlineDuration?: number;
 }
@@ -22,12 +23,7 @@ export interface CollectFeesArgs {
 /**
  * Options for the usePositionCollectFees hook.
  */
-export interface UsePositionCollectFeesOptions {
-  /** Override chain ID */
-  chainId?: number;
-  /** Callback fired when the transaction is confirmed */
-  onSuccess?: () => void;
-}
+export interface UsePositionCollectFeesOptions extends UseMutationHookOptions {}
 
 /**
  * Return type for the usePositionCollectFees hook.
@@ -65,7 +61,7 @@ export function usePositionCollectFees(
   const { chainId: overrideChainId, onSuccess } = options;
 
   const { sdk } = useUniswapSDK({ chainId: overrideChainId });
-  const { query } = usePosition({ tokenId }, { chainId: overrideChainId });
+  const { query } = usePosition(params, { chainId: overrideChainId });
 
   const transaction = useTransaction({
     onSuccess: () => {

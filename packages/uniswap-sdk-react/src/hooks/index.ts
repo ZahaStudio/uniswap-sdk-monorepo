@@ -5,4 +5,5 @@ export * from "./usePosition";
 export * from "./usePositionCollectFees";
 export * from "./usePositionRemoveLiquidity";
 export * from "./usePositionIncreaseLiquidity";
+export * from "./useCreatePosition";
 export * from "./useSwap";
