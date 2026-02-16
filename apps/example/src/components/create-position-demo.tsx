@@ -4,8 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { sortTokens } from "@zahastudio/uniswap-sdk";
-import { useCreatePosition, type AddLiquidityStep } from "@zahastudio/uniswap-sdk-react";
-
+import { useCreatePosition, useToken, type AddLiquidityStep } from "@zahastudio/uniswap-sdk-react";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
@@ -134,22 +133,40 @@ export function CreatePositionDemo() {
   const { pool: poolQuery, steps, currentStep, executeAll, reset, position } = create;
   const pool = poolQuery.data;
 
-  // Auto-fill the other token from the hook's calculated position
-  const handleAmount0Change = useCallback(
-    (val: string) => {
-      setAmount0Input(val);
-      setLastEdited(0);
-    },
-    [],
+  // Token balance queries
+  const { query: token0Query } = useToken(
+    { tokenAddress: selectedPreset.token0.address },
+    { enabled: isConnected, chainId: 1, refetchInterval: 15_000 },
+  );
+  const { query: token1Query } = useToken(
+    { tokenAddress: selectedPreset.token1.address },
+    { enabled: isConnected, chainId: 1, refetchInterval: 15_000 },
   );
 
-  const handleAmount1Change = useCallback(
-    (val: string) => {
-      setAmount1Input(val);
+  const handleMax0Click = useCallback(() => {
+    if (token0Query.data?.balance) {
+      setAmount0Input(token0Query.data.balance.formatted);
+      setLastEdited(0);
+    }
+  }, [token0Query.data?.balance]);
+
+  const handleMax1Click = useCallback(() => {
+    if (token1Query.data?.balance) {
+      setAmount1Input(token1Query.data.balance.formatted);
       setLastEdited(1);
-    },
-    [],
-  );
+    }
+  }, [token1Query.data?.balance]);
+
+  // Auto-fill the other token from the hook's calculated position
+  const handleAmount0Change = useCallback((val: string) => {
+    setAmount0Input(val);
+    setLastEdited(0);
+  }, []);
+
+  const handleAmount1Change = useCallback((val: string) => {
+    setAmount1Input(val);
+    setLastEdited(1);
+  }, []);
 
   // Derive the auto-filled display value from the hook's position calculation
   const displayAmount0 = (() => {
@@ -180,6 +197,9 @@ export function CreatePositionDemo() {
       await executeAll({
         recipient: address,
       });
+      // Refresh balances after successful execution
+      token0Query.refetch();
+      token1Query.refetch();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (shouldShowExecutionError(msg)) {
@@ -188,7 +208,13 @@ export function CreatePositionDemo() {
     } finally {
       setExecuting(false);
     }
-  }, [address, executeAll]);
+  }, [address, executeAll, token0Query, token1Query]);
+
+  const handleRefreshAll = useCallback(() => {
+    poolQuery.refetch();
+    token0Query.refetch();
+    token1Query.refetch();
+  }, [poolQuery, token0Query, token1Query]);
 
   const handleReset = useCallback(() => {
     reset();
@@ -196,33 +222,49 @@ export function CreatePositionDemo() {
     setExecuting(false);
     setAmount0Input("");
     setAmount1Input("");
-  }, [reset]);
+    token0Query.refetch();
+    token1Query.refetch();
+  }, [reset, token0Query, token1Query]);
 
   const hasAmount = parsedAmount0 > 0n || parsedAmount1 > 0n;
 
   return (
     <div className="flex w-full items-start justify-center gap-6">
       {/* Lifecycle panel (left) */}
-      <div className="sticky top-6 hidden w-72 shrink-0 space-y-4 lg:block">
-        {isConnected && hasAmount && pool && (
-          <AddLiquidityStepIndicator
-            currentStep={currentStep}
-            steps={steps}
-            isNativeToken0={sortedToken0.address === zeroAddress}
-            isNativeToken1={sortedToken1.address === zeroAddress}
-          />
-        )}
-
-        {steps.execute.transaction.status !== "idle" && (
-          <TransactionStatus
-            status={steps.execute.transaction.status}
-            txHash={txHash}
-          />
+      <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
+        {isConnected && hasAmount && pool ? (
+          <>
+            <AddLiquidityStepIndicator
+              currentStep={currentStep}
+              steps={steps}
+              isNativeToken0={sortedToken0.address === zeroAddress}
+              isNativeToken1={sortedToken1.address === zeroAddress}
+            />
+            {steps.execute.transaction.status !== "idle" && (
+              <TransactionStatus
+                status={steps.execute.transaction.status}
+                txHash={txHash}
+              />
+            )}
+          </>
+        ) : (
+          <div className="border-border-muted bg-surface rounded-xl border p-4">
+            <div className="text-text-muted mb-3 text-xs font-medium">Create position lifecycle</div>
+            <p className="text-text-muted text-xs">
+              {!isConnected
+                ? "Connect wallet to begin"
+                : poolQuery.isLoading
+                  ? "Loading pool data..."
+                  : !hasAmount
+                    ? "Enter amounts and tick range"
+                    : "Loading..."}
+            </p>
+          </div>
         )}
       </div>
 
       {/* Main content (right) */}
-      <div className="w-full max-w-120 space-y-4">
+      <div className="w-full min-w-120 max-w-120 space-y-4">
         {/* Pool selector tabs */}
         <div className="flex gap-2">
           {POOL_PRESETS.map((preset) => (
@@ -244,7 +286,36 @@ export function CreatePositionDemo() {
         {/* Pool info */}
         {pool && (
           <div className="border-border-muted bg-surface rounded-2xl border p-4">
-            <div className="text-text-muted mb-2 text-xs font-medium">Pool Info</div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-text-muted text-xs font-medium">Pool Info</span>
+              <button
+                onClick={handleRefreshAll}
+                disabled={executing || isExecuteConfirmed}
+                className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className={cn(poolQuery.isFetching && "animate-spin")}
+                >
+                  <path
+                    d="M21 12a9 9 0 1 1-2.636-6.364"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M21 3v6h-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
             <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
               <DetailRow
                 label="Fee tier"
@@ -285,70 +356,71 @@ export function CreatePositionDemo() {
         {/* Tick range + Amount inputs */}
         <div className="border-border-muted bg-surface rounded-2xl border p-4">
           {/* Tick range sliders — first, since amounts depend on range */}
-          {pool && (() => {
-            const ts = pool.tickSpacing;
-            const centerTick = Math.round(pool.tickCurrent / ts) * ts;
-            const sliderMin = centerTick - 100 * ts;
-            const sliderMax = centerTick + 100 * ts;
-            const lowerValue = tickLowerInput ? parseInt(tickLowerInput, 10) : sliderMin;
-            const upperValue = tickUpperInput ? parseInt(tickUpperInput, 10) : sliderMax;
+          {pool &&
+            (() => {
+              const ts = pool.tickSpacing;
+              const centerTick = Math.round(pool.tickCurrent / ts) * ts;
+              const sliderMin = centerTick - 100 * ts;
+              const sliderMax = centerTick + 100 * ts;
+              const lowerValue = tickLowerInput ? parseInt(tickLowerInput, 10) : sliderMin;
+              const upperValue = tickUpperInput ? parseInt(tickUpperInput, 10) : sliderMax;
 
-            return (
-              <div className="mb-4">
-                <div className="text-text-muted mb-2 text-xs font-medium">
-                  Tick Range <span className="text-text-muted/60">(current tick: {pool.tickCurrent})</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-surface-raised rounded-xl p-3">
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label className="text-text-muted text-[10px] font-medium">Lower tick</label>
-                      <span className="text-text font-mono text-xs font-medium">{lowerValue}</span>
+              return (
+                <div className="mb-4">
+                  <div className="text-text-muted mb-2 text-xs font-medium">
+                    Tick Range <span className="text-text-muted/60">(current tick: {pool.tickCurrent})</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-surface-raised rounded-xl p-3">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label className="text-text-muted text-[10px] font-medium">Lower tick</label>
+                        <span className="text-text font-mono text-xs font-medium">{lowerValue}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={sliderMin}
+                        max={sliderMax}
+                        step={ts}
+                        value={lowerValue}
+                        onChange={(e) => {
+                          const val = Math.round(parseInt(e.target.value, 10) / ts) * ts;
+                          setTickLowerInput(val.toString());
+                        }}
+                        disabled={executing || isExecuteConfirmed}
+                        className="accent-accent w-full"
+                      />
+                      <div className="text-text-muted mt-1 flex justify-between text-[10px]">
+                        <span>{sliderMin}</span>
+                        <span>{sliderMax}</span>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min={sliderMin}
-                      max={sliderMax}
-                      step={ts}
-                      value={lowerValue}
-                      onChange={(e) => {
-                        const val = Math.round(parseInt(e.target.value, 10) / ts) * ts;
-                        setTickLowerInput(val.toString());
-                      }}
-                      disabled={executing || isExecuteConfirmed}
-                      className="accent-accent w-full"
-                    />
-                    <div className="text-text-muted mt-1 flex justify-between text-[10px]">
-                      <span>{sliderMin}</span>
-                      <span>{sliderMax}</span>
+                    <div className="bg-surface-raised rounded-xl p-3">
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <label className="text-text-muted text-[10px] font-medium">Upper tick</label>
+                        <span className="text-text font-mono text-xs font-medium">{upperValue}</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={sliderMin}
+                        max={sliderMax}
+                        step={ts}
+                        value={upperValue}
+                        onChange={(e) => {
+                          const val = Math.round(parseInt(e.target.value, 10) / ts) * ts;
+                          setTickUpperInput(val.toString());
+                        }}
+                        disabled={executing || isExecuteConfirmed}
+                        className="accent-accent w-full"
+                      />
+                      <div className="text-text-muted mt-1 flex justify-between text-[10px]">
+                        <span>{sliderMin}</span>
+                        <span>{sliderMax}</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="bg-surface-raised rounded-xl p-3">
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label className="text-text-muted text-[10px] font-medium">Upper tick</label>
-                      <span className="text-text font-mono text-xs font-medium">{upperValue}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={sliderMin}
-                      max={sliderMax}
-                      step={ts}
-                      value={upperValue}
-                      onChange={(e) => {
-                        const val = Math.round(parseInt(e.target.value, 10) / ts) * ts;
-                        setTickUpperInput(val.toString());
-                      }}
-                      disabled={executing || isExecuteConfirmed}
-                      className="accent-accent w-full"
-                    />
-                    <div className="text-text-muted mt-1 flex justify-between text-[10px]">
-                      <span>{sliderMin}</span>
-                      <span>{sliderMax}</span>
-                    </div>
-                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {/* Amount inputs */}
           <TokenInput
@@ -357,6 +429,9 @@ export function CreatePositionDemo() {
             value={displayAmount0}
             onChange={handleAmount0Change}
             disabled={executing || isExecuteConfirmed}
+            balance={token0Query.data?.balance?.formatted}
+            balanceLoading={token0Query.isLoading}
+            onMaxClick={handleMax0Click}
           />
 
           {/* Arrow divider */}
@@ -387,6 +462,9 @@ export function CreatePositionDemo() {
             value={displayAmount1}
             onChange={handleAmount1Change}
             disabled={executing || isExecuteConfirmed}
+            balance={token1Query.data?.balance?.formatted}
+            balanceLoading={token1Query.isLoading}
+            onMaxClick={handleMax1Click}
           />
 
           {/* Error display */}
@@ -422,7 +500,11 @@ export function CreatePositionDemo() {
                   "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
                 )}
               >
-                {executing ? getStepActionLabel(currentStep) + "..." : !hasAmount ? "Enter an amount" : "Create Position"}
+                {executing
+                  ? getStepActionLabel(currentStep) + "..."
+                  : !hasAmount
+                    ? "Enter an amount"
+                    : "Create Position"}
               </button>
             )}
           </div>

@@ -95,19 +95,24 @@ export function PositionDemo() {
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removePercentage, setRemovePercentage] = useState<number | null>(null);
 
+  const handleRefreshAll = useCallback(() => {
+    positionQuery.refetch();
+  }, [positionQuery]);
+
   const handleCollectFees = useCallback(async () => {
     if (!address) return;
     setCollectError(null);
     setCollectExecuting(true);
     try {
       await collectFees.execute({ recipient: address });
+      positionQuery.refetch();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (shouldShowExecutionError(msg)) setCollectError(msg);
     } finally {
       setCollectExecuting(false);
     }
-  }, [address, collectFees]);
+  }, [address, collectFees, positionQuery]);
 
   const handleRemoveLiquidity = useCallback(async () => {
     if (removePercentage === null) return;
@@ -115,13 +120,14 @@ export function PositionDemo() {
     setRemoveExecuting(true);
     try {
       await removeLiquidity.execute({ liquidityPercentage: removePercentage });
+      positionQuery.refetch();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (shouldShowExecutionError(msg)) setRemoveError(msg);
     } finally {
       setRemoveExecuting(false);
     }
-  }, [removePercentage, removeLiquidity]);
+  }, [removePercentage, removeLiquidity, positionQuery]);
 
   // ── Derived values ─────────────────────────────────────────────────────────
   const data = positionQuery.data;
@@ -142,8 +148,8 @@ export function PositionDemo() {
   return (
     <div className="flex w-full items-start justify-center gap-6">
       {/* Lifecycle panel (left) */}
-      <div className="sticky top-6 hidden w-72 shrink-0 space-y-4 lg:block">
-        {data && (
+      <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
+        {data ? (
           <PositionLifecycle
             collectFeesStatus={collectFees.transaction.status}
             collectFeesTxHash={collectFees.transaction.txHash}
@@ -153,11 +159,20 @@ export function PositionDemo() {
             removeExecuting={removeExecuting}
             removePercentage={removePercentage}
           />
+        ) : (
+          <div className="border-border-muted bg-surface rounded-xl border p-4">
+            <div className="text-text-muted mb-3 text-xs font-medium">Position lifecycle</div>
+            <p className="text-text-muted text-xs">
+              {activeTokenId && positionQuery.isLoading
+                ? "Loading position..."
+                : "Load a position to begin"}
+            </p>
+          </div>
         )}
       </div>
 
       {/* Main content (right) */}
-      <div className="w-full max-w-120 space-y-4">
+      <div className="w-full min-w-120 max-w-120 space-y-4">
         {/* Token ID input */}
         <div className="border-border-muted bg-surface rounded-2xl border p-4">
           <label className="text-text-muted mb-2 block text-xs font-medium">Position Token ID</label>
@@ -208,7 +223,35 @@ export function PositionDemo() {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-text text-lg font-semibold">Position #{activeTokenId}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-text text-lg font-semibold">Position #{activeTokenId}</h2>
+                    <button
+                      onClick={handleRefreshAll}
+                      className="text-text-muted hover:text-accent flex items-center transition-colors"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        className={cn(positionQuery.isFetching && "animate-spin")}
+                      >
+                        <path
+                          d="M21 12a9 9 0 1 1-2.636-6.364"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                        <path
+                          d="M21 3v6h-6"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                   <p className="text-text-secondary text-sm">
                     {symbol0} / {symbol1}
                     <span className="text-text-muted ml-2 text-xs">{data.pool.fee / 10000}% fee</span>

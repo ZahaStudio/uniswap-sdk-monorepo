@@ -10,7 +10,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="bg-accent/3 absolute -right-40 -bottom-40 h-125 w-125 rounded-full blur-[100px]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-4 pt-20 pb-6">
         <Header />
         <main className="flex flex-1 flex-col items-center justify-center pb-16">{children}</main>
         <footer className="text-text-muted flex items-center justify-center py-6 text-xs">

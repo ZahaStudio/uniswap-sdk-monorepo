@@ -163,40 +163,62 @@ export function SwapDemo() {
     }
   }, [executeAll]);
 
+  const handleRefreshAll = useCallback(() => {
+    quoteRefetch();
+    tokenInQuery.refetch();
+    lastRefreshRef.current = Date.now();
+    setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
+  }, [quoteRefetch, tokenInQuery]);
+
   const handleReset = useCallback(() => {
     reset();
     setTxError(null);
     setExecuting(false);
-    // Refresh quote for the next swap
+    // Refresh quote + balance for the next swap
+    tokenInQuery.refetch();
     quoteRefetch();
     lastRefreshRef.current = Date.now();
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
-  }, [reset, quoteRefetch]);
+  }, [reset, quoteRefetch, tokenInQuery]);
 
   return (
     <div className="flex w-full items-start justify-center gap-6">
       {/* Lifecycle panel (left) */}
-      <div className="sticky top-6 hidden w-72 shrink-0 space-y-4 lg:block">
-        {isConnected && quoteData && (
-          <StepIndicator
-            currentStep={currentStep}
-            approval={steps.approval}
-            permit2={steps.permit2}
-            swapTx={steps.swap.transaction}
-            isNativeInput={selectedPreset.tokenIn.address === "0x0000000000000000000000000000000000000000"}
-          />
-        )}
-
-        {steps.swap.transaction.status !== "idle" && (
-          <TransactionStatus
-            status={steps.swap.transaction.status}
-            txHash={swapTxHash}
-          />
+      <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
+        {isConnected && quoteData ? (
+          <>
+            <StepIndicator
+              currentStep={currentStep}
+              approval={steps.approval}
+              permit2={steps.permit2}
+              swapTx={steps.swap.transaction}
+              isNativeInput={selectedPreset.tokenIn.address === "0x0000000000000000000000000000000000000000"}
+            />
+            {steps.swap.transaction.status !== "idle" && (
+              <TransactionStatus
+                status={steps.swap.transaction.status}
+                txHash={swapTxHash}
+              />
+            )}
+          </>
+        ) : (
+          <div className="border-border-muted bg-surface rounded-xl border p-4">
+            <div className="text-text-muted mb-3 text-xs font-medium">Swap lifecycle</div>
+            <p className="text-text-muted text-xs">
+              {!isConnected
+                ? "Connect wallet to begin"
+                : !amountInput || amountInput === "0"
+                  ? "Enter an amount to get a quote"
+                  : quoteLoading
+                    ? "Fetching quote..."
+                    : "Enter an amount to get a quote"}
+            </p>
+          </div>
         )}
       </div>
 
       {/* Main content (right) */}
-      <div className="w-full max-w-120 space-y-4">
+      <div className="w-full min-w-120 max-w-120 space-y-4">
         {/* Pair selector tabs */}
         <div className="flex gap-2">
           {SWAP_PRESETS.map((preset) => (
@@ -217,6 +239,38 @@ export function SwapDemo() {
 
         {/* Swap card */}
         <div className="border-border-muted bg-surface rounded-2xl border p-4">
+          {/* Header with refresh */}
+          <div className="mb-3 flex items-center justify-between">
+            <span className="text-text-muted text-xs font-medium">Swap</span>
+            <button
+              onClick={handleRefreshAll}
+              disabled={executing || isSwapConfirmed}
+              className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                className={cn(isFetchingQuote && "animate-spin")}
+              >
+                <path
+                  d="M21 12a9 9 0 1 1-2.636-6.364"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M21 3v6h-6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+
           {/* Input */}
           <TokenInput
             label="You pay"

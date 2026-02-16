@@ -16,7 +16,7 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="flex items-center justify-between">
+    <header className="bg-background/80 fixed inset-x-0 top-0 z-50 mx-auto flex max-w-6xl items-center justify-between px-4 py-4 backdrop-blur-md">
       <div className="flex items-center gap-3">
         <div className="bg-accent/10 flex h-9 w-9 items-center justify-center rounded-lg">
           <svg
