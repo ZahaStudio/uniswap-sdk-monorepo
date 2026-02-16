@@ -13,13 +13,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const sdk = UniswapSDK.create(client, unichain.id);
     const block = await client.getBlock();
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
-    const pool = await sdk.getPool({
-      currency0: UNICHAIN_POOL_KEY.currency0,
-      currency1: UNICHAIN_POOL_KEY.currency1,
-      fee: UNICHAIN_POOL_KEY.fee,
-      tickSpacing: UNICHAIN_POOL_KEY.tickSpacing,
-      hooks: UNICHAIN_POOL_KEY.hooks,
-    });
+    const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
     const calldata = await sdk.buildSwapCallData({
       amountIn: 1_000_000n,

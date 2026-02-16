@@ -11,13 +11,7 @@ describe("buildAddLiquidityCallData (unichain rpc)", () => {
   it("builds add liquidity calldata", async () => {
     const client = createPinnedUnichainClient();
     const sdk = UniswapSDK.create(client, unichain.id);
-    const pool = await sdk.getPool({
-      currency0: UNICHAIN_POOL_KEY.currency0,
-      currency1: UNICHAIN_POOL_KEY.currency1,
-      fee: UNICHAIN_POOL_KEY.fee,
-      tickSpacing: UNICHAIN_POOL_KEY.tickSpacing,
-      hooks: UNICHAIN_POOL_KEY.hooks,
-    });
+    const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
     const { calldata, value } = await sdk.buildAddLiquidityCallData({
       pool,
