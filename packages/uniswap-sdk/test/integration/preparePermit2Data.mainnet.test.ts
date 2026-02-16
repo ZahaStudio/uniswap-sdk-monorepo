@@ -1,4 +1,4 @@
-import type { Hex } from "viem";
+import { maxUint160, type Hex } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
@@ -16,24 +16,29 @@ describe("preparePermit2Data (unichain rpc)", () => {
     const block = await client.getBlock();
     const expectedSigDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
 
-    const prepared = await sdk.preparePermit2Data({
-      token: UNICHAIN_TOKENS.USDC,
+    const prepared = await sdk.preparePermit2BatchData({
+      tokens: [UNICHAIN_TOKENS.USDC],
       owner: TEST_OWNER,
       spender,
     });
 
-    const signed = prepared.buildPermit2DataWithSignature(TEST_SIGNATURE);
+    const signed = prepared.buildPermit2BatchDataWithSignature(TEST_SIGNATURE);
 
-    expect(prepared.toSign.primaryType).toBe("PermitSingle");
+    expect(prepared.toSign.primaryType).toBe("PermitBatch");
     expect(prepared.toSign.domain.chainId).toBe(unichain.id);
-    expect(prepared.permit.details.token.toLowerCase()).toBe(UNICHAIN_TOKENS.USDC.toLowerCase());
-    expect(prepared.permit.spender.toLowerCase()).toBe(spender.toLowerCase());
-    expect(prepared.permit.details.nonce).toBe("0");
-    expect(prepared.permit.details.expiration).toBe(expectedSigDeadline.toString());
-    expect(prepared.permit.sigDeadline).toBe(expectedSigDeadline);
+    expect(prepared.permitBatch.details).toEqual([
+      {
+        token: UNICHAIN_TOKENS.USDC,
+        amount: maxUint160.toString(),
+        expiration: expectedSigDeadline.toString(),
+        nonce: "0",
+      },
+    ]);
+    expect(prepared.permitBatch.spender.toLowerCase()).toBe(spender.toLowerCase());
+    expect(BigInt(prepared.permitBatch.sigDeadline.toString())).toBe(expectedSigDeadline);
 
     expect(signed.owner.toLowerCase()).toBe(TEST_OWNER.toLowerCase());
     expect(signed.signature).toBe(TEST_SIGNATURE);
-    expect(signed.permit.spender.toLowerCase()).toBe(spender.toLowerCase());
+    expect(signed.permitBatch.spender.toLowerCase()).toBe(spender.toLowerCase());
   });
 });

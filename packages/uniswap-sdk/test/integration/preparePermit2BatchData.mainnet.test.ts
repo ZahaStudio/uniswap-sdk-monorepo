@@ -1,4 +1,4 @@
-import type { Hex } from "viem";
+import { maxUint160, type Hex } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
@@ -29,10 +29,9 @@ describe("preparePermit2BatchData (unichain rpc)", () => {
     expect(prepared.permitBatch.details).toEqual([
       {
         token: UNICHAIN_TOKENS.USDC,
-        //  max uint160 value
-        amount: "1461501637330902918203684832716283019655932542975",
-        expiration: 0,
-        nonce: 0,
+        amount: maxUint160.toString(),
+        expiration: expectedSigDeadline.toString(),
+        nonce: "0",
       },
     ]);
     expect(prepared.permitBatch.spender.toLowerCase()).toBe(spender.toLowerCase());

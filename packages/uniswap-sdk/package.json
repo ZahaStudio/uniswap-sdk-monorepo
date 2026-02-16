@@ -16,7 +16,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ci": "pnpm run typecheck && pnpm run test",
-    "verify:official-calldata": "node --experimental-strip-types scripts/verify-official-uniswap-calldata.ts",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "devDependencies": {
