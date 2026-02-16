@@ -65,7 +65,7 @@ export const swapKeys = {
       poolKey.fee,
       poolKey.tickSpacing,
       poolKey.hooks,
-      amountIn,
+      amountIn.toString(),
       zeroForOne,
       slippageBps,
       chainId,
