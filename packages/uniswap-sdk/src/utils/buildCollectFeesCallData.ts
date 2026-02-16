@@ -1,7 +1,9 @@
 import { V4PositionManager } from "@uniswap/v4-sdk";
+import type { Address } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
+import type { BuildCallDataResult } from "@/utils/buildAddLiquidityCallData";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { getPosition } from "@/utils/getPosition";
 
@@ -17,7 +19,7 @@ export interface BuildCollectFeesCallDataArgs {
   /**
    * The recipient address for collected fees.
    */
-  recipient: string;
+  recipient: Address;
 
   /**
    * Deadline duration in seconds from current block timestamp.
@@ -51,7 +53,7 @@ export interface BuildCollectFeesCallDataArgs {
 export async function buildCollectFeesCallData(
   { tokenId, recipient, deadlineDuration }: BuildCollectFeesCallDataArgs,
   instance: UniswapSDKInstance,
-) {
+): Promise<BuildCallDataResult> {
   const positionData = await getPosition(tokenId, instance);
   if (!positionData) {
     throw new Error("Position not found");

@@ -5,7 +5,6 @@ import { useCallback } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   calculateMinimumOutput,
-  type FeeTier,
   type PoolKey,
   type QuoteResponse,
   type SwapExactInSingle,
@@ -45,12 +44,6 @@ export interface QuoteData extends QuoteResponse {
   /** Minimum output after applying slippage tolerance */
   minAmountOut: bigint;
 }
-
-/**
- * Permit2 signing step state — re-exported from the primitive hook.
- * @see UsePermit2SignStep
- */
-export type { UsePermit2SignStep };
 
 /**
  * Swap execution step state.
@@ -195,7 +188,12 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   const permit2 = usePermit2(
     {
-      tokens: [{ address: inputToken, amount: amountIn }],
+      tokens: [
+        {
+          address: inputToken,
+          amount: amountIn,
+        },
+      ],
       spender: universalRouter,
     },
     {
@@ -221,15 +219,9 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         throw new Error("Permit2 signature required");
       }
 
-      const permit2Signature = permit2Signed?.kind === "single" ? permit2Signed.data : undefined;
+      const permit2Signature = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
 
-      const pool = await sdk.getPool({
-        currencyA: poolKey.currency0 as Address,
-        currencyB: poolKey.currency1 as Address,
-        fee: poolKey.fee as FeeTier,
-        tickSpacing: poolKey.tickSpacing,
-        hooks: poolKey.hooks as Address,
-      });
+      const pool = await sdk.getPool(poolKey);
 
       const calldata = await sdk.buildSwapCallData({
         pool,
@@ -247,16 +239,11 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       });
     },
     [
+      sdk,
       connectedAddress,
       quoteQuery.data,
-      sdk,
-      permit2.permit2.isRequired,
-      permit2.permit2.signed,
-      poolKey.currency0,
-      poolKey.currency1,
-      poolKey.fee,
-      poolKey.tickSpacing,
-      poolKey.hooks,
+      permit2.permit2,
+      poolKey,
       amountIn,
       zeroForOne,
       recipient,

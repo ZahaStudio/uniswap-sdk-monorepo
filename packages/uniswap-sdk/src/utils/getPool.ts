@@ -1,64 +1,25 @@
-import { Pool } from "@uniswap/v4-sdk";
+import { Pool, type PoolKey } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-import { getTickSpacingForFee } from "@/helpers/fees";
 import { sortTokens } from "@/helpers/tokens";
 import { getTokens } from "@/utils/getTokens";
 
 export const DEFAULT_HOOKS = zeroAddress;
 
 /**
- * Standard fee tiers for Uniswap V4 pools.
- */
-export enum FeeTier {
-  LOWEST = 100, // 0.01%
-  LOW = 500, // 0.05%
-  MEDIUM = 3000, // 0.3%
-  HIGH = 10000, // 1%
-}
-
-/**
- * Maps fee tiers to their corresponding tick spacing.
- * Following Uniswap V4's standard configurations.
- */
-export const TICK_SPACING_BY_FEE: Record<FeeTier, number> = {
-  [FeeTier.LOWEST]: 1,
-  [FeeTier.LOW]: 10,
-  [FeeTier.MEDIUM]: 60,
-  [FeeTier.HIGH]: 200,
-};
-
-/**
- * Parameters for retrieving a Uniswap V4 pool instance.
- * Aligned with Uniswap V4 SDK Pool constructor parameters.
- */
-export interface PoolArgs {
-  /** First currency in the pool pair */
-  currencyA: Address;
-  /** Second currency in the pool pair */
-  currencyB: Address;
-  /** Fee tier of the pool (default: FeeTier.MEDIUM) */
-  fee: FeeTier;
-  /** Tick spacing for the pool (default: derived from fee tier) */
-  tickSpacing?: number;
-  /** Hooks contract address (default: DEFAULT_HOOKS) */
-  hooks?: `0x${string}`;
-}
-
-/**
- * Retrieves a Uniswap V4 pool instance for a given currency pair, fee tier, tick spacing, and hooks configuration.
- * @param args Pool arguments including currencyA, currencyB, fee tier, tick spacing, and hooks configuration
- * @param instance UniswapSDKInstance
+ * Retrieves a Uniswap V4 pool instance for a given pool key.
+ * @param poolKey - V4 pool key: currency0, currency1, fee, tickSpacing, hooks
+ * @param instance - UniswapSDKInstance
  * @returns Promise resolving to pool data
  * @throws Error if SDK instance or token instances are not found or if pool data is not found
  */
-export async function getPool(args: PoolArgs, instance: UniswapSDKInstance): Promise<Pool> {
-  const { currencyA, currencyB, fee, tickSpacing, hooks = DEFAULT_HOOKS } = args;
+export async function getPool(poolKey: PoolKey, instance: UniswapSDKInstance): Promise<Pool> {
+  const { currency0, currency1, fee, tickSpacing, hooks } = poolKey;
 
-  const [_currencyA, _currencyB] = sortTokens(currencyA, currencyB);
+  const [_currencyA, _currencyB] = sortTokens(currency0 as Address, currency1 as Address);
   const tokenInstances = await getTokens(
     {
       addresses: [_currencyA, _currencyB],
@@ -66,10 +27,7 @@ export async function getPool(args: PoolArgs, instance: UniswapSDKInstance): Pro
     instance,
   );
 
-  // Use provided tick spacing or derive from fee tier
-  const _tickSpacing = tickSpacing ?? getTickSpacingForFee(fee);
-
-  const poolId32Bytes = Pool.getPoolId(tokenInstances[0], tokenInstances[1], fee, _tickSpacing, hooks) as `0x${string}`;
+  const poolId32Bytes = Pool.getPoolId(tokenInstances[0], tokenInstances[1], fee, tickSpacing, hooks) as Hex;
 
   const { client, contracts } = instance;
   const { stateView } = contracts;
@@ -108,7 +66,7 @@ export async function getPool(args: PoolArgs, instance: UniswapSDKInstance): Pro
       tokenInstances[0],
       tokenInstances[1],
       fee,
-      _tickSpacing,
+      tickSpacing,
       hooks,
       slot0Data[0].toString(),
       liquidityData.toString(),
@@ -117,6 +75,6 @@ export async function getPool(args: PoolArgs, instance: UniswapSDKInstance): Pro
 
     return pool;
   } catch (error) {
-    throw new Error(`Error creating pool instance: ${(error as Error).message}`);
+    throw new Error(`Error creating pool instance: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

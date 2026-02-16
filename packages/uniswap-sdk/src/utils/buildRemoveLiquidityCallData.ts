@@ -2,6 +2,7 @@ import { V4PositionManager } from "@uniswap/v4-sdk";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { percentFromBips } from "@/helpers/percent";
+import type { BuildCallDataResult } from "@/utils/buildAddLiquidityCallData";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { getPosition } from "@/utils/getPosition";
 
@@ -54,7 +55,7 @@ export interface BuildRemoveLiquidityCallDataArgs {
 export async function buildRemoveLiquidityCallData(
   { liquidityPercentage, deadlineDuration, slippageTolerance, tokenId }: BuildRemoveLiquidityCallDataArgs,
   instance: UniswapSDKInstance,
-) {
+): Promise<BuildCallDataResult> {
   // Get position data
   const positionData = await getPosition(tokenId, instance);
   if (!positionData) {
