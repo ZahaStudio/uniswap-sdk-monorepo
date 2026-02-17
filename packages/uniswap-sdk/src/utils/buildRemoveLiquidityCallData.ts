@@ -56,16 +56,25 @@ export async function buildRemoveLiquidityCallData(
   { liquidityPercentage, deadlineDuration, slippageTolerance, tokenId }: BuildRemoveLiquidityCallDataArgs,
   instance: UniswapSDKInstance,
 ): Promise<BuildCallDataResult> {
-  // Get position data
-  const positionData = await getPosition(tokenId, instance);
-  if (!positionData) {
-    throw new Error("Position not found");
+  if (liquidityPercentage < 0 || liquidityPercentage > 10_000) {
+    throw new Error(
+      `Invalid liquidityPercentage: ${liquidityPercentage}. Must be between 0 and 10000 basis points (0-100%).`,
+    );
   }
+
+  const resolvedSlippage = slippageTolerance ?? instance.defaultSlippageTolerance;
+  if (resolvedSlippage < 0 || resolvedSlippage > 10_000) {
+    throw new Error(
+      `Invalid slippageTolerance: ${resolvedSlippage}. Must be between 0 and 10000 basis points (0-100%).`,
+    );
+  }
+
+  const positionData = await getPosition(tokenId, instance);
 
   const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 
   const { calldata, value } = V4PositionManager.removeCallParameters(positionData.position, {
-    slippageTolerance: percentFromBips(slippageTolerance ?? instance.defaultSlippageTolerance),
+    slippageTolerance: percentFromBips(resolvedSlippage),
     deadline,
     liquidityPercentage: percentFromBips(liquidityPercentage),
     tokenId,

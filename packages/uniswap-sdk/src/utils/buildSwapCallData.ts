@@ -65,6 +65,14 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
     useNativeETH,
   } = params;
 
+  if (amountIn <= 0n) {
+    throw new Error(`Invalid amountIn: ${amountIn}. Must be a positive value.`);
+  }
+
+  if (amountOutMinimum < 0n) {
+    throw new Error(`Invalid amountOutMinimum: ${amountOutMinimum}. Must be non-negative.`);
+  }
+
   const v4Planner = new V4Planner();
   const routePlanner = new RoutePlanner();
 

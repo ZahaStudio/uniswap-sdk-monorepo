@@ -1,7 +1,7 @@
 import type { SwapExactInSingle as UniswapSwapExactInSingle } from "@uniswap/v4-sdk";
 import { Pool } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { getTokens } from "@/utils/getTokens";
@@ -28,10 +28,7 @@ export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKIns
   const { poolKey, tick } = args;
 
   // Create Token instances for currency0 and currency1 in the provided order
-  const tokens = await getTokens(
-    { addresses: [poolKey.currency0 as Address, poolKey.currency1 as Address] },
-    instance,
-  );
+  const tokens = await getTokens({ addresses: [poolKey.currency0 as Address, poolKey.currency1 as Address] }, instance);
 
   if (!tokens || tokens.length < 2) {
     throw new Error("Failed to fetch token instances");
@@ -40,13 +37,7 @@ export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKIns
   const [currency0, currency1] = tokens;
 
   // Compute PoolId from PoolKey components
-  const poolId32Bytes = Pool.getPoolId(
-    currency0,
-    currency1,
-    poolKey.fee,
-    poolKey.tickSpacing,
-    poolKey.hooks as Address,
-  ) as Address;
+  const poolId32Bytes = Pool.getPoolId(currency0, currency1, poolKey.fee, poolKey.tickSpacing, poolKey.hooks) as Hex;
 
   // Read tick info
   const result = await client.readContract({
@@ -58,8 +49,7 @@ export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKIns
 
   // V4 StateView getTickInfo returns:
   // (uint128 liquidityGross, int128 liquidityNet, uint256 feeGrowthOutside0X128, uint256 feeGrowthOutside1X128)
-  const typedResult = result as readonly [bigint, bigint, bigint, bigint];
-  const [liquidityGross, liquidityNet, feeGrowthOutside0X128, feeGrowthOutside1X128] = typedResult;
+  const [liquidityGross, liquidityNet, feeGrowthOutside0X128, feeGrowthOutside1X128] = result;
 
   return {
     liquidityGross,
