@@ -14,6 +14,8 @@
     "dev": "tsdown --watch",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "test": "pnpm --filter @zahastudio/uniswap-sdk build && vitest run",
+    "test:ci": "pnpm run typecheck && pnpm run test",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "peerDependencies": {
@@ -29,14 +31,18 @@
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",
+    "jsdom": "^27.2.0",
     "react": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "viem": "catalog:",
+    "vitest": "^4.0.18",
     "wagmi": "catalog:"
   },
   "publishConfig": {

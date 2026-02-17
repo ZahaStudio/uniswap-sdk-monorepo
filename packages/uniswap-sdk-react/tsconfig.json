@@ -1,10 +1,12 @@
 {
   "extends": "@acme/tsconfig/base.json",
-  "include": ["."],
   "compilerOptions": {
+    "types": ["vitest/globals", "node"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/test/*": ["./test/*"]
     }
   },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx", "vitest.config.ts"],
   "exclude": ["dist", "build", "node_modules"]
 }
