@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { ClientProviders } from "./client-providers";
+import { Providers } from "./providers";
 
 import "./globals.css";
 
@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className="dark"
     >
       <body className="bg-background min-h-screen antialiased">
-        <ClientProviders>{children}</ClientProviders>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 import type { SwapExactInSingle as UniswapSwapExactInSingle } from "@uniswap/v4-sdk";
 import { v4 } from "hookmate/abi";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
@@ -107,7 +107,7 @@ export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKIn
       },
       zeroForOne: params.zeroForOne,
       exactAmount: BigInt(params.amountIn),
-      hookData: (params.hookData || "0x") as Address,
+      hookData: (params.hookData || "0x") as Hex,
     };
 
     // Simulate the quote to estimate the amount out
@@ -126,7 +126,6 @@ export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKIn
       timestamp: Date.now(),
     };
   } catch (error) {
-    console.error("Error simulating quote:", error);
     throw new Error(`Failed to fetch quote: ${error instanceof Error ? error.message : String(error)}`);
   }
 }

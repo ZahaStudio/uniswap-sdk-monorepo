@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useSwap, useToken, type SwapStep } from "@zahastudio/uniswap-sdk-react";
+import type { Address } from "viem";
 import { useAccount } from "wagmi";
 
 import { StepIndicator } from "@/components/step-indicator";
@@ -11,9 +12,10 @@ import { SwapDetails } from "@/components/swap-details";
 import { TokenInput } from "@/components/token-input";
 import { TransactionStatus } from "@/components/transaction-status";
 import {
-  SWAP_PRESETS,
-  type SwapPairPreset,
-  getPoolKeyFromPreset,
+  POOL_PRESETS,
+  type PoolPreset,
+  type TokenInfo,
+  buildTokenInfo,
   parseTokenAmount,
   formatTokenAmount,
 } from "@/lib/tokens";
@@ -26,26 +28,71 @@ function shouldShowExecutionError(message: string): boolean {
   return !normalizedMessage.includes("user rejected") && !normalizedMessage.includes("user denied");
 }
 
+/** Fallback TokenInfo while on-chain data is loading. */
+function placeholderToken(address: Address): TokenInfo {
+  return buildTokenInfo(address, "...", "", 18);
+}
+
 export function SwapDemo() {
   const { isConnected } = useAccount();
 
-  const [selectedPreset, setSelectedPreset] = useState<SwapPairPreset>(SWAP_PRESETS[1]!);
-  const [amountInput, setAmountInput] = useState(selectedPreset.defaultAmount);
+  const [selectedPreset, setSelectedPreset] = useState<PoolPreset>(POOL_PRESETS[0]!);
+  const [zeroForOne, setZeroForOne] = useState(selectedPreset.zeroForOne);
+  const [amountInput, setAmountInput] = useState("");
+  const [useNativeETH, setUseNativeETH] = useState(false);
 
-  const handlePresetChange = useCallback((preset: SwapPairPreset) => {
+  const handlePresetChange = useCallback((preset: PoolPreset) => {
     setSelectedPreset(preset);
-    setAmountInput(preset.defaultAmount);
+    setZeroForOne(preset.zeroForOne);
+    setAmountInput("");
   }, []);
 
-  const { poolKey, zeroForOne } = useMemo(() => getPoolKeyFromPreset(selectedPreset), [selectedPreset]);
+  const handleFlipDirection = useCallback(() => {
+    setZeroForOne((prev) => !prev);
+    setAmountInput("");
+  }, []);
 
-  const amountInRaw = useMemo(
-    () => parseTokenAmount(amountInput, selectedPreset.tokenIn.decimals),
-    [amountInput, selectedPreset.tokenIn.decimals],
+  const { poolKey } = selectedPreset;
+
+  // Fetch on-chain token metadata for both currencies
+  const { query: currency0Query } = useToken(
+    { tokenAddress: poolKey.currency0 as Address },
+    { enabled: true, chainId: 1 },
+  );
+  const { query: currency1Query } = useToken(
+    { tokenAddress: poolKey.currency1 as Address },
+    { enabled: true, chainId: 1 },
   );
 
+  const currency0Token: TokenInfo = currency0Query.data
+    ? buildTokenInfo(
+        currency0Query.data.token.address,
+        currency0Query.data.token.symbol,
+        currency0Query.data.token.name,
+        currency0Query.data.token.decimals,
+      )
+    : placeholderToken(poolKey.currency0 as Address);
+
+  const currency1Token: TokenInfo = currency1Query.data
+    ? buildTokenInfo(
+        currency1Query.data.token.address,
+        currency1Query.data.token.symbol,
+        currency1Query.data.token.name,
+        currency1Query.data.token.decimals,
+      )
+    : placeholderToken(poolKey.currency1 as Address);
+
+  const tokenIn = zeroForOne ? currency0Token : currency1Token;
+  const tokenOut = zeroForOne ? currency1Token : currency0Token;
+
+  const amountInRaw = useMemo(
+    () => parseTokenAmount(amountInput, tokenIn.decimals),
+    [amountInput, tokenIn.decimals],
+  );
+
+  // Fetch balance for the input token
   const { query: tokenInQuery } = useToken(
-    { tokenAddress: selectedPreset.tokenIn.address },
+    { tokenAddress: tokenIn.address },
     {
       enabled: isConnected,
       chainId: 1,
@@ -64,7 +111,8 @@ export function SwapDemo() {
       poolKey,
       amountIn: amountInRaw,
       zeroForOne,
-      slippageBps: 50, // 0.5%
+      slippageBps: 50,
+      useNativeETH: useNativeETH || undefined,
     },
     {
       enabled: amountInRaw > 0n,
@@ -111,10 +159,10 @@ export function SwapDemo() {
   }, [quoteRefetch]);
 
   const outputDisplay = quoteData
-    ? formatTokenAmount(quoteData.amountOut, selectedPreset.tokenOut.decimals)
+    ? formatTokenAmount(quoteData.amountOut, tokenOut.decimals)
     : undefined;
   const minOutputDisplay = quoteData
-    ? formatTokenAmount(quoteData.minAmountOut, selectedPreset.tokenOut.decimals)
+    ? formatTokenAmount(quoteData.minAmountOut, tokenOut.decimals)
     : undefined;
 
   const [executing, setExecuting] = useState(false);
@@ -174,17 +222,38 @@ export function SwapDemo() {
     reset();
     setTxError(null);
     setExecuting(false);
-    // Refresh quote + balance for the next swap
     tokenInQuery.refetch();
     quoteRefetch();
     lastRefreshRef.current = Date.now();
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
   }, [reset, quoteRefetch, tokenInQuery]);
 
+  const isNativeInput = tokenIn.address === "0x0000000000000000000000000000000000000000";
+
   return (
     <div className="flex w-full items-start justify-center gap-6">
-      {/* Lifecycle panel (left) */}
+      {/* Left panel: Lifecycle + Settings */}
       <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
+        {/* Settings panel */}
+        <div className="border-border-muted bg-surface rounded-xl border p-4">
+          <div className="text-text-muted mb-3 text-xs font-medium">Settings</div>
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={useNativeETH}
+              onChange={(e) => setUseNativeETH(e.target.checked)}
+              className="accent-accent h-3.5 w-3.5 rounded"
+            />
+            <div>
+              <div className="text-text-secondary text-xs font-medium">Use native ETH</div>
+              <div className="text-text-muted text-[11px]">
+                Wrap/unwrap ETH for WETH pools
+              </div>
+            </div>
+          </label>
+        </div>
+
+        {/* Lifecycle panel */}
         {isConnected && quoteData ? (
           <>
             <StepIndicator
@@ -192,7 +261,7 @@ export function SwapDemo() {
               approval={steps.approval}
               permit2={steps.permit2}
               swapTx={steps.swap.transaction}
-              isNativeInput={selectedPreset.tokenIn.address === "0x0000000000000000000000000000000000000000"}
+              isNativeInput={isNativeInput}
             />
             {steps.swap.transaction.status !== "idle" && (
               <TransactionStatus
@@ -219,21 +288,15 @@ export function SwapDemo() {
 
       {/* Main content (right) */}
       <div className="w-full min-w-120 max-w-120 space-y-4">
-        {/* Pair selector tabs */}
+        {/* Pool selector tabs */}
         <div className="flex gap-2">
-          {SWAP_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
+          {POOL_PRESETS.map((preset) => (
+            <PoolTab
+              key={preset.poolId}
+              preset={preset}
+              isSelected={selectedPreset.poolId === preset.poolId}
               onClick={() => handlePresetChange(preset)}
-              className={cn(
-                "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
-                selectedPreset.id === preset.id
-                  ? "border-accent/30 bg-accent-muted text-accent"
-                  : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
-              )}
-            >
-              {preset.label}
-            </button>
+            />
           ))}
         </div>
 
@@ -274,7 +337,7 @@ export function SwapDemo() {
           {/* Input */}
           <TokenInput
             label="You pay"
-            token={selectedPreset.tokenIn}
+            token={tokenIn}
             value={amountInput}
             onChange={setAmountInput}
             disabled={executing || isSwapConfirmed}
@@ -283,10 +346,14 @@ export function SwapDemo() {
             onMaxClick={handleMaxClick}
           />
 
-          {/* Arrow divider */}
+          {/* Arrow divider — clickable flip button */}
           <div className="relative my-1 flex items-center justify-center">
             <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
-            <div className="border-border-muted bg-surface-raised relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border">
+            <button
+              onClick={handleFlipDirection}
+              disabled={executing || isSwapConfirmed}
+              className="border-border-muted bg-surface-raised hover:bg-surface-hover relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            >
               <svg
                 width="14"
                 height="14"
@@ -295,20 +362,20 @@ export function SwapDemo() {
                 className="text-text-secondary"
               >
                 <path
-                  d="M12 5v14M19 12l-7 7-7-7"
+                  d="M7 4v16M7 20l-4-4m4 4 4-4M17 20V4m0 0 4 4m-4-4-4 4"
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 />
               </svg>
-            </div>
+            </button>
           </div>
 
           {/* Output */}
           <TokenInput
             label="You receive"
-            token={selectedPreset.tokenOut}
+            token={tokenOut}
             value={outputDisplay ?? ""}
             readOnly
             loading={quoteLoading}
@@ -353,7 +420,7 @@ export function SwapDemo() {
           {quoteData && (
             <SwapDetails
               minOutput={minOutputDisplay!}
-              outputSymbol={selectedPreset.tokenOut.symbol}
+              outputSymbol={tokenOut.symbol}
               slippageBps={50}
             />
           )}
@@ -416,6 +483,30 @@ export function SwapDemo() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Pool selector tab that derives its label from on-chain token symbols.
+ */
+function PoolTab({ preset, isSelected, onClick }: { preset: PoolPreset; isSelected: boolean; onClick: () => void }) {
+  const { query: c0 } = useToken({ tokenAddress: preset.poolKey.currency0 as Address }, { enabled: true, chainId: 1 });
+  const { query: c1 } = useToken({ tokenAddress: preset.poolKey.currency1 as Address }, { enabled: true, chainId: 1 });
+
+  const label = c0.data && c1.data ? `${c0.data.token.symbol} / ${c1.data.token.symbol}` : "...";
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
+        isSelected
+          ? "border-accent/30 bg-accent-muted text-accent"
+          : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 

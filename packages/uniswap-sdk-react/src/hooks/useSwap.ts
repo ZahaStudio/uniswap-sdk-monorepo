@@ -8,6 +8,7 @@ import {
   type PoolKey,
   type QuoteResponse,
   type SwapExactInSingle,
+  WETH_ADDRESS,
 } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
@@ -35,6 +36,8 @@ export interface UseSwapParams {
   recipient?: Address;
   /** Slippage tolerance in basis points (default: 50 = 0.5%) */
   slippageBps?: number;
+  /** When true, wraps/unwraps native ETH for WETH-denominated pools */
+  useNativeETH?: boolean;
 }
 
 /**
@@ -137,7 +140,14 @@ function assertPermit2Satisfied(isRequired: boolean, isSigned: boolean): void {
  * ```
  */
 export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): UseSwapReturn {
-  const { poolKey, amountIn, zeroForOne, recipient: recipientOverride, slippageBps: slippageBpsParam } = params;
+  const {
+    poolKey,
+    amountIn,
+    zeroForOne,
+    recipient: recipientOverride,
+    slippageBps: slippageBpsParam,
+    useNativeETH,
+  } = params;
   const { enabled = true, refetchInterval = false, chainId: chainIdOverride } = options;
 
   const { sdk, chainId } = useUniswapSDK({ chainId: chainIdOverride });
@@ -148,6 +158,9 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   const inputToken = (zeroForOne ? poolKey.currency0 : poolKey.currency1) as Address;
   const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
+
+  // When useNativeETH is set, check if the input side is the WETH token
+  const isNativeETHInput = useNativeETH ? inputToken.toLowerCase() === WETH_ADDRESS(chainId).toLowerCase() : false;
 
   const hasValidAmount = amountIn > 0n;
   const isWalletReady = !!connectedAddress;
@@ -186,6 +199,9 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     },
   });
 
+  // Skip permit2 when paying with native ETH (either native pool or WETH wrapping)
+  const skipPermit2 = isNativeInput || isNativeETHInput;
+
   const permit2 = usePermit2(
     {
       tokens: [
@@ -197,7 +213,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       spender: universalRouter,
     },
     {
-      enabled: isSwapEnabled,
+      enabled: isSwapEnabled && !skipPermit2,
       chainId,
     },
   );
@@ -230,12 +246,13 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         zeroForOne,
         recipient: recipient ?? connectedAddress,
         permit2Signature,
+        useNativeETH,
       });
 
       return swapTransaction.sendTransaction({
         to: universalRouter,
         data: calldata,
-        value: isNativeInput ? amountIn : 0n,
+        value: isNativeInput || isNativeETHInput ? amountIn : 0n,
       });
     },
     [
@@ -250,6 +267,8 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       swapTransaction,
       universalRouter,
       isNativeInput,
+      isNativeETHInput,
+      useNativeETH,
     ],
   );
 
