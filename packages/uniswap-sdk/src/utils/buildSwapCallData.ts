@@ -101,7 +101,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
         hookData: "0x",
       },
     ]);
-    v4Planner.addSettle(zeroForOne ? pool.currency0 : pool.currency1, true);
+    v4Planner.addSettle(zeroForOne ? pool.currency0 : pool.currency1, !wrapInput);
     v4Planner.addTake(zeroForOne ? pool.currency1 : pool.currency0, unwrapOutput ? ROUTER_AS_RECIPIENT : recipient);
   }
 
@@ -112,7 +112,10 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   const finalInputs: Hex[] = [];
 
   if (permit2Signature) {
-    routePlanner.addCommand(CommandType.PERMIT2_PERMIT_BATCH, [permit2Signature.permitBatch, permit2Signature.signature]);
+    routePlanner.addCommand(CommandType.PERMIT2_PERMIT_BATCH, [
+      permit2Signature.permitBatch,
+      permit2Signature.signature,
+    ]);
     finalInputs.push(routePlanner.inputs.at(-1) as Hex);
   }
 
