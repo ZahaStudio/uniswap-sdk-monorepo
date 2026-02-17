@@ -116,6 +116,10 @@ export class UniswapSDK {
    * @param options - Optional configuration: contracts, cache, defaultDeadline, defaultSlippageTolerance
    */
   public static create(client: PublicClient, chainId: number, options: UniswapSDKOptions = {}): UniswapSDK {
+    if (!Number.isInteger(chainId) || chainId <= 0) {
+      throw new Error(`Invalid chainId: ${chainId}. Must be a positive integer.`);
+    }
+
     const chain = getChainById(chainId);
     const uniswapContracts = getUniswapContracts(chainId);
 
@@ -125,6 +129,16 @@ export class UniswapSDK {
       defaultDeadline = 10 * 60, // 10 minutes
       defaultSlippageTolerance = 50, // 0.5%
     } = options;
+
+    if (defaultDeadline <= 0) {
+      throw new Error(`Invalid defaultDeadline: ${defaultDeadline}. Must be a positive number of seconds.`);
+    }
+
+    if (defaultSlippageTolerance < 0 || defaultSlippageTolerance > 100_00) {
+      throw new Error(
+        `Invalid defaultSlippageTolerance: ${defaultSlippageTolerance}. Must be between 0 and 10000 basis points (0-100%).`,
+      );
+    }
 
     const resolvedContracts =
       contracts ??
@@ -362,5 +376,4 @@ export class UniswapSDK {
   public async preparePermit2BatchData(args: PreparePermit2BatchDataArgs): Promise<PreparePermit2BatchDataResult> {
     return preparePermit2BatchData(args, this.instance);
   }
-
 }

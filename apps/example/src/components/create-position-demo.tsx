@@ -3,43 +3,25 @@
 import { useState, useMemo, useCallback } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { sortTokens } from "@zahastudio/uniswap-sdk";
 import { useCreatePosition, useToken, type AddLiquidityStep } from "@zahastudio/uniswap-sdk-react";
+import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
 import { TokenInput } from "@/components/token-input";
 import { TransactionStatus } from "@/components/transaction-status";
-import { ETH, USDC, USDT, type TokenInfo, parseTokenAmount } from "@/lib/tokens";
+import {
+  ETH_USDC_POOL,
+  USDC_USDT_POOL,
+  type PoolPreset,
+  type TokenInfo,
+  buildTokenInfo,
+  parseTokenAmount,
+} from "@/lib/tokens";
 import { cn } from "@/lib/utils";
 
-interface PoolPreset {
-  id: string;
-  label: string;
-  token0: TokenInfo;
-  token1: TokenInfo;
-  fee: number;
-  tickSpacing: number;
-}
-
-const POOL_PRESETS: PoolPreset[] = [
-  {
-    id: "eth-usdc",
-    label: "ETH / USDC",
-    token0: ETH,
-    token1: USDC,
-    fee: 3000,
-    tickSpacing: 60,
-  },
-  {
-    id: "usdc-usdt",
-    label: "USDC / USDT",
-    token0: USDC,
-    token1: USDT,
-    fee: 100,
-    tickSpacing: 1,
-  },
-];
+/** Presets available for position creation (subset of all pools). */
+const POSITION_PRESETS: PoolPreset[] = [ETH_USDC_POOL, USDC_USDT_POOL];
 
 function shouldShowExecutionError(message: string): boolean {
   const normalized = message.toLowerCase();
@@ -61,15 +43,20 @@ function getStepActionLabel(step: AddLiquidityStep): string {
   }
 }
 
+/** Fallback TokenInfo while on-chain data is loading. */
+function placeholderToken(address: Address): TokenInfo {
+  return buildTokenInfo(address, "...", "", 18);
+}
+
 export function CreatePositionDemo() {
   const { address, isConnected } = useAccount();
 
-  const [selectedPreset, setSelectedPreset] = useState<PoolPreset>(POOL_PRESETS[0]!);
+  const [selectedPreset, setSelectedPreset] = useState<PoolPreset>(POSITION_PRESETS[0]!);
   const [amount0Input, setAmount0Input] = useState("");
   const [amount1Input, setAmount1Input] = useState("");
   const [tickLowerInput, setTickLowerInput] = useState("");
   const [tickUpperInput, setTickUpperInput] = useState("");
-  // Track which user-facing token was last manually edited (0 = preset.token0, 1 = preset.token1)
+  // Track which currency was last manually edited (0 = currency0, 1 = currency1)
   const [lastEdited, setLastEdited] = useState<0 | 1>(0);
 
   const handlePresetChange = useCallback((preset: PoolPreset) => {
@@ -80,32 +67,41 @@ export function CreatePositionDemo() {
     setTickUpperInput("");
   }, []);
 
-  const [currency0, currency1] = useMemo(
-    () => sortTokens(selectedPreset.token0.address, selectedPreset.token1.address),
-    [selectedPreset],
+  const { poolKey } = selectedPreset;
+
+  // Fetch on-chain token metadata for both currencies
+  const { query: currency0Query } = useToken(
+    { tokenAddress: poolKey.currency0 as Address },
+    { enabled: true, chainId: 1 },
+  );
+  const { query: currency1Query } = useToken(
+    { tokenAddress: poolKey.currency1 as Address },
+    { enabled: true, chainId: 1 },
   );
 
-  // Determine which token is currency0 and which is currency1 after sorting
-  const token0IsCurrencyA = selectedPreset.token0.address.toLowerCase() === currency0.toLowerCase();
-  const sortedToken0 = token0IsCurrencyA ? selectedPreset.token0 : selectedPreset.token1;
-  const sortedToken1 = token0IsCurrencyA ? selectedPreset.token1 : selectedPreset.token0;
+  const token0: TokenInfo = currency0Query.data
+    ? buildTokenInfo(
+        currency0Query.data.token.address,
+        currency0Query.data.token.symbol,
+        currency0Query.data.token.name,
+        currency0Query.data.token.decimals,
+      )
+    : placeholderToken(poolKey.currency0 as Address);
 
-  // Map user-facing amounts to sorted (pool-order) amounts for the SDK
-  const sortedAmount0Input = token0IsCurrencyA ? amount0Input : amount1Input;
-  const sortedAmount1Input = token0IsCurrencyA ? amount1Input : amount0Input;
+  const token1: TokenInfo = currency1Query.data
+    ? buildTokenInfo(
+        currency1Query.data.token.address,
+        currency1Query.data.token.symbol,
+        currency1Query.data.token.name,
+        currency1Query.data.token.decimals,
+      )
+    : placeholderToken(poolKey.currency1 as Address);
 
-  // Parse the user-edited amount only — the hook computes the other
-  const lastEditedIsSorted0 = lastEdited === 0 ? token0IsCurrencyA : !token0IsCurrencyA;
-  const parsedAmount0 = useMemo(
-    () => parseTokenAmount(sortedAmount0Input, sortedToken0.decimals),
-    [sortedAmount0Input, sortedToken0.decimals],
-  );
-  const parsedAmount1 = useMemo(
-    () => parseTokenAmount(sortedAmount1Input, sortedToken1.decimals),
-    [sortedAmount1Input, sortedToken1.decimals],
-  );
-  const hookAmount0 = lastEditedIsSorted0 ? parsedAmount0 : undefined;
-  const hookAmount1 = lastEditedIsSorted0 ? undefined : parsedAmount1;
+  // Parse amounts — the user edits one, the hook computes the other
+  const parsedAmount0 = useMemo(() => parseTokenAmount(amount0Input, token0.decimals), [amount0Input, token0.decimals]);
+  const parsedAmount1 = useMemo(() => parseTokenAmount(amount1Input, token1.decimals), [amount1Input, token1.decimals]);
+  const hookAmount0 = lastEdited === 0 ? parsedAmount0 : undefined;
+  const hookAmount1 = lastEdited === 0 ? undefined : parsedAmount1;
 
   // Parse tick inputs for the hook
   const hookTickLower = tickLowerInput ? parseInt(tickLowerInput, 10) : undefined;
@@ -113,13 +109,7 @@ export function CreatePositionDemo() {
 
   const create = useCreatePosition(
     {
-      poolKey: {
-        currency0,
-        currency1,
-        fee: selectedPreset.fee,
-        tickSpacing: selectedPreset.tickSpacing,
-        hooks: zeroAddress,
-      },
+      poolKey,
       amount0: hookAmount0,
       amount1: hookAmount1,
       tickLower: hookTickLower,
@@ -134,30 +124,29 @@ export function CreatePositionDemo() {
   const pool = poolQuery.data;
 
   // Token balance queries
-  const { query: token0Query } = useToken(
-    { tokenAddress: selectedPreset.token0.address },
+  const { query: token0BalQuery } = useToken(
+    { tokenAddress: poolKey.currency0 as Address },
     { enabled: isConnected, chainId: 1, refetchInterval: 15_000 },
   );
-  const { query: token1Query } = useToken(
-    { tokenAddress: selectedPreset.token1.address },
+  const { query: token1BalQuery } = useToken(
+    { tokenAddress: poolKey.currency1 as Address },
     { enabled: isConnected, chainId: 1, refetchInterval: 15_000 },
   );
 
   const handleMax0Click = useCallback(() => {
-    if (token0Query.data?.balance) {
-      setAmount0Input(token0Query.data.balance.formatted);
+    if (token0BalQuery.data?.balance) {
+      setAmount0Input(token0BalQuery.data.balance.formatted);
       setLastEdited(0);
     }
-  }, [token0Query.data?.balance]);
+  }, [token0BalQuery.data?.balance]);
 
   const handleMax1Click = useCallback(() => {
-    if (token1Query.data?.balance) {
-      setAmount1Input(token1Query.data.balance.formatted);
+    if (token1BalQuery.data?.balance) {
+      setAmount1Input(token1BalQuery.data.balance.formatted);
       setLastEdited(1);
     }
-  }, [token1Query.data?.balance]);
+  }, [token1BalQuery.data?.balance]);
 
-  // Auto-fill the other token from the hook's calculated position
   const handleAmount0Change = useCallback((val: string) => {
     setAmount0Input(val);
     setLastEdited(0);
@@ -170,18 +159,44 @@ export function CreatePositionDemo() {
 
   // Derive the auto-filled display value from the hook's position calculation
   const displayAmount0 = (() => {
-    // If token0 is the one the user edited, show their input directly
     if (lastEdited === 0) return amount0Input;
-    // Otherwise show the hook's calculated value (mapped back from sorted order)
-    if (!position) return amount1Input; // fallback to whatever is typed
-    return token0IsCurrencyA ? position.formattedAmount0 : position.formattedAmount1;
+    if (!position) return amount0Input;
+    return position.formattedAmount0;
   })();
 
   const displayAmount1 = (() => {
     if (lastEdited === 1) return amount1Input;
-    if (!position) return amount0Input;
-    return token0IsCurrencyA ? position.formattedAmount1 : position.formattedAmount0;
+    if (!position) return amount1Input;
+    return position.formattedAmount1;
   })();
+
+  const effectiveAmount0Raw = useMemo(
+    () => parseTokenAmount(displayAmount0, token0.decimals),
+    [displayAmount0, token0.decimals],
+  );
+  const effectiveAmount1Raw = useMemo(
+    () => parseTokenAmount(displayAmount1, token1.decimals),
+    [displayAmount1, token1.decimals],
+  );
+
+  const hasInsufficientToken0Balance =
+    effectiveAmount0Raw > 0n &&
+    token0BalQuery.data?.balance !== undefined &&
+    effectiveAmount0Raw > token0BalQuery.data.balance.raw;
+  const hasInsufficientToken1Balance =
+    effectiveAmount1Raw > 0n &&
+    token1BalQuery.data?.balance !== undefined &&
+    effectiveAmount1Raw > token1BalQuery.data.balance.raw;
+
+  const hasInsufficientBalance = hasInsufficientToken0Balance || hasInsufficientToken1Balance;
+  const insufficientBalanceError =
+    hasInsufficientToken0Balance && hasInsufficientToken1Balance
+      ? `Insufficient ${token0.symbol} and ${token1.symbol} balance`
+      : hasInsufficientToken0Balance
+        ? `Insufficient ${token0.symbol} balance`
+        : hasInsufficientToken1Balance
+          ? `Insufficient ${token1.symbol} balance`
+          : null;
 
   const isExecuteConfirmed = steps.execute.transaction.status === "confirmed";
   const txHash = steps.execute.transaction.txHash;
@@ -192,14 +207,17 @@ export function CreatePositionDemo() {
   const handleExecuteAll = useCallback(async () => {
     if (!address) return;
     setTxError(null);
+    if (insufficientBalanceError) {
+      setTxError(insufficientBalanceError);
+      return;
+    }
     setExecuting(true);
     try {
       await executeAll({
         recipient: address,
       });
-      // Refresh balances after successful execution
-      token0Query.refetch();
-      token1Query.refetch();
+      token0BalQuery.refetch();
+      token1BalQuery.refetch();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (shouldShowExecutionError(msg)) {
@@ -208,13 +226,13 @@ export function CreatePositionDemo() {
     } finally {
       setExecuting(false);
     }
-  }, [address, executeAll, token0Query, token1Query]);
+  }, [address, executeAll, insufficientBalanceError, token0BalQuery, token1BalQuery]);
 
   const handleRefreshAll = useCallback(() => {
     poolQuery.refetch();
-    token0Query.refetch();
-    token1Query.refetch();
-  }, [poolQuery, token0Query, token1Query]);
+    token0BalQuery.refetch();
+    token1BalQuery.refetch();
+  }, [poolQuery, token0BalQuery, token1BalQuery]);
 
   const handleReset = useCallback(() => {
     reset();
@@ -222,9 +240,9 @@ export function CreatePositionDemo() {
     setExecuting(false);
     setAmount0Input("");
     setAmount1Input("");
-    token0Query.refetch();
-    token1Query.refetch();
-  }, [reset, token0Query, token1Query]);
+    token0BalQuery.refetch();
+    token1BalQuery.refetch();
+  }, [reset, token0BalQuery, token1BalQuery]);
 
   const hasAmount = parsedAmount0 > 0n || parsedAmount1 > 0n;
 
@@ -237,8 +255,8 @@ export function CreatePositionDemo() {
             <AddLiquidityStepIndicator
               currentStep={currentStep}
               steps={steps}
-              isNativeToken0={sortedToken0.address === zeroAddress}
-              isNativeToken1={sortedToken1.address === zeroAddress}
+              isNativeToken0={token0.address === zeroAddress}
+              isNativeToken1={token1.address === zeroAddress}
             />
             {steps.execute.transaction.status !== "idle" && (
               <TransactionStatus
@@ -264,22 +282,16 @@ export function CreatePositionDemo() {
       </div>
 
       {/* Main content (right) */}
-      <div className="w-full min-w-120 max-w-120 space-y-4">
+      <div className="w-full max-w-120 min-w-120 space-y-4">
         {/* Pool selector tabs */}
         <div className="flex gap-2">
-          {POOL_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
+          {POSITION_PRESETS.map((preset) => (
+            <PoolTab
+              key={preset.poolId}
+              preset={preset}
+              isSelected={selectedPreset.poolId === preset.poolId}
               onClick={() => handlePresetChange(preset)}
-              className={cn(
-                "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
-                selectedPreset.id === preset.id
-                  ? "border-accent/30 bg-accent-muted text-accent"
-                  : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
-              )}
-            >
-              {preset.label}
-            </button>
+            />
           ))}
         </div>
 
@@ -331,7 +343,7 @@ export function CreatePositionDemo() {
               />
               <DetailRow
                 label="Current price"
-                value={`${pool.token0Price.toSignificant(6)} ${sortedToken1.symbol} per ${sortedToken0.symbol}`}
+                value={`${pool.token0Price.toSignificant(6)} ${token1.symbol} per ${token0.symbol}`}
               />
               <DetailRow
                 label="Liquidity"
@@ -424,13 +436,13 @@ export function CreatePositionDemo() {
 
           {/* Amount inputs */}
           <TokenInput
-            label={`${selectedPreset.token0.symbol} amount`}
-            token={selectedPreset.token0}
+            label={`${token0.symbol} amount`}
+            token={token0}
             value={displayAmount0}
             onChange={handleAmount0Change}
             disabled={executing || isExecuteConfirmed}
-            balance={token0Query.data?.balance?.formatted}
-            balanceLoading={token0Query.isLoading}
+            balance={token0BalQuery.data?.balance?.formatted}
+            balanceLoading={token0BalQuery.isLoading}
             onMaxClick={handleMax0Click}
           />
 
@@ -457,18 +469,22 @@ export function CreatePositionDemo() {
           </div>
 
           <TokenInput
-            label={`${selectedPreset.token1.symbol} amount`}
-            token={selectedPreset.token1}
+            label={`${token1.symbol} amount`}
+            token={token1}
             value={displayAmount1}
             onChange={handleAmount1Change}
             disabled={executing || isExecuteConfirmed}
-            balance={token1Query.data?.balance?.formatted}
-            balanceLoading={token1Query.isLoading}
+            balance={token1BalQuery.data?.balance?.formatted}
+            balanceLoading={token1BalQuery.isLoading}
             onMaxClick={handleMax1Click}
           />
 
           {/* Error display */}
-          {txError && <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">{txError}</div>}
+          {(insufficientBalanceError || txError) && (
+            <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">
+              {insufficientBalanceError ?? txError}
+            </div>
+          )}
 
           {/* Action button */}
           <div className="mt-4">
@@ -493,7 +509,7 @@ export function CreatePositionDemo() {
             ) : (
               <button
                 onClick={handleExecuteAll}
-                disabled={executing || !hasAmount || !pool || poolQuery.isLoading}
+                disabled={executing || !hasAmount || !pool || poolQuery.isLoading || hasInsufficientBalance}
                 className={cn(
                   "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
                   "bg-accent hover:bg-accent-hover text-white",
@@ -511,6 +527,30 @@ export function CreatePositionDemo() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Pool selector tab that derives its label from on-chain token symbols.
+ */
+function PoolTab({ preset, isSelected, onClick }: { preset: PoolPreset; isSelected: boolean; onClick: () => void }) {
+  const { query: c0 } = useToken({ tokenAddress: preset.poolKey.currency0 as Address }, { enabled: true, chainId: 1 });
+  const { query: c1 } = useToken({ tokenAddress: preset.poolKey.currency1 as Address }, { enabled: true, chainId: 1 });
+
+  const label = c0.data && c1.data ? `${c0.data.token.symbol} / ${c1.data.token.symbol}` : "...";
+
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
+        isSelected
+          ? "border-accent/30 bg-accent-muted text-accent"
+          : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 

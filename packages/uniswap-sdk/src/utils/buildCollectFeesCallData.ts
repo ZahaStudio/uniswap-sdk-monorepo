@@ -55,27 +55,19 @@ export async function buildCollectFeesCallData(
   instance: UniswapSDKInstance,
 ): Promise<BuildCallDataResult> {
   const positionData = await getPosition(tokenId, instance);
-  if (!positionData) {
-    throw new Error("Position not found");
-  }
 
   const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 
-  try {
-    const { calldata, value } = V4PositionManager.collectCallParameters(positionData.position, {
-      tokenId,
-      recipient,
-      slippageTolerance: percentFromBips(0),
-      deadline,
-      hookData: "0x",
-    });
+  const { calldata, value } = V4PositionManager.collectCallParameters(positionData.position, {
+    tokenId,
+    recipient,
+    slippageTolerance: percentFromBips(0),
+    deadline,
+    hookData: "0x",
+  });
 
-    return {
-      calldata,
-      value,
-    };
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
+  return {
+    calldata,
+    value,
+  };
 }

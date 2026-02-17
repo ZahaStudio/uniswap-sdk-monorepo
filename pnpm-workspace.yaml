@@ -28,3 +28,5 @@ overrides:
   react: "catalog:"
   react-dom: "catalog:"
   typescript: "catalog:"
+  "react-native": "-"
+  "abitype>zod": "-"

@@ -148,79 +148,92 @@ export async function buildAddLiquidityCallData(
     permit2BatchSignature,
   } = params;
 
-  try {
-    const deadline = await getDefaultDeadline(instance, deadlineDuration);
-
-    const slippagePercent = percentFromBips(slippageTolerance);
-    const createPool = pool.liquidity.toString() === "0";
-
-    const tickLower = tickLowerParam ?? nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing);
-    const tickUpper = tickUpperParam ?? nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing);
-
-    if (tickLower % pool.tickSpacing !== 0) {
-      throw new Error(`tickLower (${tickLower}) is not a multiple of tickSpacing (${pool.tickSpacing}).`);
-    }
-    if (tickUpper % pool.tickSpacing !== 0) {
-      throw new Error(`tickUpper (${tickUpper}) is not a multiple of tickSpacing (${pool.tickSpacing}).`);
-    }
-
-    let sqrtPriceX96: string;
-    if (createPool) {
-      if (!amount0 || !amount1) {
-        throw new Error("Both amount0 and amount1 are required when creating a new pool.");
-      }
-      sqrtPriceX96 = encodeSqrtRatioX96(amount1, amount0).toString();
-    } else {
-      sqrtPriceX96 = pool.sqrtRatioX96.toString();
-    }
-
-    // Build position
-    let position: Position;
-    if (amount0 && amount1) {
-      position = Position.fromAmounts({
-        pool,
-        tickLower,
-        tickUpper,
-        amount0,
-        amount1,
-        useFullPrecision: true,
-      });
-    } else if (amount0) {
-      position = Position.fromAmount0({
-        pool,
-        tickLower,
-        tickUpper,
-        amount0,
-        useFullPrecision: true,
-      });
-    } else if (amount1) {
-      position = Position.fromAmount1({
-        pool,
-        tickLower,
-        tickUpper,
-        amount1,
-      });
-    } else {
-      throw new Error("Invalid input: at least one of amount0 or amount1 must be defined.");
-    }
-
-    // Build calldata
-    const { calldata, value } = V4PositionManager.addCallParameters(position, {
-      recipient,
-      deadline: deadline.toString(),
-      slippageTolerance: slippagePercent,
-      createPool,
-      sqrtPriceX96,
-      useNative: pool.currency0.isNative ? pool.currency0 : undefined, // Only token0 can be native
-      batchPermit: permit2BatchSignature,
-    });
-
-    return {
-      calldata,
-      value,
-    };
-  } catch (error) {
-    console.error(error);
-    throw error;
+  if (slippageTolerance < 0 || slippageTolerance > 10_000) {
+    throw new Error(
+      `Invalid slippageTolerance: ${slippageTolerance}. Must be between 0 and 10000 basis points (0-100%).`,
+    );
   }
+
+  if (amount0 !== undefined && (amount0 === "" || BigInt(amount0) < 0n)) {
+    throw new Error(`Invalid amount0: ${amount0}. Must be a non-negative integer string.`);
+  }
+
+  if (amount1 !== undefined && (amount1 === "" || BigInt(amount1) < 0n)) {
+    throw new Error(`Invalid amount1: ${amount1}. Must be a non-negative integer string.`);
+  }
+
+  const deadline = await getDefaultDeadline(instance, deadlineDuration);
+
+  const slippagePercent = percentFromBips(slippageTolerance);
+  const createPool = pool.liquidity.toString() === "0";
+
+  const tickLower = tickLowerParam ?? nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing);
+  const tickUpper = tickUpperParam ?? nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing);
+
+  if (tickLower >= tickUpper) {
+    throw new Error(`tickLower (${tickLower}) must be less than tickUpper (${tickUpper}).`);
+  }
+
+  if (tickLower % pool.tickSpacing !== 0) {
+    throw new Error(`tickLower (${tickLower}) is not a multiple of tickSpacing (${pool.tickSpacing}).`);
+  }
+  if (tickUpper % pool.tickSpacing !== 0) {
+    throw new Error(`tickUpper (${tickUpper}) is not a multiple of tickSpacing (${pool.tickSpacing}).`);
+  }
+
+  let sqrtPriceX96: string;
+  if (createPool) {
+    if (!amount0 || !amount1) {
+      throw new Error("Both amount0 and amount1 are required when creating a new pool.");
+    }
+    sqrtPriceX96 = encodeSqrtRatioX96(amount1, amount0).toString();
+  } else {
+    sqrtPriceX96 = pool.sqrtRatioX96.toString();
+  }
+
+  // Build position
+  let position: Position;
+  if (amount0 && amount1) {
+    position = Position.fromAmounts({
+      pool,
+      tickLower,
+      tickUpper,
+      amount0,
+      amount1,
+      useFullPrecision: true,
+    });
+  } else if (amount0) {
+    position = Position.fromAmount0({
+      pool,
+      tickLower,
+      tickUpper,
+      amount0,
+      useFullPrecision: true,
+    });
+  } else if (amount1) {
+    position = Position.fromAmount1({
+      pool,
+      tickLower,
+      tickUpper,
+      amount1,
+    });
+  } else {
+    throw new Error("Invalid input: at least one of amount0 or amount1 must be defined.");
+  }
+
+  // Build calldata
+  const { calldata, value } = V4PositionManager.addCallParameters(position, {
+    recipient,
+    deadline: deadline.toString(),
+    slippageTolerance: slippagePercent,
+    createPool,
+    sqrtPriceX96,
+    useNative: pool.currency0.isNative ? pool.currency0 : undefined, // Only token0 can be native
+    batchPermit: permit2BatchSignature,
+  });
+
+  return {
+    calldata,
+    value,
+  };
 }
