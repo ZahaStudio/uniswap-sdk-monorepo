@@ -85,10 +85,7 @@ export function SwapDemo() {
   const tokenIn = zeroForOne ? currency0Token : currency1Token;
   const tokenOut = zeroForOne ? currency1Token : currency0Token;
 
-  const amountInRaw = useMemo(
-    () => parseTokenAmount(amountInput, tokenIn.decimals),
-    [amountInput, tokenIn.decimals],
-  );
+  const amountInRaw = useMemo(() => parseTokenAmount(amountInput, tokenIn.decimals), [amountInput, tokenIn.decimals]);
 
   // Fetch balance for the input token
   const { query: tokenInQuery } = useToken(
@@ -131,6 +128,9 @@ export function SwapDemo() {
 
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
+  const hasInsufficientBalance =
+    amountInRaw > 0n && tokenInQuery.data?.balance !== undefined && amountInRaw > tokenInQuery.data.balance.raw;
+  const insufficientBalanceError = hasInsufficientBalance ? `Insufficient ${tokenIn.symbol} balance` : null;
 
   // Countdown timer for next auto-refresh
   const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(QUOTE_REFRESH_INTERVAL / 1000);
@@ -158,18 +158,18 @@ export function SwapDemo() {
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
   }, [quoteRefetch]);
 
-  const outputDisplay = quoteData
-    ? formatTokenAmount(quoteData.amountOut, tokenOut.decimals)
-    : undefined;
-  const minOutputDisplay = quoteData
-    ? formatTokenAmount(quoteData.minAmountOut, tokenOut.decimals)
-    : undefined;
+  const outputDisplay = quoteData ? formatTokenAmount(quoteData.amountOut, tokenOut.decimals) : undefined;
+  const minOutputDisplay = quoteData ? formatTokenAmount(quoteData.minAmountOut, tokenOut.decimals) : undefined;
 
   const [executing, setExecuting] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
 
   const handleExecuteStep = useCallback(async () => {
     setTxError(null);
+    if (hasInsufficientBalance) {
+      setTxError(`Insufficient ${tokenIn.symbol} balance`);
+      return;
+    }
     setExecuting(true);
     try {
       switch (currentStep) {
@@ -194,10 +194,14 @@ export function SwapDemo() {
     } finally {
       setExecuting(false);
     }
-  }, [currentStep, steps]);
+  }, [currentStep, hasInsufficientBalance, steps, tokenIn.symbol]);
 
   const handleExecuteAll = useCallback(async () => {
     setTxError(null);
+    if (hasInsufficientBalance) {
+      setTxError(`Insufficient ${tokenIn.symbol} balance`);
+      return;
+    }
     setExecuting(true);
     try {
       await executeAll();
@@ -209,7 +213,7 @@ export function SwapDemo() {
     } finally {
       setExecuting(false);
     }
-  }, [executeAll]);
+  }, [executeAll, hasInsufficientBalance, tokenIn.symbol]);
 
   const handleRefreshAll = useCallback(() => {
     quoteRefetch();
@@ -237,7 +241,7 @@ export function SwapDemo() {
         {/* Settings panel */}
         <div className="border-border-muted bg-surface rounded-xl border p-4">
           <div className="text-text-muted mb-3 text-xs font-medium">Settings</div>
-          <label className="flex items-center gap-2.5 cursor-pointer">
+          <label className="flex cursor-pointer items-center gap-2.5">
             <input
               type="checkbox"
               checked={useNativeETH}
@@ -246,9 +250,7 @@ export function SwapDemo() {
             />
             <div>
               <div className="text-text-secondary text-xs font-medium">Use native ETH</div>
-              <div className="text-text-muted text-[11px]">
-                Wrap/unwrap ETH for WETH pools
-              </div>
+              <div className="text-text-muted text-[11px]">Wrap/unwrap ETH for WETH pools</div>
             </div>
           </label>
         </div>
@@ -287,7 +289,7 @@ export function SwapDemo() {
       </div>
 
       {/* Main content (right) */}
-      <div className="w-full min-w-120 max-w-120 space-y-4">
+      <div className="w-full max-w-120 min-w-120 space-y-4">
         {/* Pool selector tabs */}
         <div className="flex gap-2">
           {POOL_PRESETS.map((preset) => (
@@ -426,9 +428,9 @@ export function SwapDemo() {
           )}
 
           {/* Error display */}
-          {(quoteError || txError) && (
+          {(quoteError || txError || insufficientBalanceError) && (
             <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">
-              {quoteError?.message ?? txError}
+              {insufficientBalanceError ?? quoteError?.message ?? txError}
             </div>
           )}
 
@@ -457,7 +459,14 @@ export function SwapDemo() {
                 {/* Execute all button */}
                 <button
                   onClick={handleExecuteAll}
-                  disabled={executing || !quoteData || quoteLoading || amountInput === "" || amountInput === "0"}
+                  disabled={
+                    executing ||
+                    !quoteData ||
+                    quoteLoading ||
+                    hasInsufficientBalance ||
+                    amountInput === "" ||
+                    amountInput === "0"
+                  }
                   className={cn(
                     "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
                     "bg-accent hover:bg-accent-hover text-white",
@@ -468,10 +477,10 @@ export function SwapDemo() {
                 </button>
 
                 {/* Individual step button (when not using executeAll) */}
-                {quoteData && currentStep !== "quote" && currentStep !== "completed" && (
+                {quoteData && !executing && (currentStep === "approval" || currentStep === "permit2") && (
                   <button
                     onClick={handleExecuteStep}
-                    disabled={executing}
+                    disabled={executing || hasInsufficientBalance}
                     className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {executing ? getStepActionLabel(currentStep) + "..." : `Step: ${getStepActionLabel(currentStep)}`}

@@ -98,14 +98,8 @@ export function CreatePositionDemo() {
     : placeholderToken(poolKey.currency1 as Address);
 
   // Parse amounts — the user edits one, the hook computes the other
-  const parsedAmount0 = useMemo(
-    () => parseTokenAmount(amount0Input, token0.decimals),
-    [amount0Input, token0.decimals],
-  );
-  const parsedAmount1 = useMemo(
-    () => parseTokenAmount(amount1Input, token1.decimals),
-    [amount1Input, token1.decimals],
-  );
+  const parsedAmount0 = useMemo(() => parseTokenAmount(amount0Input, token0.decimals), [amount0Input, token0.decimals]);
+  const parsedAmount1 = useMemo(() => parseTokenAmount(amount1Input, token1.decimals), [amount1Input, token1.decimals]);
   const hookAmount0 = lastEdited === 0 ? parsedAmount0 : undefined;
   const hookAmount1 = lastEdited === 0 ? undefined : parsedAmount1;
 
@@ -176,6 +170,34 @@ export function CreatePositionDemo() {
     return position.formattedAmount1;
   })();
 
+  const effectiveAmount0Raw = useMemo(
+    () => parseTokenAmount(displayAmount0, token0.decimals),
+    [displayAmount0, token0.decimals],
+  );
+  const effectiveAmount1Raw = useMemo(
+    () => parseTokenAmount(displayAmount1, token1.decimals),
+    [displayAmount1, token1.decimals],
+  );
+
+  const hasInsufficientToken0Balance =
+    effectiveAmount0Raw > 0n &&
+    token0BalQuery.data?.balance !== undefined &&
+    effectiveAmount0Raw > token0BalQuery.data.balance.raw;
+  const hasInsufficientToken1Balance =
+    effectiveAmount1Raw > 0n &&
+    token1BalQuery.data?.balance !== undefined &&
+    effectiveAmount1Raw > token1BalQuery.data.balance.raw;
+
+  const hasInsufficientBalance = hasInsufficientToken0Balance || hasInsufficientToken1Balance;
+  const insufficientBalanceError =
+    hasInsufficientToken0Balance && hasInsufficientToken1Balance
+      ? `Insufficient ${token0.symbol} and ${token1.symbol} balance`
+      : hasInsufficientToken0Balance
+        ? `Insufficient ${token0.symbol} balance`
+        : hasInsufficientToken1Balance
+          ? `Insufficient ${token1.symbol} balance`
+          : null;
+
   const isExecuteConfirmed = steps.execute.transaction.status === "confirmed";
   const txHash = steps.execute.transaction.txHash;
 
@@ -185,6 +207,10 @@ export function CreatePositionDemo() {
   const handleExecuteAll = useCallback(async () => {
     if (!address) return;
     setTxError(null);
+    if (insufficientBalanceError) {
+      setTxError(insufficientBalanceError);
+      return;
+    }
     setExecuting(true);
     try {
       await executeAll({
@@ -200,7 +226,7 @@ export function CreatePositionDemo() {
     } finally {
       setExecuting(false);
     }
-  }, [address, executeAll, token0BalQuery, token1BalQuery]);
+  }, [address, executeAll, insufficientBalanceError, token0BalQuery, token1BalQuery]);
 
   const handleRefreshAll = useCallback(() => {
     poolQuery.refetch();
@@ -256,7 +282,7 @@ export function CreatePositionDemo() {
       </div>
 
       {/* Main content (right) */}
-      <div className="w-full min-w-120 max-w-120 space-y-4">
+      <div className="w-full max-w-120 min-w-120 space-y-4">
         {/* Pool selector tabs */}
         <div className="flex gap-2">
           {POSITION_PRESETS.map((preset) => (
@@ -454,7 +480,11 @@ export function CreatePositionDemo() {
           />
 
           {/* Error display */}
-          {txError && <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">{txError}</div>}
+          {(insufficientBalanceError || txError) && (
+            <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">
+              {insufficientBalanceError ?? txError}
+            </div>
+          )}
 
           {/* Action button */}
           <div className="mt-4">
@@ -479,7 +509,7 @@ export function CreatePositionDemo() {
             ) : (
               <button
                 onClick={handleExecuteAll}
-                disabled={executing || !hasAmount || !pool || poolQuery.isLoading}
+                disabled={executing || !hasAmount || !pool || poolQuery.isLoading || hasInsufficientBalance}
                 className={cn(
                   "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
                   "bg-accent hover:bg-accent-hover text-white",
