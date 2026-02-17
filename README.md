@@ -16,7 +16,7 @@ An [example](./apps/example) app is provided in the repo implementing the swap a
 - **Pool queries** — fetch real-time pool state (slot0, liquidity) via multicall
 - **Swap execution** — quote, build calldata, and execute swaps through Universal Router
 - **Liquidity Management** — mint, increase, decrease positions and collect fees
-- **Permit2** — single and batch token approvals with typed signature generation
+- **Permit2** — batch token approvals with typed signature generation
 - **Built-in caching** — LRU cache with pluggable adapter interface
 - **React Hooks** — step-by-step hooks for swaps, positions, approvals, and transactions
 
@@ -85,6 +85,7 @@ Available hooks:
 | -------------------------------- | ----------------------------------------------------- |
 | `useUniswapSDK()`                | Access cached SDK instances by chain                  |
 | `useSwap()`                      | Full swap workflow (quote, approve, permit2, execute) |
+| `useCreatePosition()`            | Full position creation workflow                       |
 | `usePosition()`                  | Fetch position data by token ID                       |
 | `usePositionIncreaseLiquidity()` | Add liquidity to an existing position                 |
 | `usePositionRemoveLiquidity()`   | Remove liquidity from a position                      |
@@ -121,11 +122,10 @@ await sdk.buildRemoveLiquidityCallData(removeArgs); // Position Manager burn cal
 await sdk.buildCollectFeesCallData(collectArgs);    // Position Manager collect calldata
 
 // Permit2
-await sdk.preparePermit2Data(permitArgs);           // Single token permit
 await sdk.preparePermit2BatchData(batchArgs);       // Multi-token batch permit
 ```
 
-Contract addresses are resolved automatically via [hookmate](https://github.com/BootNodeDev/hookmate) for supported chains. Pass a custom `V4Contracts` object to override.
+Contract addresses are resolved automatically via [hookmate](https://github.com/akshatmittal/hookmate) for supported chains. Pass a custom `V4Contracts` object to override.
 
 ## Monorepo Structure
 
@@ -181,7 +181,7 @@ Import one of the Anvil private keys into your browser wallet and set the RPC UR
 
 ### Releasing
 
-This monorepo uses [Changesets](https://github.com/changesets/changesets) for versioning and publishing. All releases are creating using GitHub Actions.
+This monorepo uses [Changesets](https://github.com/changesets/changesets) for versioning and publishing. All releases are created using GitHub Actions.
 
 Make sure to create a changeset when submitting a PR.
 
@@ -191,7 +191,7 @@ pnpm changeset
 
 ## Contributors & Maintainers
 
-This SDK is community built project with contributions from **Zaha Studio** (primary maintainer) and **BootNode**, with support from the **Uniswap Foundation**.
+This SDK is a community-built project with contributions from **Zaha Studio** (primary maintainer) and **BootNode**, with support from the **Uniswap Foundation**. We welcome all community contributions!
 
 ## License
 
