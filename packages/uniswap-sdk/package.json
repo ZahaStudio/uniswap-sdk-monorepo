@@ -9,6 +9,10 @@
   "files": [
     "dist/**"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZahaStudio/uniswap-sdk-monorepo.git"
+  },
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
