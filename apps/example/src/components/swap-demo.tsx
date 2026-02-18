@@ -3,8 +3,9 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { WETH_ADDRESS } from "@zahastudio/uniswap-sdk";
 import { useSwap, useToken, type SwapStep } from "@zahastudio/uniswap-sdk-react";
-import type { Address } from "viem";
+import { zeroAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
 
 import { StepIndicator } from "@/components/step-indicator";
@@ -87,9 +88,13 @@ export function SwapDemo() {
 
   const amountInRaw = useMemo(() => parseTokenAmount(amountInput, tokenIn.decimals), [amountInput, tokenIn.decimals]);
 
+  const isNativeInput =
+    (useNativeETH && tokenIn.address.toLowerCase() === WETH_ADDRESS(1).toLowerCase()) ||
+    tokenIn.address.toLowerCase() === zeroAddress.toLowerCase();
+
   // Fetch balance for the input token
   const { query: tokenInQuery } = useToken(
-    { tokenAddress: tokenIn.address },
+    { tokenAddress: isNativeInput ? zeroAddress : tokenIn.address },
     {
       enabled: isConnected,
       chainId: 1,
@@ -231,8 +236,6 @@ export function SwapDemo() {
     lastRefreshRef.current = Date.now();
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
   }, [reset, quoteRefetch, tokenInQuery]);
-
-  const isNativeInput = tokenIn.address === "0x0000000000000000000000000000000000000000";
 
   return (
     <div className="flex w-full items-start justify-center gap-6">

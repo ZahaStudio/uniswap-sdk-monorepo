@@ -174,7 +174,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
   const relevantCount = (token0IsRelevant ? 1 : 0) + (token1IsRelevant ? 1 : 0);
   const signingKind: Permit2SignedResult["kind"] = !enabled || relevantCount === 0 ? "none" : "batch";
 
-  const permit2Address = sdk.getContractAddress("permit2") ?? zeroAddress;
+  const permit2Address = sdk.getContractAddress("permit2");
 
   const approval0 = useTokenApproval(
     {

@@ -162,9 +162,11 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isQuoteEnabled = enabled && hasValidAmount && !!sdk;
   const isSwapEnabled = isQuoteEnabled && isWalletReady;
 
-  const universalRouter = sdk.getContractAddress("universalRouter") ?? zeroAddress;
+  const universalRouter = sdk.getContractAddress("universalRouter");
   const { query: inputTokenQuery } = useToken(
-    { tokenAddress: inputToken },
+    {
+      tokenAddress: isNativeETHInput ? zeroAddress : inputToken,
+    },
     {
       enabled: isSwapEnabled,
       chainId,

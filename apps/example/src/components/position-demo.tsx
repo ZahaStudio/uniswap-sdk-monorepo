@@ -163,16 +163,14 @@ export function PositionDemo() {
           <div className="border-border-muted bg-surface rounded-xl border p-4">
             <div className="text-text-muted mb-3 text-xs font-medium">Position lifecycle</div>
             <p className="text-text-muted text-xs">
-              {activeTokenId && positionQuery.isLoading
-                ? "Loading position..."
-                : "Load a position to begin"}
+              {activeTokenId && positionQuery.isLoading ? "Loading position..." : "Load a position to begin"}
             </p>
           </div>
         )}
       </div>
 
       {/* Main content (right) */}
-      <div className="w-full min-w-120 max-w-120 space-y-4">
+      <div className="w-full max-w-120 min-w-120 space-y-4">
         {/* Token ID input */}
         <div className="border-border-muted bg-surface rounded-2xl border p-4">
           <label className="text-text-muted mb-2 block text-xs font-medium">Position Token ID</label>

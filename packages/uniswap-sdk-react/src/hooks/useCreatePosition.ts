@@ -7,10 +7,7 @@ import { Position, nearestUsableTick, TickMath } from "@zahastudio/uniswap-sdk";
 import type { PoolKey, Pool } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 
-import {
-  useAddLiquidityPipeline,
-  type AddLiquidityStep,
-} from "@/hooks/primitives/useAddLiquidityPipeline";
+import { useAddLiquidityPipeline, type AddLiquidityStep } from "@/hooks/primitives/useAddLiquidityPipeline";
 import { type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
@@ -251,7 +248,9 @@ export function useCreatePosition(
         recipient: args.recipient,
         slippageTolerance: args.slippageTolerance,
         deadlineDuration: args.deadlineDuration,
-        permit2BatchSignature: batchPermit as Parameters<typeof sdk.buildAddLiquidityCallData>[0]["permit2BatchSignature"],
+        permit2BatchSignature: batchPermit as Parameters<
+          typeof sdk.buildAddLiquidityCallData
+        >[0]["permit2BatchSignature"],
       });
     },
     [pool, tickRange, sdk, amount0, amount1],
