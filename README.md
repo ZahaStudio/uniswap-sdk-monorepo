@@ -189,6 +189,9 @@ Make sure to create a changeset when submitting a PR.
 pnpm changeset
 ```
 
+## Examples
+- An example app using this sdk to swap Clanker tokens can be found [here](https://github.com/Sneh1999/clanker-example)
+
 ## Contributors & Maintainers
 
 This SDK is a community-built project with contributions from **Zaha Studio** (primary maintainer) and **BootNode**, with support from the **Uniswap Foundation**. We welcome all community contributions!
