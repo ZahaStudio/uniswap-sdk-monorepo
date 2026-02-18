@@ -163,8 +163,10 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isSwapEnabled = isQuoteEnabled && isWalletReady;
 
   const universalRouter = sdk.getContractAddress("universalRouter") ?? zeroAddress;
+  // Check native ETH balance (not WETH) when user is paying with native ETH
+  const balanceCheckAddress = isNativeETHInput ? zeroAddress : inputToken;
   const { query: inputTokenQuery } = useToken(
-    { tokenAddress: inputToken },
+    { tokenAddress: balanceCheckAddress },
     {
       enabled: isSwapEnabled,
       chainId,
