@@ -131,7 +131,12 @@ export function SwapDemo() {
   const quoteRefetch = steps.quote.refetch;
   const isFetchingQuote = steps.quote.isFetching;
 
+  const [executing, setExecuting] = useState(false);
+  const [txError, setTxError] = useState<string | null>(null);
+
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
+  const isSwapExecuting =
+    executing || steps.swap.transaction.status === "pending" || steps.swap.transaction.status === "confirming";
   const swapTxHash = steps.swap.transaction.txHash;
   const hasInsufficientBalance =
     amountInRaw > 0n && tokenInQuery.data?.balance !== undefined && amountInRaw > tokenInQuery.data.balance.raw;
@@ -146,6 +151,11 @@ export function SwapDemo() {
     lastRefreshRef.current = Date.now();
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
   }, [quoteData, isSwapConfirmed]);
+
+  useEffect(() => {
+    if (!isSwapConfirmed) return;
+    setAmountInput("");
+  }, [isSwapConfirmed]);
 
   useEffect(() => {
     if (!quoteData || isSwapConfirmed) return;
@@ -165,9 +175,6 @@ export function SwapDemo() {
 
   const outputDisplay = quoteData ? formatTokenAmount(quoteData.amountOut, tokenOut.decimals) : undefined;
   const minOutputDisplay = quoteData ? formatTokenAmount(quoteData.minAmountOut, tokenOut.decimals) : undefined;
-
-  const [executing, setExecuting] = useState(false);
-  const [txError, setTxError] = useState<string | null>(null);
 
   const handleExecuteStep = useCallback(async () => {
     setTxError(null);
@@ -312,7 +319,7 @@ export function SwapDemo() {
             <span className="text-text-muted text-xs font-medium">Swap</span>
             <button
               onClick={handleRefreshAll}
-              disabled={executing || isSwapConfirmed}
+              disabled={isSwapExecuting || isSwapConfirmed}
               className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg
@@ -345,7 +352,7 @@ export function SwapDemo() {
             token={tokenIn}
             value={amountInput}
             onChange={setAmountInput}
-            disabled={executing || isSwapConfirmed}
+            disabled={isSwapExecuting || isSwapConfirmed}
             balance={tokenInQuery.data?.balance?.formatted}
             balanceLoading={tokenInQuery.isLoading}
             onMaxClick={handleMaxClick}
@@ -356,7 +363,7 @@ export function SwapDemo() {
             <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
             <button
               onClick={handleFlipDirection}
-              disabled={executing || isSwapConfirmed}
+              disabled={isSwapExecuting || isSwapConfirmed}
               className="border-border-muted bg-surface-raised hover:bg-surface-hover relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg
@@ -392,7 +399,7 @@ export function SwapDemo() {
               <span className="text-text-tertiary text-xs">Quote refreshes in {secondsUntilRefresh}s</span>
               <button
                 onClick={handleRefreshQuote}
-                disabled={isFetchingQuote || executing}
+                disabled={isFetchingQuote || isSwapExecuting}
                 className="text-accent hover:text-accent-hover flex items-center gap-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg
@@ -463,7 +470,7 @@ export function SwapDemo() {
                 <button
                   onClick={handleExecuteAll}
                   disabled={
-                    executing ||
+                    isSwapExecuting ||
                     !quoteData ||
                     quoteLoading ||
                     hasInsufficientBalance ||
@@ -476,17 +483,19 @@ export function SwapDemo() {
                     "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
                   )}
                 >
-                  {executing ? getStepActionLabel(currentStep) + "..." : !quoteData ? "Enter an amount" : "Swap"}
+                  {isSwapExecuting ? getStepActionLabel(currentStep) + "..." : !quoteData ? "Enter an amount" : "Swap"}
                 </button>
 
                 {/* Individual step button (when not using executeAll) */}
-                {quoteData && !executing && (currentStep === "approval" || currentStep === "permit2") && (
+                {quoteData && !isSwapExecuting && (currentStep === "approval" || currentStep === "permit2") && (
                   <button
                     onClick={handleExecuteStep}
-                    disabled={executing || hasInsufficientBalance}
+                    disabled={isSwapExecuting || hasInsufficientBalance}
                     className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    {executing ? getStepActionLabel(currentStep) + "..." : `Step: ${getStepActionLabel(currentStep)}`}
+                    {isSwapExecuting
+                      ? getStepActionLabel(currentStep) + "..."
+                      : `Step: ${getStepActionLabel(currentStep)}`}
                   </button>
                 )}
               </div>

@@ -7,9 +7,10 @@ import { cn } from "@/lib/utils";
 interface TransactionStatusProps {
   status: TxStatus;
   txHash?: `0x${string}`;
+  successLabel?: string;
 }
 
-export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
+export function TransactionStatus({ status, txHash, successLabel }: TransactionStatusProps) {
   const etherscanUrl = txHash ? `https://otterscan-devnet.metacrypt.org/tx/${txHash}` : undefined;
 
   const config = {
@@ -86,7 +87,7 @@ export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
           />
         </svg>
       ),
-      label: "Swap confirmed!",
+      label: successLabel ?? "Swap confirmed!",
       color: "text-success",
       bg: "bg-success-muted",
     },
