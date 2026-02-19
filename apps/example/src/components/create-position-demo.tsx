@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useCreatePosition, useToken, type AddLiquidityStep } from "@zahastudio/uniswap-sdk-react";
@@ -203,6 +203,15 @@ export function CreatePositionDemo() {
 
   const [executing, setExecuting] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
+  const isCreateExecuting =
+    executing || steps.execute.transaction.status === "pending" || steps.execute.transaction.status === "confirming";
+
+  useEffect(() => {
+    if (!isExecuteConfirmed) return;
+    setAmount0Input("");
+    setAmount1Input("");
+    setLastEdited(0);
+  }, [isExecuteConfirmed]);
 
   const handleExecuteAll = useCallback(async () => {
     if (!address) return;
@@ -262,6 +271,7 @@ export function CreatePositionDemo() {
               <TransactionStatus
                 status={steps.execute.transaction.status}
                 txHash={txHash}
+                successLabel="Position created!"
               />
             )}
           </>
@@ -302,7 +312,7 @@ export function CreatePositionDemo() {
               <span className="text-text-muted text-xs font-medium">Pool Info</span>
               <button
                 onClick={handleRefreshAll}
-                disabled={executing || isExecuteConfirmed}
+                disabled={isCreateExecuting || isExecuteConfirmed}
                 className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg
@@ -398,7 +408,7 @@ export function CreatePositionDemo() {
                           const val = Math.round(parseInt(e.target.value, 10) / ts) * ts;
                           setTickLowerInput(val.toString());
                         }}
-                        disabled={executing || isExecuteConfirmed}
+                        disabled={isCreateExecuting || isExecuteConfirmed}
                         className="accent-accent w-full"
                       />
                       <div className="text-text-muted mt-1 flex justify-between text-[10px]">
@@ -421,7 +431,7 @@ export function CreatePositionDemo() {
                           const val = Math.round(parseInt(e.target.value, 10) / ts) * ts;
                           setTickUpperInput(val.toString());
                         }}
-                        disabled={executing || isExecuteConfirmed}
+                        disabled={isCreateExecuting || isExecuteConfirmed}
                         className="accent-accent w-full"
                       />
                       <div className="text-text-muted mt-1 flex justify-between text-[10px]">
@@ -440,7 +450,7 @@ export function CreatePositionDemo() {
             token={token0}
             value={displayAmount0}
             onChange={handleAmount0Change}
-            disabled={executing || isExecuteConfirmed}
+            disabled={isCreateExecuting || isExecuteConfirmed}
             balance={token0BalQuery.data?.balance?.formatted}
             balanceLoading={token0BalQuery.isLoading}
             onMaxClick={handleMax0Click}
@@ -473,7 +483,7 @@ export function CreatePositionDemo() {
             token={token1}
             value={displayAmount1}
             onChange={handleAmount1Change}
-            disabled={executing || isExecuteConfirmed}
+            disabled={isCreateExecuting || isExecuteConfirmed}
             balance={token1BalQuery.data?.balance?.formatted}
             balanceLoading={token1BalQuery.isLoading}
             onMaxClick={handleMax1Click}
@@ -509,14 +519,14 @@ export function CreatePositionDemo() {
             ) : (
               <button
                 onClick={handleExecuteAll}
-                disabled={executing || !hasAmount || !pool || poolQuery.isLoading || hasInsufficientBalance}
+                disabled={isCreateExecuting || !hasAmount || !pool || poolQuery.isLoading || hasInsufficientBalance}
                 className={cn(
                   "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
                   "bg-accent hover:bg-accent-hover text-white",
                   "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
                 )}
               >
-                {executing
+                {isCreateExecuting
                   ? getStepActionLabel(currentStep) + "..."
                   : !hasAmount
                     ? "Enter an amount"

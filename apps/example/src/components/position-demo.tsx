@@ -292,26 +292,26 @@ export function PositionDemo() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-surface rounded-lg p-2.5">
                     <div className="text-text-muted text-[10px] font-medium">Lower</div>
-                    <div className="text-text text-sm font-semibold">
+                    <div className="text-text text-xs leading-tight font-semibold break-all sm:text-sm">
                       {data.position.token0PriceLower.toSignificant(6)}
                     </div>
-                    <div className="text-text-muted text-[10px]">
+                    <div className="text-text-muted text-[10px] leading-tight break-words">
                       {symbol1} per {symbol0}
                     </div>
                   </div>
                   <div className="bg-surface rounded-lg p-2.5">
                     <div className="text-text-muted text-[10px] font-medium">Upper</div>
-                    <div className="text-text text-sm font-semibold">
+                    <div className="text-text text-xs leading-tight font-semibold break-all sm:text-sm">
                       {data.position.token0PriceUpper.toSignificant(6)}
                     </div>
-                    <div className="text-text-muted text-[10px]">
+                    <div className="text-text-muted text-[10px] leading-tight break-words">
                       {symbol1} per {symbol0}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex flex-col gap-1 text-[11px]">
                   <span className="text-text-muted">Current price</span>
-                  <span className="text-text-secondary font-mono">
+                  <span className="text-text-secondary font-mono leading-tight break-all">
                     {data.pool.token0Price.toSignificant(6)} {symbol1} per {symbol0}
                   </span>
                 </div>
