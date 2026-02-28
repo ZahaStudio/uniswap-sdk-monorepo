@@ -79,12 +79,6 @@ export function usePoolState(params: UsePoolStateParams, options: UseHookOptions
     },
     enabled: enabled && !!sdk,
     refetchInterval,
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
-        return false;
-      }
-      return failureCount < 3;
-    },
   });
 
   return { query };
