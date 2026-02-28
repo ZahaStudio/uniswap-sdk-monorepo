@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
+const isGitHubPages = process.env.GITHUB_PAGES === "true";
+
 const nextConfig: NextConfig = {
   output: "export",
+  basePath: isGitHubPages ? "/uniswap-sdk-monorepo" : "",
   reactStrictMode: true,
   transpilePackages: ["@zahastudio/uniswap-sdk", "@zahastudio/uniswap-sdk-react"],
   serverExternalPackages: ["pino-pretty", "lokijs", "encoding"],
