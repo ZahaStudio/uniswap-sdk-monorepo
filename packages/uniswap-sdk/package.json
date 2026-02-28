@@ -1,6 +1,6 @@
 {
   "name": "@zahastudio/uniswap-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
@@ -8,6 +8,7 @@
   "license": "MIT",
   "files": [
     "dist/**",
+    "docs/**",
     "README.md"
   ],
   "repository": {
@@ -35,10 +36,10 @@
   },
   "dependencies": {
     "@uniswap/permit2-sdk": "^1.4.0",
-    "@uniswap/sdk-core": "^7.10.1",
-    "@uniswap/universal-router-sdk": "^4.30.0",
-    "@uniswap/v3-sdk": "^3.27.0",
-    "@uniswap/v4-sdk": "^1.27.0",
+    "@uniswap/sdk-core": "^7.11.0",
+    "@uniswap/universal-router-sdk": "^4.32.0",
+    "@uniswap/v3-sdk": "^3.28.0",
+    "@uniswap/v4-sdk": "^1.28.0",
     "hookmate": "^0.5.1",
     "lru-cache": "^11.2.6"
   },

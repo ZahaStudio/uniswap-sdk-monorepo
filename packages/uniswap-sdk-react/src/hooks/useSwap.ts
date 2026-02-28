@@ -8,7 +8,6 @@ import {
   type PoolKey,
   type QuoteResponse,
   type SwapExactInSingle,
-  WETH_ADDRESS,
 } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
@@ -155,7 +154,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
 
   // When useNativeETH is set, check if the input side is the WETH token
-  const isNativeETHInput = useNativeETH ? inputToken.toLowerCase() === WETH_ADDRESS(chainId).toLowerCase() : false;
+  const isNativeETHInput = useNativeETH ? inputToken.toLowerCase() === sdk.getContractAddress("weth").toLowerCase() : false;
 
   const hasValidAmount = amountIn > 0n;
   const isWalletReady = !!connectedAddress;

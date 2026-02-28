@@ -189,6 +189,26 @@ Make sure to create a changeset when submitting a PR.
 pnpm changeset
 ```
 
+## AI Agent Integration
+
+This SDK ships with comprehensive documentation designed for AI agents (Claude, Cursor, Amp, Copilot, etc.). The docs are included in the published npm packages under `docs/`.
+
+To give your AI agent direct access to the SDK documentation, add the following line to your project's `AGENTS.md` (or equivalent):
+
+```markdown
+Read `node_modules/@zahastudio/uniswap-sdk/docs/README.md` for the full Community Uniswap SDK reference, including core SDK methods, React hooks, type definitions, and end-to-end recipes.
+```
+
+Or reference individual docs as needed:
+
+| Path                                                     | Contents                                       |
+| -------------------------------------------------------- | ---------------------------------------------- |
+| `node_modules/@zahastudio/uniswap-sdk/docs/README.md`    | Overview, key concepts, decision tree          |
+| `node_modules/@zahastudio/uniswap-sdk/docs/core-sdk.md`  | Core SDK class, all methods, type signatures   |
+| `node_modules/@zahastudio/uniswap-sdk/docs/react-sdk.md` | React provider, all hooks, step-based patterns |
+| `node_modules/@zahastudio/uniswap-sdk/docs/recipes.md`   | 10 complete copy-paste code examples           |
+| `node_modules/@zahastudio/uniswap-sdk/docs/types.md`     | Every exported type/interface                  |
+
 ## Contributors & Maintainers
 
 This SDK is a community-built project with contributions from **Zaha Studio** (primary maintainer) and **BootNode**, with support from the **Uniswap Foundation**. We welcome all community contributions!

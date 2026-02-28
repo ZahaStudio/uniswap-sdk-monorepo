@@ -1,4 +1,5 @@
 import type { Currency } from "@uniswap/sdk-core";
+import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 import type { Pool, PoolKey } from "@uniswap/v4-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
@@ -47,6 +48,8 @@ export interface V4Contracts {
   universalRouter: Address;
   /** Address of the Permit2 contract */
   permit2: Address;
+  /** Address of the Wrapped Native Token (e.g. WETH, WMATIC, WAVAX) */
+  weth: Address;
 }
 
 /**
@@ -149,6 +152,7 @@ export class UniswapSDK {
         stateView: uniswapContracts.v4.stateView,
         universalRouter: uniswapContracts.utility.universalRouter,
         permit2: uniswapContracts.utility.permit2,
+        weth: WETH_ADDRESS(chainId) as Address,
       } satisfies V4Contracts);
 
     return new UniswapSDK(client, chain, resolvedContracts, cache, defaultDeadline, defaultSlippageTolerance);

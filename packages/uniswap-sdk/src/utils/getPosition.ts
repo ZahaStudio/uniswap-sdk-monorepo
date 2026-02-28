@@ -5,8 +5,6 @@ import type { UniswapSDKInstance } from "@/core/sdk";
 import { getPositionInfo } from "@/utils/getPositionInfo";
 import { getTokens } from "@/utils/getTokens";
 
-export type { GetPositionInfoResponse } from "@/utils/getPositionInfo";
-
 /**
  * Complete position data with initialized SDK instances.
  * Returns fully usable Position and Pool objects from the Uniswap V4 SDK.
