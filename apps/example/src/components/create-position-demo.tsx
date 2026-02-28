@@ -121,7 +121,7 @@ export function CreatePositionDemo() {
   );
 
   const { pool: poolQuery, steps, currentStep, executeAll, reset, position } = create;
-  const pool = poolQuery.data;
+  const pool = poolQuery.data?.pool;
 
   // Token balance queries
   const { query: token0BalQuery } = useToken(

@@ -9,8 +9,8 @@
   "baseBranch": "main",
   "commit": false,
   "fixed": [],
-  "linked": [],
+  "linked": [["@zahastudio/uniswap-sdk", "@zahastudio/uniswap-sdk-react"]],
   "access": "public",
   "updateInternalDependencies": "patch",
-  "ignore": ["@acme/example"]
+  "ignore": ["@acme/*"]
 }

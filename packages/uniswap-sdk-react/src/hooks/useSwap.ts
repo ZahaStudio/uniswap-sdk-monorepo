@@ -17,6 +17,7 @@ import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@
 import { useToken } from "@/hooks/primitives/useToken";
 import type { UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
+import { usePoolState } from "@/hooks/usePoolState";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
 import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions";
@@ -154,12 +155,23 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
 
   // When useNativeETH is set, check if the input side is the WETH token
-  const isNativeETHInput = useNativeETH ? inputToken.toLowerCase() === sdk.getContractAddress("weth").toLowerCase() : false;
+  const isNativeETHInput = useNativeETH
+    ? inputToken.toLowerCase() === sdk.getContractAddress("weth").toLowerCase()
+    : false;
 
   const hasValidAmount = amountIn > 0n;
   const isWalletReady = !!connectedAddress;
   const isQuoteEnabled = enabled && hasValidAmount && !!sdk;
   const isSwapEnabled = isQuoteEnabled && isWalletReady;
+
+  const { query: poolQuery } = usePoolState(
+    { poolKey },
+    {
+      enabled: isQuoteEnabled,
+      refetchInterval,
+      chainId: chainIdOverride,
+    },
+  );
 
   const universalRouter = sdk.getContractAddress("universalRouter");
   const { query: inputTokenQuery } = useToken(
@@ -245,10 +257,12 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
       const permit2Signature = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
 
-      const pool = await sdk.getPool(poolKey);
+      if (!poolQuery.data) {
+        throw new Error("Pool state not available");
+      }
 
       const calldata = await sdk.buildSwapCallData({
-        pool,
+        pool: poolQuery.data.pool,
         amountIn,
         amountOutMinimum: quote.minAmountOut,
         zeroForOne,
@@ -269,7 +283,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       quoteQuery.data,
       inputTokenQuery.data?.balance?.raw,
       permit2.permit2,
-      poolKey,
+      poolQuery.data,
       amountIn,
       zeroForOne,
       recipient,

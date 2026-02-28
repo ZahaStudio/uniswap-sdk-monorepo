@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from "react";
 
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { type UseQueryResult } from "@tanstack/react-query";
 import { nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
 import { Position } from "@uniswap/v4-sdk";
 import type { PoolKey, Pool } from "@zahastudio/uniswap-sdk";
@@ -12,10 +12,10 @@ import { useAddLiquidityPipeline, type AddLiquidityStep } from "@/hooks/primitiv
 import { type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
+import { usePoolState, type UsePoolStateData } from "@/hooks/usePoolState";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseMutationHookOptions } from "@/types/hooks";
 import { assertSdkInitialized } from "@/utils/assertions";
-import { poolKeys } from "@/utils/queryKeys";
 
 /**
  * Arguments for creating a new position (passed at execution time).
@@ -77,7 +77,7 @@ export interface UseCreatePositionOptions extends UseMutationHookOptions {}
  */
 export interface UseCreatePositionReturn {
   /** Pool query result — use for UI display (current price, liquidity, fee tier) */
-  pool: UseQueryResult<Pool>;
+  pool: UseQueryResult<UsePoolStateData, Error>;
   /** All pipeline steps with individual state and actions */
   steps: {
     /** ERC-20 → Permit2 approval for token0 */
@@ -143,31 +143,21 @@ export function useCreatePosition(
   const { poolKey, amount0, amount1, tickLower: paramTickLower, tickUpper: paramTickUpper } = params;
   const { chainId: overrideChainId, onSuccess } = options;
 
-  const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
+  const { sdk } = useUniswapSDK({ chainId: overrideChainId });
 
-  const poolQuery = useQuery({
-    queryKey: poolKeys.detail(
-      poolKey.currency0,
-      poolKey.currency1,
-      poolKey.fee,
-      poolKey.tickSpacing,
-      poolKey.hooks,
-      chainId,
-    ),
-    queryFn: async (): Promise<Pool> => {
-      assertSdkInitialized(sdk);
-      return sdk.getPool(poolKey);
+  const { query: poolQuery } = usePoolState(
+    { poolKey },
+    {
+      chainId: overrideChainId,
     },
-    enabled: !!poolKey?.currency0 && !!poolKey?.currency1 && !!sdk,
-  });
-
-  const pool = poolQuery.data;
+  );
 
   const tickRange = useMemo((): ResolvedTickRange | null => {
-    if (!pool) {
+    if (!poolQuery.data) {
       return null;
     }
 
+    const { pool } = poolQuery.data;
     const tickLower = paramTickLower ?? nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing);
     const tickUpper = paramTickUpper ?? nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing);
 
@@ -175,12 +165,14 @@ export function useCreatePosition(
       tickLower,
       tickUpper,
     };
-  }, [pool, paramTickLower, paramTickUpper]);
+  }, [poolQuery.data, paramTickLower, paramTickUpper]);
 
   const calculatedPosition = useMemo((): CalculatedPosition | null => {
-    if (!pool || !tickRange) {
+    if (!poolQuery.data || !tickRange) {
       return null;
     }
+
+    const { pool } = poolQuery.data;
 
     const hasAmount0 = amount0 !== undefined && amount0 > 0n;
     const hasAmount1 = amount1 !== undefined && amount1 > 0n;
@@ -228,11 +220,11 @@ export function useCreatePosition(
     } catch {
       return null;
     }
-  }, [pool, tickRange, amount0, amount1]);
+  }, [poolQuery.data, tickRange, amount0, amount1]);
 
   const buildCalldata = useCallback(
     async ({ batchPermit, args }: { batchPermit: unknown; args: CreatePositionArgs }) => {
-      if (!pool) {
+      if (!poolQuery.data) {
         throw new Error("Pool not loaded. Wait for pool query to complete before creating a position.");
       }
       if (!tickRange) {
@@ -240,6 +232,7 @@ export function useCreatePosition(
       }
       assertSdkInitialized(sdk);
 
+      const { pool } = poolQuery.data;
       return sdk.buildAddLiquidityCallData({
         pool,
         tickLower: tickRange.tickLower,
@@ -254,9 +247,10 @@ export function useCreatePosition(
         >[0]["permit2BatchSignature"],
       });
     },
-    [pool, tickRange, sdk, amount0, amount1],
+    [poolQuery.data, tickRange, sdk, amount0, amount1],
   );
 
+  const pool = poolQuery.data?.pool;
   const pipeline = useAddLiquidityPipeline<CreatePositionArgs>({
     currencies: pool ? [pool.currency0, pool.currency1] : undefined,
     permit2Amounts: [calculatedPosition?.amount0 ?? 0n, calculatedPosition?.amount1 ?? 0n],

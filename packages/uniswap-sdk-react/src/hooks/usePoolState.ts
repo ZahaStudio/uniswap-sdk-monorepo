@@ -13,7 +13,7 @@ import { poolKeys } from "@/utils/queryKeys";
  */
 export interface UsePoolStateData {
   /** Current pool state for the provided pool key */
-  pool: Pool | null;
+  pool: Pool;
 }
 
 /**
