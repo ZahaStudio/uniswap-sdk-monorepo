@@ -1,4 +1,4 @@
-import { CommandType, ROUTER_AS_RECIPIENT, RoutePlanner, WETH_ADDRESS } from "@uniswap/universal-router-sdk";
+import { CommandType, ROUTER_AS_RECIPIENT, RoutePlanner } from "@uniswap/universal-router-sdk";
 import { Actions, V4Planner } from "@uniswap/v4-sdk";
 import type { BatchPermitOptions, Pool } from "@uniswap/v4-sdk";
 import { utility } from "hookmate/abi";
@@ -7,17 +7,6 @@ import { encodeFunctionData } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
-
-/**
- * Command codes for Universal Router operations
- * @see https://docs.uniswap.org/contracts/universal-router/technical-reference
- */
-export const COMMANDS = {
-  SWAP_EXACT_IN_SINGLE: 0x06,
-  SETTLE_ALL: 0x0c,
-  TAKE_ALL: 0x0f,
-  V4_SWAP: 0x10,
-} as const;
 
 /**
  * Parameters for building a V4 swap
@@ -81,8 +70,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   let unwrapOutput = false;
 
   if (useNativeETH) {
-    const chainId = instance.chain.id;
-    const wethAddress = WETH_ADDRESS(chainId).toLowerCase();
+    const wethAddress = instance.contracts.weth.toLowerCase();
     const inputCurrency = (zeroForOne ? pool.poolKey.currency0 : pool.poolKey.currency1).toLowerCase();
     const outputCurrency = (zeroForOne ? pool.poolKey.currency1 : pool.poolKey.currency0).toLowerCase();
 

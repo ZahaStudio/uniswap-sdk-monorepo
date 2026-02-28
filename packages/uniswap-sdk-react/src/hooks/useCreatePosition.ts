@@ -3,7 +3,8 @@
 import { useCallback, useMemo } from "react";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { Position, nearestUsableTick, TickMath } from "@zahastudio/uniswap-sdk";
+import { nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
+import { Position } from "@uniswap/v4-sdk";
 import type { PoolKey, Pool } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 

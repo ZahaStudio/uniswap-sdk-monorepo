@@ -3,8 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { WETH_ADDRESS } from "@zahastudio/uniswap-sdk";
-import { useSwap, useToken, type SwapStep } from "@zahastudio/uniswap-sdk-react";
+import { useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uniswap-sdk-react";
 import { zeroAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
 
@@ -36,6 +35,7 @@ function placeholderToken(address: Address): TokenInfo {
 
 export function SwapDemo() {
   const { isConnected } = useAccount();
+  const { sdk } = useUniswapSDK({ chainId: 1 });
 
   const [selectedPreset, setSelectedPreset] = useState<PoolPreset>(POOL_PRESETS[0]!);
   const [zeroForOne, setZeroForOne] = useState(selectedPreset.zeroForOne);
@@ -89,7 +89,7 @@ export function SwapDemo() {
   const amountInRaw = useMemo(() => parseTokenAmount(amountInput, tokenIn.decimals), [amountInput, tokenIn.decimals]);
 
   const isNativeInput =
-    (useNativeETH && tokenIn.address.toLowerCase() === WETH_ADDRESS(1).toLowerCase()) ||
+    (useNativeETH && tokenIn.address.toLowerCase() === sdk.getContractAddress("weth").toLowerCase()) ||
     tokenIn.address.toLowerCase() === zeroAddress.toLowerCase();
 
   // Fetch balance for the input token
