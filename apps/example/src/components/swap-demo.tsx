@@ -2,36 +2,22 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { usePoolState, useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uniswap-sdk-react";
 import { zeroAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
 
+import { ConnectWalletButton } from "@/components/connect-wallet-button";
+import { DetailRow } from "@/components/detail-row";
+import { PoolTab } from "@/components/pool-tab";
+import { RefreshButton } from "@/components/refresh-button";
 import { StepIndicator } from "@/components/step-indicator";
 import { SwapDetails } from "@/components/swap-details";
 import { TokenInput } from "@/components/token-input";
 import { TransactionStatus } from "@/components/transaction-status";
-import {
-  POOL_PRESETS,
-  type PoolPreset,
-  type TokenInfo,
-  buildTokenInfo,
-  parseTokenAmount,
-  formatTokenAmount,
-} from "@/lib/tokens";
-import { cn } from "@/lib/utils";
+import { POOL_PRESETS, type PoolPreset, buildTokenInfo, parseTokenAmount, formatTokenAmount } from "@/lib/tokens";
+import { cn, shouldShowExecutionError, placeholderToken } from "@/lib/utils";
 
 const QUOTE_REFRESH_INTERVAL = 30_000;
-
-function shouldShowExecutionError(message: string): boolean {
-  const normalizedMessage = message.toLowerCase();
-  return !normalizedMessage.includes("user rejected") && !normalizedMessage.includes("user denied");
-}
-
-/** Fallback TokenInfo while on-chain data is loading. */
-function placeholderToken(address: Address): TokenInfo {
-  return buildTokenInfo(address, "...", "", 18);
-}
 
 export function SwapDemo() {
   const { isConnected } = useAccount();
@@ -66,14 +52,10 @@ export function SwapDemo() {
   );
   const { query: poolQuery } = usePoolState(
     { poolKey },
-    {
-      enabled: true,
-      chainId: 1,
-      refetchInterval: QUOTE_REFRESH_INTERVAL,
-    },
+    { enabled: true, chainId: 1, refetchInterval: QUOTE_REFRESH_INTERVAL },
   );
 
-  const currency0Token: TokenInfo = currency0Query.data
+  const currency0Token = currency0Query.data
     ? buildTokenInfo(
         currency0Query.data.token.address,
         currency0Query.data.token.symbol,
@@ -82,7 +64,7 @@ export function SwapDemo() {
       )
     : placeholderToken(poolKey.currency0 as Address);
 
-  const currency1Token: TokenInfo = currency1Query.data
+  const currency1Token = currency1Query.data
     ? buildTokenInfo(
         currency1Query.data.token.address,
         currency1Query.data.token.symbol,
@@ -104,49 +86,30 @@ export function SwapDemo() {
   // Fetch balance for the input token
   const { query: tokenInQuery } = useToken(
     { tokenAddress: isNativeInput ? zeroAddress : tokenIn.address },
-    {
-      enabled: isConnected,
-      chainId: 1,
-      refetchInterval: 15_000,
-    },
+    { enabled: isConnected, chainId: 1, refetchInterval: 15_000 },
   );
 
   const handleMaxClick = useCallback(() => {
-    if (tokenInQuery.data?.balance) {
-      setAmountInput(tokenInQuery.data.balance.formatted);
-    }
+    if (tokenInQuery.data?.balance) setAmountInput(tokenInQuery.data.balance.formatted);
   }, [tokenInQuery.data?.balance]);
 
   const swap = useSwap(
-    {
-      poolKey,
-      amountIn: amountInRaw,
-      zeroForOne,
-      slippageBps: 50,
-      useNativeETH: useNativeETH || undefined,
-    },
-    {
-      enabled: amountInRaw > 0n,
-      refetchInterval: QUOTE_REFRESH_INTERVAL,
-      chainId: 1,
-    },
+    { poolKey, amountIn: amountInRaw, zeroForOne, slippageBps: 50, useNativeETH: useNativeETH || undefined },
+    { enabled: amountInRaw > 0n, refetchInterval: QUOTE_REFRESH_INTERVAL, chainId: 1 },
   );
 
   const { steps, currentStep, executeAll, reset } = swap;
-
   const quoteData = steps.quote.data;
   const quoteLoading = steps.quote.isLoading;
   const quoteError = steps.quote.error;
-  const quoteRefetch = steps.quote.refetch;
   const isFetchingQuote = steps.quote.isFetching;
 
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
   const hasInsufficientBalance =
     amountInRaw > 0n && tokenInQuery.data?.balance !== undefined && amountInRaw > tokenInQuery.data.balance.raw;
-  const insufficientBalanceError = hasInsufficientBalance ? `Insufficient ${tokenIn.symbol} balance` : null;
 
-  // Countdown timer for next auto-refresh
+  // Countdown timer for quote auto-refresh
   const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(QUOTE_REFRESH_INTERVAL / 1000);
   const lastRefreshRef = useRef(Date.now());
 
@@ -160,17 +123,27 @@ export function SwapDemo() {
     if (!quoteData || isSwapConfirmed) return;
     const timer = setInterval(() => {
       const elapsed = Date.now() - lastRefreshRef.current;
-      const remaining = Math.max(0, Math.ceil((QUOTE_REFRESH_INTERVAL - elapsed) / 1000));
-      setSecondsUntilRefresh(remaining);
+      setSecondsUntilRefresh(Math.max(0, Math.ceil((QUOTE_REFRESH_INTERVAL - elapsed) / 1000)));
     }, 1000);
     return () => clearInterval(timer);
   }, [quoteData, isSwapConfirmed]);
 
-  const handleRefreshQuote = useCallback(() => {
-    quoteRefetch();
+  const resetRefreshTimer = useCallback(() => {
     lastRefreshRef.current = Date.now();
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
-  }, [quoteRefetch]);
+  }, []);
+
+  const handleRefreshQuote = useCallback(() => {
+    steps.quote.refetch();
+    resetRefreshTimer();
+  }, [steps.quote, resetRefreshTimer]);
+
+  const handleRefreshAll = useCallback(() => {
+    steps.quote.refetch();
+    tokenInQuery.refetch();
+    poolQuery.refetch();
+    resetRefreshTimer();
+  }, [steps.quote, tokenInQuery, poolQuery, resetRefreshTimer]);
 
   const outputDisplay = quoteData ? formatTokenAmount(quoteData.amountOut, tokenOut.decimals) : undefined;
   const minOutputDisplay = quoteData ? formatTokenAmount(quoteData.minAmountOut, tokenOut.decimals) : undefined;
@@ -197,14 +170,10 @@ export function SwapDemo() {
         case "swap":
           await steps.swap.execute();
           break;
-        default:
-          break;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (shouldShowExecutionError(msg)) {
-        setTxError(msg);
-      }
+      if (shouldShowExecutionError(msg)) setTxError(msg);
     } finally {
       setExecuting(false);
     }
@@ -221,32 +190,23 @@ export function SwapDemo() {
       await executeAll();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (shouldShowExecutionError(msg)) {
-        setTxError(msg);
-      }
+      if (shouldShowExecutionError(msg)) setTxError(msg);
     } finally {
       setExecuting(false);
     }
   }, [executeAll, hasInsufficientBalance, tokenIn.symbol]);
-
-  const handleRefreshAll = useCallback(() => {
-    quoteRefetch();
-    tokenInQuery.refetch();
-    poolQuery.refetch();
-    lastRefreshRef.current = Date.now();
-    setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
-  }, [quoteRefetch, tokenInQuery, poolQuery]);
 
   const handleReset = useCallback(() => {
     reset();
     setTxError(null);
     setExecuting(false);
     tokenInQuery.refetch();
-    quoteRefetch();
+    steps.quote.refetch();
     poolQuery.refetch();
-    lastRefreshRef.current = Date.now();
-    setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
-  }, [reset, quoteRefetch, tokenInQuery, poolQuery]);
+    resetRefreshTimer();
+  }, [reset, steps.quote, tokenInQuery, poolQuery, resetRefreshTimer]);
+
+  const insufficientBalanceError = hasInsufficientBalance ? `Insufficient ${tokenIn.symbol} balance` : null;
 
   return (
     <div className="flex w-full items-start justify-center gap-6">
@@ -302,7 +262,7 @@ export function SwapDemo() {
         )}
       </div>
 
-      {/* Main content (right) */}
+      {/* Main content */}
       <div className="w-full max-w-120 min-w-120 space-y-4">
         {/* Pool selector tabs */}
         <div className="flex gap-2">
@@ -316,37 +276,16 @@ export function SwapDemo() {
           ))}
         </div>
 
+        {/* Pool info */}
         {pool && (
           <div className="border-border-muted bg-surface rounded-2xl border p-4">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-text-muted text-xs font-medium">Pool Info</span>
-              <button
+              <RefreshButton
                 onClick={handleRefreshAll}
                 disabled={executing || isSwapConfirmed}
-                className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className={cn((isFetchingQuote || poolQuery.isFetching) && "animate-spin")}
-                >
-                  <path
-                    d="M21 12a9 9 0 1 1-2.636-6.364"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M21 3v6h-6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
+                spinning={isFetchingQuote || poolQuery.isFetching}
+              />
             </div>
             <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
               <DetailRow
@@ -385,36 +324,13 @@ export function SwapDemo() {
 
         {/* Swap card */}
         <div className="border-border-muted bg-surface rounded-2xl border p-4">
-          {/* Header with refresh */}
           <div className="mb-3 flex items-center justify-between">
             <span className="text-text-muted text-xs font-medium">Swap</span>
-            <button
+            <RefreshButton
               onClick={handleRefreshAll}
               disabled={executing || isSwapConfirmed}
-              className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                className={cn(isFetchingQuote && "animate-spin")}
-              >
-                <path
-                  d="M21 12a9 9 0 1 1-2.636-6.364"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M21 3v6h-6"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+              spinning={isFetchingQuote}
+            />
           </div>
 
           {/* Input */}
@@ -429,7 +345,7 @@ export function SwapDemo() {
             onMaxClick={handleMaxClick}
           />
 
-          {/* Arrow divider — clickable flip button */}
+          {/* Flip direction button */}
           <div className="relative my-1 flex items-center justify-center">
             <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
             <button
@@ -464,7 +380,7 @@ export function SwapDemo() {
             loading={quoteLoading}
           />
 
-          {/* Refresh quote */}
+          {/* Quote refresh countdown */}
           {quoteData && !isSwapConfirmed && (
             <div className="mt-3 flex items-center justify-between">
               <span className="text-text-tertiary text-xs">Quote refreshes in {secondsUntilRefresh}s</span>
@@ -518,16 +434,7 @@ export function SwapDemo() {
           {/* Action button */}
           <div className="mt-4">
             {!isConnected ? (
-              <ConnectButton.Custom>
-                {({ openConnectModal }) => (
-                  <button
-                    onClick={openConnectModal}
-                    className="glow-accent bg-accent hover:bg-accent-hover w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                  >
-                    Connect Wallet
-                  </button>
-                )}
-              </ConnectButton.Custom>
+              <ConnectWalletButton />
             ) : isSwapConfirmed ? (
               <button
                 onClick={handleReset}
@@ -537,7 +444,6 @@ export function SwapDemo() {
               </button>
             ) : (
               <div className="space-y-2">
-                {/* Execute all button */}
                 <button
                   onClick={handleExecuteAll}
                   disabled={
@@ -557,7 +463,6 @@ export function SwapDemo() {
                   {executing ? getStepActionLabel(currentStep) + "..." : !quoteData ? "Enter an amount" : "Swap"}
                 </button>
 
-                {/* Individual step button (when not using executeAll) */}
                 {quoteData && !executing && (currentStep === "approval" || currentStep === "permit2") && (
                   <button
                     onClick={handleExecuteStep}
@@ -576,30 +481,6 @@ export function SwapDemo() {
   );
 }
 
-/**
- * Pool selector tab that derives its label from on-chain token symbols.
- */
-function PoolTab({ preset, isSelected, onClick }: { preset: PoolPreset; isSelected: boolean; onClick: () => void }) {
-  const { query: c0 } = useToken({ tokenAddress: preset.poolKey.currency0 as Address }, { enabled: true, chainId: 1 });
-  const { query: c1 } = useToken({ tokenAddress: preset.poolKey.currency1 as Address }, { enabled: true, chainId: 1 });
-
-  const label = c0.data && c1.data ? `${c0.data.token.symbol} / ${c1.data.token.symbol}` : "...";
-
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
-        isSelected
-          ? "border-accent/30 bg-accent-muted text-accent"
-          : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
-      )}
-    >
-      {label}
-    </button>
-  );
-}
-
 function getStepActionLabel(step: SwapStep): string {
   switch (step) {
     case "quote":
@@ -613,13 +494,4 @@ function getStepActionLabel(step: SwapStep): string {
     case "completed":
       return "Completed";
   }
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between text-[11px]">
-      <span className="text-text-muted">{label}</span>
-      <span className="text-text-secondary font-mono">{value}</span>
-    </div>
-  );
 }

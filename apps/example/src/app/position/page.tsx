@@ -3,8 +3,6 @@
 import { AppLayout } from "@/components/app-layout";
 import { PositionDemo } from "@/components/position-demo";
 
-export const dynamic = "force-dynamic";
-
 export default function PositionPage() {
   return (
     <AppLayout>

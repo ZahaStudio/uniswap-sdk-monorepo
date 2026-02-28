@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo } from "react";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import {
   usePosition,
   usePositionCollectFees,
@@ -13,8 +12,12 @@ import {
 import type { Address } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 
+import { ConnectWalletButton } from "@/components/connect-wallet-button";
+import { DetailRow } from "@/components/detail-row";
+import { RefreshButton } from "@/components/refresh-button";
+import { StepList, type StepItem } from "@/components/step-list";
 import { formatTokenAmount } from "@/lib/tokens";
-import { cn } from "@/lib/utils";
+import { cn, shouldShowExecutionError, truncateAddress } from "@/lib/utils";
 
 const ERC721_OWNER_ABI = [
   {
@@ -26,21 +29,14 @@ const ERC721_OWNER_ABI = [
   },
 ] as const;
 
-function shouldShowExecutionError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return !normalized.includes("user rejected") && !normalized.includes("user denied");
-}
-
-function truncateAddress(address: string): string {
-  return `${address.slice(0, 6)}\u2026${address.slice(-4)}`;
-}
-
 const REMOVE_PRESETS = [
   { label: "25%", value: 2500 },
   { label: "50%", value: 5000 },
   { label: "75%", value: 7500 },
   { label: "100%", value: 10000 },
 ];
+
+const EXPLORER_BASE = "https://otterscan-devnet.metacrypt.org/tx/";
 
 export function PositionDemo() {
   const { address, isConnected } = useAccount();
@@ -51,9 +47,7 @@ export function PositionDemo() {
 
   const handleLoad = useCallback(() => {
     const trimmed = tokenIdInput.trim();
-    if (trimmed && /^\d+$/.test(trimmed)) {
-      setActiveTokenId(trimmed);
-    }
+    if (trimmed && /^\d+$/.test(trimmed)) setActiveTokenId(trimmed);
   }, [tokenIdInput]);
 
   const handleKeyDown = useCallback(
@@ -63,20 +57,19 @@ export function PositionDemo() {
     [handleLoad],
   );
 
-  // ── Position data ──────────────────────────────────────────────────────────
+  // ── Position data ──
   const { query: positionQuery } = usePosition(
     { tokenId: activeTokenId },
     { enabled: !!activeTokenId, chainId: 1, refetchInterval: 15_000 },
   );
 
-  // ── Owner check ────────────────────────────────────────────────────────────
+  // ── Owner check ──
   const positionManagerAddress = sdk.getContractAddress("positionManager") as Address | undefined;
-  const ownerTokenId = activeTokenId ? BigInt(activeTokenId) : 0n;
   const { data: owner, isLoading: ownerLoading } = useReadContract({
     address: positionManagerAddress!,
     abi: ERC721_OWNER_ABI,
     functionName: "ownerOf",
-    args: [ownerTokenId],
+    args: [activeTokenId ? BigInt(activeTokenId) : 0n],
     query: { enabled: !!activeTokenId && !!positionManagerAddress },
   });
 
@@ -85,7 +78,7 @@ export function PositionDemo() {
     return address.toLowerCase() === (owner as string).toLowerCase();
   }, [address, owner]);
 
-  // ── Actions ────────────────────────────────────────────────────────────────
+  // ── Actions ──
   const collectFees = usePositionCollectFees({ tokenId: activeTokenId }, { chainId: 1 });
   const removeLiquidity = usePositionRemoveLiquidity({ tokenId: activeTokenId }, { chainId: 1 });
 
@@ -94,10 +87,6 @@ export function PositionDemo() {
   const [removeExecuting, setRemoveExecuting] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removePercentage, setRemovePercentage] = useState<number | null>(null);
-
-  const handleRefreshAll = useCallback(() => {
-    positionQuery.refetch();
-  }, [positionQuery]);
 
   const handleCollectFees = useCallback(async () => {
     if (!address) return;
@@ -129,18 +118,15 @@ export function PositionDemo() {
     }
   }, [removePercentage, removeLiquidity, positionQuery]);
 
-  // ── Derived values ─────────────────────────────────────────────────────────
+  // ── Derived values ──
   const data = positionQuery.data;
-
   const symbol0 = data?.currency0?.symbol ?? "???";
   const symbol1 = data?.currency1?.symbol ?? "???";
   const decimals0 = data?.currency0?.decimals ?? 18;
   const decimals1 = data?.currency1?.decimals ?? 18;
-
   const inRange = data
     ? data.currentTick >= data.position.tickLower && data.currentTick < data.position.tickUpper
     : false;
-
   const hasUncollectedFees = data
     ? data.periphery.uncollectedFees.amount0 > 0n || data.periphery.uncollectedFees.amount1 > 0n
     : false;
@@ -169,7 +155,7 @@ export function PositionDemo() {
         )}
       </div>
 
-      {/* Main content (right) */}
+      {/* Main content */}
       <div className="w-full max-w-120 min-w-120 space-y-4">
         {/* Token ID input */}
         <div className="border-border-muted bg-surface rounded-2xl border p-4">
@@ -216,39 +202,17 @@ export function PositionDemo() {
         {/* Position data */}
         {data && (
           <>
-            {/* ── Overview card ── */}
+            {/* Overview card */}
             <div className="border-border-muted bg-surface space-y-4 rounded-2xl border p-4">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-text text-lg font-semibold">Position #{activeTokenId}</h2>
-                    <button
-                      onClick={handleRefreshAll}
-                      className="text-text-muted hover:text-accent flex items-center transition-colors"
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        className={cn(positionQuery.isFetching && "animate-spin")}
-                      >
-                        <path
-                          d="M21 12a9 9 0 1 1-2.636-6.364"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                        />
-                        <path
-                          d="M21 3v6h-6"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
+                    <RefreshButton
+                      onClick={() => positionQuery.refetch()}
+                      spinning={positionQuery.isFetching}
+                    />
                   </div>
                   <p className="text-text-secondary text-sm">
                     {symbol0} / {symbol1}
@@ -309,12 +273,10 @@ export function PositionDemo() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-text-muted">Current price</span>
-                  <span className="text-text-secondary font-mono">
-                    {data.pool.token0Price.toSignificant(6)} {symbol1} per {symbol0}
-                  </span>
-                </div>
+                <DetailRow
+                  label="Current price"
+                  value={`${data.pool.token0Price.toSignificant(6)} ${symbol1} per ${symbol0}`}
+                />
               </div>
 
               {/* Token amounts */}
@@ -333,10 +295,10 @@ export function PositionDemo() {
                   </span>
                 </div>
                 <div className="border-border-muted border-t pt-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-text-muted text-xs">Liquidity</span>
-                    <span className="text-text-secondary font-mono text-xs">{data.position.liquidity.toString()}</span>
-                  </div>
+                  <DetailRow
+                    label="Liquidity"
+                    value={data.position.liquidity.toString()}
+                  />
                 </div>
               </div>
 
@@ -370,7 +332,7 @@ export function PositionDemo() {
               </div>
             </div>
 
-            {/* ── Uncollected Fees ── */}
+            {/* Uncollected Fees */}
             <div className="border-border-muted bg-surface space-y-3 rounded-2xl border p-4">
               <h3 className="text-text text-sm font-semibold">Uncollected Fees</h3>
 
@@ -424,20 +386,11 @@ export function PositionDemo() {
                   Only the position owner can collect fees
                 </div>
               ) : (
-                <ConnectButton.Custom>
-                  {({ openConnectModal }) => (
-                    <button
-                      onClick={openConnectModal}
-                      className="glow-accent bg-accent hover:bg-accent-hover w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                    >
-                      Connect Wallet
-                    </button>
-                  )}
-                </ConnectButton.Custom>
+                <ConnectWalletButton />
               )}
             </div>
 
-            {/* ── Remove Liquidity ── */}
+            {/* Remove Liquidity */}
             <div className="border-border-muted bg-surface space-y-3 rounded-2xl border p-4">
               <h3 className="text-text text-sm font-semibold">Remove Liquidity</h3>
 
@@ -497,16 +450,7 @@ export function PositionDemo() {
                   Only the position owner can remove liquidity
                 </div>
               ) : (
-                <ConnectButton.Custom>
-                  {({ openConnectModal }) => (
-                    <button
-                      onClick={openConnectModal}
-                      className="glow-accent bg-accent hover:bg-accent-hover w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                    >
-                      Connect Wallet
-                    </button>
-                  )}
-                </ConnectButton.Custom>
+                <ConnectWalletButton />
               )}
             </div>
           </>
@@ -516,13 +460,18 @@ export function PositionDemo() {
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between text-[11px]">
-      <span className="text-text-muted">{label}</span>
-      <span className="text-text-secondary font-mono">{value}</span>
-    </div>
-  );
+// ── Sub-components ──────────────────────────────────────────────────────────
+
+function txLoadingLabel(status: TransactionStatus): string | undefined {
+  if (status === "pending") return "Awaiting wallet...";
+  if (status === "confirming") return "Confirming...";
+  return undefined;
+}
+
+function txStepStatus(status: TransactionStatus, executing: boolean): StepItem["status"] {
+  if (status === "confirmed") return "completed";
+  if (executing || status === "pending" || status === "confirming") return "active";
+  return "pending";
 }
 
 function PositionLifecycle({
@@ -542,153 +491,31 @@ function PositionLifecycle({
   removeExecuting: boolean;
   removePercentage: number | null;
 }) {
-  type ActionStep = {
-    id: string;
-    label: string;
-    description: string;
-    status: "pending" | "active" | "completed";
-    loadingLabel?: string;
-  };
-
-  const collectStep: ActionStep = {
-    id: "collect",
-    label: "Collect Fees",
-    description: "Collect uncollected trading fees",
-    status:
-      collectFeesStatus === "confirmed"
-        ? "completed"
-        : collectExecuting || collectFeesStatus === "pending" || collectFeesStatus === "confirming"
-          ? "active"
-          : "pending",
-    loadingLabel:
-      collectFeesStatus === "pending"
-        ? "Awaiting wallet..."
-        : collectFeesStatus === "confirming"
-          ? "Confirming..."
-          : undefined,
-  };
-
-  const removeStep: ActionStep = {
-    id: "remove",
-    label: "Remove Liquidity",
-    description: removePercentage ? `Remove ${removePercentage / 100}% of liquidity` : "Select amount to remove",
-    status:
-      removeLiquidityStatus === "confirmed"
-        ? "completed"
-        : removeExecuting || removeLiquidityStatus === "pending" || removeLiquidityStatus === "confirming"
-          ? "active"
-          : "pending",
-    loadingLabel:
-      removeLiquidityStatus === "pending"
-        ? "Awaiting wallet..."
-        : removeLiquidityStatus === "confirming"
-          ? "Confirming..."
-          : undefined,
-  };
-
-  const allSteps = [collectStep, removeStep];
-
-  const etherscanBase = "https://otterscan-devnet.metacrypt.org/tx/";
+  const steps: StepItem[] = [
+    {
+      id: "collect",
+      label: "Collect Fees",
+      description: "Collect uncollected trading fees",
+      status: txStepStatus(collectFeesStatus, collectExecuting),
+      loadingLabel: txLoadingLabel(collectFeesStatus),
+    },
+    {
+      id: "remove",
+      label: "Remove Liquidity",
+      description: removePercentage ? `Remove ${removePercentage / 100}% of liquidity` : "Select amount to remove",
+      status: txStepStatus(removeLiquidityStatus, removeExecuting),
+      loadingLabel: txLoadingLabel(removeLiquidityStatus),
+    },
+  ];
 
   return (
-    <div className="border-border-muted bg-surface rounded-xl border p-4">
-      <div className="text-text-muted mb-3 text-xs font-medium">Position lifecycle</div>
-
-      <div className="space-y-1">
-        {allSteps.map((step, i) => (
-          <div
-            key={step.id}
-            className="flex items-start gap-3"
-          >
-            <div className="flex flex-col items-center pt-0.5">
-              <div
-                className={cn(
-                  "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
-                  step.status === "completed" && "border-success bg-success text-white",
-                  step.status === "active" && "border-accent bg-accent-muted text-accent",
-                  step.status === "pending" && "border-border text-text-muted bg-transparent",
-                )}
-              >
-                {step.status === "completed" ? (
-                  <svg
-                    width="10"
-                    height="10"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                  >
-                    <path
-                      d="M20 6L9 17l-5-5"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : step.status === "active" ? (
-                  <div className="bg-accent h-1.5 w-1.5 animate-pulse rounded-full" />
-                ) : (
-                  <div className="bg-text-muted/40 h-1.5 w-1.5 rounded-full" />
-                )}
-              </div>
-              {i < allSteps.length - 1 && (
-                <div
-                  className={cn(
-                    "my-0.5 h-4 w-0.5 rounded-full",
-                    step.status === "completed" ? "bg-success/40" : "bg-border-muted",
-                  )}
-                />
-              )}
-            </div>
-
-            <div className="min-w-0 flex-1 pb-1">
-              <div
-                className={cn(
-                  "text-xs font-medium",
-                  step.status === "completed" && "text-success",
-                  step.status === "active" && "text-accent",
-                  step.status === "pending" && "text-text-muted",
-                )}
-              >
-                {step.label}
-              </div>
-              <div className="text-text-muted text-[11px]">{step.description}</div>
-            </div>
-
-            {step.loadingLabel && (
-              <div className="flex items-center gap-1.5 pt-0.5">
-                <svg
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className="text-accent animate-spin"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    className="opacity-20"
-                  />
-                  <path
-                    d="M22 12a10 10 0 0 0-10-10"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="text-accent text-[11px] font-medium whitespace-nowrap">{step.loadingLabel}</span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Tx links */}
+    <StepList
+      title="Position lifecycle"
+      steps={steps}
+    >
       {collectFeesTxHash && collectFeesStatus === "confirmed" && (
         <a
-          href={`${etherscanBase}${collectFeesTxHash}`}
+          href={`${EXPLORER_BASE}${collectFeesTxHash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-text-muted hover:text-text-secondary mt-3 block truncate font-mono text-[10px] transition-colors"
@@ -698,7 +525,7 @@ function PositionLifecycle({
       )}
       {removeLiquidityTxHash && removeLiquidityStatus === "confirmed" && (
         <a
-          href={`${etherscanBase}${removeLiquidityTxHash}`}
+          href={`${EXPLORER_BASE}${removeLiquidityTxHash}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-text-muted hover:text-text-secondary mt-1 block truncate font-mono text-[10px] transition-colors"
@@ -706,7 +533,7 @@ function PositionLifecycle({
           Remove tx: {removeLiquidityTxHash.slice(0, 10)}...
         </a>
       )}
-    </div>
+    </StepList>
   );
 }
 
@@ -721,8 +548,6 @@ function TxStatusBanner({
 }) {
   if (status === "idle") return null;
 
-  const etherscanUrl = txHash ? `https://otterscan-devnet.metacrypt.org/tx/${txHash}` : undefined;
-
   const config: Record<TransactionStatus, { color: string; bg: string; text: string }> = {
     idle: { color: "", bg: "", text: "" },
     pending: { color: "text-warning", bg: "bg-warning-muted", text: "Waiting for wallet..." },
@@ -732,13 +557,14 @@ function TxStatusBanner({
   };
 
   const c = config[status];
+  const explorerUrl = txHash ? `${EXPLORER_BASE}${txHash}` : undefined;
 
   return (
     <div className={cn("flex items-center justify-between rounded-lg px-3 py-2", c.bg)}>
       <span className={cn("text-xs font-medium", c.color)}>{c.text}</span>
-      {etherscanUrl && (
+      {explorerUrl && (
         <a
-          href={etherscanUrl}
+          href={explorerUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-text-muted hover:text-text-secondary text-[10px] font-medium transition-colors"

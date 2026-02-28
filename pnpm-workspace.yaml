@@ -28,3 +28,4 @@ overrides:
   typescript: "catalog:"
   "react-native": "-"
   "abitype>zod": "-"
+  "@openzeppelin/contracts": "-"

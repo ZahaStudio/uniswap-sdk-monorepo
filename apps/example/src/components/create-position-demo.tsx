@@ -2,12 +2,16 @@
 
 import { useState, useMemo, useCallback } from "react";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useCreatePosition, useToken, type AddLiquidityStep } from "@zahastudio/uniswap-sdk-react";
 import type { Address } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
+import { ConnectWalletButton } from "@/components/connect-wallet-button";
+import { DetailRow } from "@/components/detail-row";
+import { PoolTab } from "@/components/pool-tab";
+import { RefreshButton } from "@/components/refresh-button";
+import { StepList, type StepItem } from "@/components/step-list";
 import { TokenInput } from "@/components/token-input";
 import { TransactionStatus } from "@/components/transaction-status";
 import {
@@ -18,35 +22,9 @@ import {
   buildTokenInfo,
   parseTokenAmount,
 } from "@/lib/tokens";
-import { cn } from "@/lib/utils";
+import { cn, shouldShowExecutionError, placeholderToken } from "@/lib/utils";
 
-/** Presets available for position creation (subset of all pools). */
 const POSITION_PRESETS: PoolPreset[] = [ETH_USDC_POOL, USDC_USDT_POOL];
-
-function shouldShowExecutionError(message: string): boolean {
-  const normalized = message.toLowerCase();
-  return !normalized.includes("user rejected") && !normalized.includes("user denied");
-}
-
-function getStepActionLabel(step: AddLiquidityStep): string {
-  switch (step) {
-    case "approval0":
-      return "Approve token0";
-    case "approval1":
-      return "Approve token1";
-    case "permit2":
-      return "Sign permit";
-    case "execute":
-      return "Create position";
-    case "completed":
-      return "Completed";
-  }
-}
-
-/** Fallback TokenInfo while on-chain data is loading. */
-function placeholderToken(address: Address): TokenInfo {
-  return buildTokenInfo(address, "...", "", 18);
-}
 
 export function CreatePositionDemo() {
   const { address, isConnected } = useAccount();
@@ -56,7 +34,6 @@ export function CreatePositionDemo() {
   const [amount1Input, setAmount1Input] = useState("");
   const [tickLowerInput, setTickLowerInput] = useState("");
   const [tickUpperInput, setTickUpperInput] = useState("");
-  // Track which currency was last manually edited (0 = currency0, 1 = currency1)
   const [lastEdited, setLastEdited] = useState<0 | 1>(0);
 
   const handlePresetChange = useCallback((preset: PoolPreset) => {
@@ -69,7 +46,6 @@ export function CreatePositionDemo() {
 
   const { poolKey } = selectedPreset;
 
-  // Fetch on-chain token metadata for both currencies
   const { query: currency0Query } = useToken(
     { tokenAddress: poolKey.currency0 as Address },
     { enabled: true, chainId: 1 },
@@ -97,27 +73,19 @@ export function CreatePositionDemo() {
       )
     : placeholderToken(poolKey.currency1 as Address);
 
-  // Parse amounts — the user edits one, the hook computes the other
+  // Parse amounts — user edits one, the hook computes the other
   const parsedAmount0 = useMemo(() => parseTokenAmount(amount0Input, token0.decimals), [amount0Input, token0.decimals]);
   const parsedAmount1 = useMemo(() => parseTokenAmount(amount1Input, token1.decimals), [amount1Input, token1.decimals]);
-  const hookAmount0 = lastEdited === 0 ? parsedAmount0 : undefined;
-  const hookAmount1 = lastEdited === 0 ? undefined : parsedAmount1;
-
-  // Parse tick inputs for the hook
-  const hookTickLower = tickLowerInput ? parseInt(tickLowerInput, 10) : undefined;
-  const hookTickUpper = tickUpperInput ? parseInt(tickUpperInput, 10) : undefined;
 
   const create = useCreatePosition(
     {
       poolKey,
-      amount0: hookAmount0,
-      amount1: hookAmount1,
-      tickLower: hookTickLower,
-      tickUpper: hookTickUpper,
+      amount0: lastEdited === 0 ? parsedAmount0 : undefined,
+      amount1: lastEdited === 0 ? undefined : parsedAmount1,
+      tickLower: tickLowerInput ? parseInt(tickLowerInput, 10) : undefined,
+      tickUpper: tickUpperInput ? parseInt(tickUpperInput, 10) : undefined,
     },
-    {
-      chainId: 1,
-    },
+    { chainId: 1 },
   );
 
   const { pool: poolQuery, steps, currentStep, executeAll, reset, position } = create;
@@ -133,13 +101,20 @@ export function CreatePositionDemo() {
     { enabled: isConnected, chainId: 1, refetchInterval: 15_000 },
   );
 
+  const handleAmount0Change = useCallback((val: string) => {
+    setAmount0Input(val);
+    setLastEdited(0);
+  }, []);
+  const handleAmount1Change = useCallback((val: string) => {
+    setAmount1Input(val);
+    setLastEdited(1);
+  }, []);
   const handleMax0Click = useCallback(() => {
     if (token0BalQuery.data?.balance) {
       setAmount0Input(token0BalQuery.data.balance.formatted);
       setLastEdited(0);
     }
   }, [token0BalQuery.data?.balance]);
-
   const handleMax1Click = useCallback(() => {
     if (token1BalQuery.data?.balance) {
       setAmount1Input(token1BalQuery.data.balance.formatted);
@@ -147,28 +122,9 @@ export function CreatePositionDemo() {
     }
   }, [token1BalQuery.data?.balance]);
 
-  const handleAmount0Change = useCallback((val: string) => {
-    setAmount0Input(val);
-    setLastEdited(0);
-  }, []);
-
-  const handleAmount1Change = useCallback((val: string) => {
-    setAmount1Input(val);
-    setLastEdited(1);
-  }, []);
-
-  // Derive the auto-filled display value from the hook's position calculation
-  const displayAmount0 = (() => {
-    if (lastEdited === 0) return amount0Input;
-    if (!position) return amount0Input;
-    return position.formattedAmount0;
-  })();
-
-  const displayAmount1 = (() => {
-    if (lastEdited === 1) return amount1Input;
-    if (!position) return amount1Input;
-    return position.formattedAmount1;
-  })();
+  // Derive auto-filled display values from the hook's position calculation
+  const displayAmount0 = lastEdited === 0 || !position ? amount0Input : position.formattedAmount0;
+  const displayAmount1 = lastEdited === 1 || !position ? amount1Input : position.formattedAmount1;
 
   const effectiveAmount0Raw = useMemo(
     () => parseTokenAmount(displayAmount0, token0.decimals),
@@ -179,22 +135,22 @@ export function CreatePositionDemo() {
     [displayAmount1, token1.decimals],
   );
 
-  const hasInsufficientToken0Balance =
+  const hasInsufficientToken0 =
     effectiveAmount0Raw > 0n &&
     token0BalQuery.data?.balance !== undefined &&
     effectiveAmount0Raw > token0BalQuery.data.balance.raw;
-  const hasInsufficientToken1Balance =
+  const hasInsufficientToken1 =
     effectiveAmount1Raw > 0n &&
     token1BalQuery.data?.balance !== undefined &&
     effectiveAmount1Raw > token1BalQuery.data.balance.raw;
+  const hasInsufficientBalance = hasInsufficientToken0 || hasInsufficientToken1;
 
-  const hasInsufficientBalance = hasInsufficientToken0Balance || hasInsufficientToken1Balance;
   const insufficientBalanceError =
-    hasInsufficientToken0Balance && hasInsufficientToken1Balance
+    hasInsufficientToken0 && hasInsufficientToken1
       ? `Insufficient ${token0.symbol} and ${token1.symbol} balance`
-      : hasInsufficientToken0Balance
+      : hasInsufficientToken0
         ? `Insufficient ${token0.symbol} balance`
-        : hasInsufficientToken1Balance
+        : hasInsufficientToken1
           ? `Insufficient ${token1.symbol} balance`
           : null;
 
@@ -213,16 +169,12 @@ export function CreatePositionDemo() {
     }
     setExecuting(true);
     try {
-      await executeAll({
-        recipient: address,
-      });
+      await executeAll({ recipient: address });
       token0BalQuery.refetch();
       token1BalQuery.refetch();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      if (shouldShowExecutionError(msg)) {
-        setTxError(msg);
-      }
+      if (shouldShowExecutionError(msg)) setTxError(msg);
     } finally {
       setExecuting(false);
     }
@@ -281,7 +233,7 @@ export function CreatePositionDemo() {
         )}
       </div>
 
-      {/* Main content (right) */}
+      {/* Main content */}
       <div className="w-full max-w-120 min-w-120 space-y-4">
         {/* Pool selector tabs */}
         <div className="flex gap-2">
@@ -300,33 +252,11 @@ export function CreatePositionDemo() {
           <div className="border-border-muted bg-surface rounded-2xl border p-4">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-text-muted text-xs font-medium">Pool Info</span>
-              <button
+              <RefreshButton
                 onClick={handleRefreshAll}
                 disabled={executing || isExecuteConfirmed}
-                className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  className={cn(poolQuery.isFetching && "animate-spin")}
-                >
-                  <path
-                    d="M21 12a9 9 0 1 1-2.636-6.364"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M21 3v6h-6"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
+                spinning={poolQuery.isFetching}
+              />
             </div>
             <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
               <DetailRow
@@ -353,86 +283,29 @@ export function CreatePositionDemo() {
           </div>
         )}
 
-        {/* Pool loading */}
         {poolQuery.isLoading && (
           <div className="border-border-muted bg-surface flex items-center justify-center rounded-2xl border p-6">
             <div className="text-text-secondary animate-pulse text-sm">Loading pool...</div>
           </div>
         )}
 
-        {/* Pool error */}
         {poolQuery.error && (
           <div className="bg-error-muted text-error rounded-xl p-3 text-xs">{poolQuery.error.message}</div>
         )}
 
         {/* Tick range + Amount inputs */}
         <div className="border-border-muted bg-surface rounded-2xl border p-4">
-          {/* Tick range sliders — first, since amounts depend on range */}
-          {pool &&
-            (() => {
-              const ts = pool.tickSpacing;
-              const centerTick = Math.round(pool.tickCurrent / ts) * ts;
-              const sliderMin = centerTick - 100 * ts;
-              const sliderMax = centerTick + 100 * ts;
-              const lowerValue = tickLowerInput ? parseInt(tickLowerInput, 10) : sliderMin;
-              const upperValue = tickUpperInput ? parseInt(tickUpperInput, 10) : sliderMax;
-
-              return (
-                <div className="mb-4">
-                  <div className="text-text-muted mb-2 text-xs font-medium">
-                    Tick Range <span className="text-text-muted/60">(current tick: {pool.tickCurrent})</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-surface-raised rounded-xl p-3">
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <label className="text-text-muted text-[10px] font-medium">Lower tick</label>
-                        <span className="text-text font-mono text-xs font-medium">{lowerValue}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={sliderMin}
-                        max={sliderMax}
-                        step={ts}
-                        value={lowerValue}
-                        onChange={(e) => {
-                          const val = Math.round(parseInt(e.target.value, 10) / ts) * ts;
-                          setTickLowerInput(val.toString());
-                        }}
-                        disabled={executing || isExecuteConfirmed}
-                        className="accent-accent w-full"
-                      />
-                      <div className="text-text-muted mt-1 flex justify-between text-[10px]">
-                        <span>{sliderMin}</span>
-                        <span>{sliderMax}</span>
-                      </div>
-                    </div>
-                    <div className="bg-surface-raised rounded-xl p-3">
-                      <div className="mb-1.5 flex items-center justify-between">
-                        <label className="text-text-muted text-[10px] font-medium">Upper tick</label>
-                        <span className="text-text font-mono text-xs font-medium">{upperValue}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={sliderMin}
-                        max={sliderMax}
-                        step={ts}
-                        value={upperValue}
-                        onChange={(e) => {
-                          const val = Math.round(parseInt(e.target.value, 10) / ts) * ts;
-                          setTickUpperInput(val.toString());
-                        }}
-                        disabled={executing || isExecuteConfirmed}
-                        className="accent-accent w-full"
-                      />
-                      <div className="text-text-muted mt-1 flex justify-between text-[10px]">
-                        <span>{sliderMin}</span>
-                        <span>{sliderMax}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+          {/* Tick range sliders */}
+          {pool && (
+            <TickRangeSliders
+              pool={pool}
+              tickLowerInput={tickLowerInput}
+              tickUpperInput={tickUpperInput}
+              onTickLowerChange={setTickLowerInput}
+              onTickUpperChange={setTickUpperInput}
+              disabled={executing || isExecuteConfirmed}
+            />
+          )}
 
           {/* Amount inputs */}
           <TokenInput
@@ -446,7 +319,7 @@ export function CreatePositionDemo() {
             onMaxClick={handleMax0Click}
           />
 
-          {/* Arrow divider */}
+          {/* Plus divider */}
           <div className="relative my-1 flex items-center justify-center">
             <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
             <div className="border-border-muted bg-surface-raised relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border">
@@ -489,16 +362,7 @@ export function CreatePositionDemo() {
           {/* Action button */}
           <div className="mt-4">
             {!isConnected ? (
-              <ConnectButton.Custom>
-                {({ openConnectModal }) => (
-                  <button
-                    onClick={openConnectModal}
-                    className="glow-accent bg-accent hover:bg-accent-hover w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
-                  >
-                    Connect Wallet
-                  </button>
-                )}
-              </ConnectButton.Custom>
+              <ConnectWalletButton />
             ) : isExecuteConfirmed ? (
               <button
                 onClick={handleReset}
@@ -530,37 +394,115 @@ export function CreatePositionDemo() {
   );
 }
 
-/**
- * Pool selector tab that derives its label from on-chain token symbols.
- */
-function PoolTab({ preset, isSelected, onClick }: { preset: PoolPreset; isSelected: boolean; onClick: () => void }) {
-  const { query: c0 } = useToken({ tokenAddress: preset.poolKey.currency0 as Address }, { enabled: true, chainId: 1 });
-  const { query: c1 } = useToken({ tokenAddress: preset.poolKey.currency1 as Address }, { enabled: true, chainId: 1 });
+// ── Sub-components ──────────────────────────────────────────────────────────
 
-  const label = c0.data && c1.data ? `${c0.data.token.symbol} / ${c1.data.token.symbol}` : "...";
+function TickRangeSliders({
+  pool,
+  tickLowerInput,
+  tickUpperInput,
+  onTickLowerChange,
+  onTickUpperChange,
+  disabled,
+}: {
+  pool: { tickSpacing: number; tickCurrent: number };
+  tickLowerInput: string;
+  tickUpperInput: string;
+  onTickLowerChange: (val: string) => void;
+  onTickUpperChange: (val: string) => void;
+  disabled: boolean;
+}) {
+  const ts = pool.tickSpacing;
+  const centerTick = Math.round(pool.tickCurrent / ts) * ts;
+  const sliderMin = centerTick - 100 * ts;
+  const sliderMax = centerTick + 100 * ts;
+  const lowerValue = tickLowerInput ? parseInt(tickLowerInput, 10) : sliderMin;
+  const upperValue = tickUpperInput ? parseInt(tickUpperInput, 10) : sliderMax;
+
+  const snapToTick = (val: number) => (Math.round(val / ts) * ts).toString();
 
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
-        isSelected
-          ? "border-accent/30 bg-accent-muted text-accent"
-          : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
-      )}
-    >
-      {label}
-    </button>
+    <div className="mb-4">
+      <div className="text-text-muted mb-2 text-xs font-medium">
+        Tick Range <span className="text-text-muted/60">(current tick: {pool.tickCurrent})</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <TickSlider
+          label="Lower tick"
+          value={lowerValue}
+          min={sliderMin}
+          max={sliderMax}
+          step={ts}
+          onChange={(v) => onTickLowerChange(snapToTick(v))}
+          disabled={disabled}
+        />
+        <TickSlider
+          label="Upper tick"
+          value={upperValue}
+          min={sliderMin}
+          max={sliderMax}
+          step={ts}
+          onChange={(v) => onTickUpperChange(snapToTick(v))}
+          disabled={disabled}
+        />
+      </div>
+    </div>
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function TickSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+  disabled: boolean;
+}) {
   return (
-    <div className="flex items-center justify-between text-[11px]">
-      <span className="text-text-muted">{label}</span>
-      <span className="text-text-secondary font-mono">{value}</span>
+    <div className="bg-surface-raised rounded-xl p-3">
+      <div className="mb-1.5 flex items-center justify-between">
+        <label className="text-text-muted text-[10px] font-medium">{label}</label>
+        <span className="text-text font-mono text-xs font-medium">{value}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseInt(e.target.value, 10))}
+        disabled={disabled}
+        className="accent-accent w-full"
+      />
+      <div className="text-text-muted mt-1 flex justify-between text-[10px]">
+        <span>{min}</span>
+        <span>{max}</span>
+      </div>
     </div>
   );
+}
+
+function getStepActionLabel(step: AddLiquidityStep): string {
+  switch (step) {
+    case "approval0":
+      return "Approve token0";
+    case "approval1":
+      return "Approve token1";
+    case "permit2":
+      return "Sign permit";
+    case "execute":
+      return "Create position";
+    case "completed":
+      return "Completed";
+  }
 }
 
 function AddLiquidityStepIndicator({
@@ -574,178 +516,55 @@ function AddLiquidityStepIndicator({
   isNativeToken0: boolean;
   isNativeToken1: boolean;
 }) {
-  const getStepLoading = (stepId: AddLiquidityStep): string | undefined => {
-    if (stepId === "approval0") {
-      const s = steps.approvalToken0.transaction.status;
-      if (s === "pending") return "Awaiting wallet...";
-      if (s === "confirming") return "Confirming...";
-    }
-    if (stepId === "approval1") {
-      const s = steps.approvalToken1.transaction.status;
-      if (s === "pending") return "Awaiting wallet...";
-      if (s === "confirming") return "Confirming...";
-    }
-    if (stepId === "permit2") {
-      if (steps.permit2.isPending) return "Awaiting signature...";
-    }
-    if (stepId === "execute") {
-      const s = steps.execute.transaction.status;
-      if (s === "pending") return "Awaiting wallet...";
-      if (s === "confirming") return "Confirming...";
-    }
-    return undefined;
-  };
+  const order: AddLiquidityStep[] = ["approval0", "approval1", "permit2", "execute", "completed"];
 
-  interface StepItem {
-    id: AddLiquidityStep;
-    label: string;
-    description: string;
-  }
-
-  const allSteps: StepItem[] = [
-    ...(isNativeToken0
-      ? []
-      : [
-          {
-            id: "approval0" as AddLiquidityStep,
-            label: "Approve Token0",
-            description: "Allow Permit2 to spend token0",
-          },
-        ]),
-    ...(isNativeToken1
-      ? []
-      : [
-          {
-            id: "approval1" as AddLiquidityStep,
-            label: "Approve Token1",
-            description: "Allow Permit2 to spend token1",
-          },
-        ]),
-    ...(!isNativeToken0 || !isNativeToken1
-      ? [
-          {
-            id: "permit2" as AddLiquidityStep,
-            label: "Permit2",
-            description: "Sign off-chain spending permit",
-          },
-        ]
-      : []),
-    {
-      id: "execute",
-      label: "Create Position",
-      description: "Mint the position NFT",
-    },
-  ];
-
-  const getStepStatus = (stepId: AddLiquidityStep) => {
-    const order: AddLiquidityStep[] = ["approval0", "approval1", "permit2", "execute", "completed"];
+  function getStatus(stepId: AddLiquidityStep): StepItem["status"] {
+    if (currentStep === "completed") return "completed";
     const currentIdx = order.indexOf(currentStep);
     const stepIdx = order.indexOf(stepId);
-
-    if (currentStep === "completed") return "completed";
     if (stepIdx < currentIdx) return "completed";
     if (stepIdx === currentIdx) return "active";
     return "pending";
-  };
+  }
+
+  function getLoading(stepId: AddLiquidityStep): string | undefined {
+    if (stepId === "approval0") {
+      if (steps.approvalToken0.transaction.status === "pending") return "Awaiting wallet...";
+      if (steps.approvalToken0.transaction.status === "confirming") return "Confirming...";
+    }
+    if (stepId === "approval1") {
+      if (steps.approvalToken1.transaction.status === "pending") return "Awaiting wallet...";
+      if (steps.approvalToken1.transaction.status === "confirming") return "Confirming...";
+    }
+    if (stepId === "permit2" && steps.permit2.isPending) return "Awaiting signature...";
+    if (stepId === "execute") {
+      if (steps.execute.transaction.status === "pending") return "Awaiting wallet...";
+      if (steps.execute.transaction.status === "confirming") return "Confirming...";
+    }
+    return undefined;
+  }
+
+  const stepDefs: StepItem[] = [
+    ...(isNativeToken0
+      ? []
+      : [{ id: "approval0", label: "Approve Token0", description: "Allow Permit2 to spend token0" }]),
+    ...(isNativeToken1
+      ? []
+      : [{ id: "approval1", label: "Approve Token1", description: "Allow Permit2 to spend token1" }]),
+    ...(!isNativeToken0 || !isNativeToken1
+      ? [{ id: "permit2", label: "Permit2", description: "Sign off-chain spending permit" }]
+      : []),
+    { id: "execute", label: "Create Position", description: "Mint the position NFT" },
+  ].map((s) => ({
+    ...s,
+    status: getStatus(s.id as AddLiquidityStep),
+    loadingLabel: getLoading(s.id as AddLiquidityStep),
+  }));
 
   return (
-    <div className="border-border-muted bg-surface rounded-xl border p-4">
-      <div className="text-text-muted mb-3 text-xs font-medium">Create position lifecycle</div>
-
-      <div className="space-y-1">
-        {allSteps.map((step, i) => {
-          const status = getStepStatus(step.id);
-          const loadingLabel = getStepLoading(step.id);
-          return (
-            <div
-              key={step.id}
-              className="flex items-start gap-3"
-            >
-              <div className="flex flex-col items-center pt-0.5">
-                <div
-                  className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
-                    status === "completed" && "border-success bg-success text-white",
-                    status === "active" && "border-accent bg-accent-muted text-accent",
-                    status === "pending" && "border-border text-text-muted bg-transparent",
-                  )}
-                >
-                  {status === "completed" ? (
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                    >
-                      <path
-                        d="M20 6L9 17l-5-5"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  ) : status === "active" ? (
-                    <div className="bg-accent h-1.5 w-1.5 animate-pulse rounded-full" />
-                  ) : (
-                    <div className="bg-text-muted/40 h-1.5 w-1.5 rounded-full" />
-                  )}
-                </div>
-                {i < allSteps.length - 1 && (
-                  <div
-                    className={cn(
-                      "my-0.5 h-4 w-0.5 rounded-full",
-                      status === "completed" ? "bg-success/40" : "bg-border-muted",
-                    )}
-                  />
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1 pb-1">
-                <div
-                  className={cn(
-                    "text-xs font-medium",
-                    status === "completed" && "text-success",
-                    status === "active" && "text-accent",
-                    status === "pending" && "text-text-muted",
-                  )}
-                >
-                  {step.label}
-                </div>
-                <div className="text-text-muted text-[11px]">{step.description}</div>
-              </div>
-
-              {loadingLabel && (
-                <div className="flex items-center gap-1.5 pt-0.5">
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="text-accent animate-spin"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      className="opacity-20"
-                    />
-                    <path
-                      d="M22 12a10 10 0 0 0-10-10"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className="text-accent text-[11px] font-medium whitespace-nowrap">{loadingLabel}</span>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <StepList
+      title="Create position lifecycle"
+      steps={stepDefs}
+    />
   );
 }
