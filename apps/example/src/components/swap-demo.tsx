@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uniswap-sdk-react";
+import { usePoolState, useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uniswap-sdk-react";
 import { zeroAddress, type Address } from "viem";
 import { useAccount } from "wagmi";
 
@@ -64,6 +64,14 @@ export function SwapDemo() {
     { tokenAddress: poolKey.currency1 as Address },
     { enabled: true, chainId: 1 },
   );
+  const { query: poolQuery } = usePoolState(
+    { poolKey },
+    {
+      enabled: true,
+      chainId: 1,
+      refetchInterval: QUOTE_REFRESH_INTERVAL,
+    },
+  );
 
   const currency0Token: TokenInfo = currency0Query.data
     ? buildTokenInfo(
@@ -85,6 +93,7 @@ export function SwapDemo() {
 
   const tokenIn = zeroForOne ? currency0Token : currency1Token;
   const tokenOut = zeroForOne ? currency1Token : currency0Token;
+  const pool = poolQuery.data?.pool;
 
   const amountInRaw = useMemo(() => parseTokenAmount(amountInput, tokenIn.decimals), [amountInput, tokenIn.decimals]);
 
@@ -223,9 +232,10 @@ export function SwapDemo() {
   const handleRefreshAll = useCallback(() => {
     quoteRefetch();
     tokenInQuery.refetch();
+    poolQuery.refetch();
     lastRefreshRef.current = Date.now();
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
-  }, [quoteRefetch, tokenInQuery]);
+  }, [quoteRefetch, tokenInQuery, poolQuery]);
 
   const handleReset = useCallback(() => {
     reset();
@@ -233,9 +243,10 @@ export function SwapDemo() {
     setExecuting(false);
     tokenInQuery.refetch();
     quoteRefetch();
+    poolQuery.refetch();
     lastRefreshRef.current = Date.now();
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
-  }, [reset, quoteRefetch, tokenInQuery]);
+  }, [reset, quoteRefetch, tokenInQuery, poolQuery]);
 
   return (
     <div className="flex w-full items-start justify-center gap-6">
@@ -304,6 +315,73 @@ export function SwapDemo() {
             />
           ))}
         </div>
+
+        {pool && (
+          <div className="border-border-muted bg-surface rounded-2xl border p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-text-muted text-xs font-medium">Pool Info</span>
+              <button
+                onClick={handleRefreshAll}
+                disabled={executing || isSwapConfirmed}
+                className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className={cn((isFetchingQuote || poolQuery.isFetching) && "animate-spin")}
+                >
+                  <path
+                    d="M21 12a9 9 0 1 1-2.636-6.364"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M21 3v6h-6"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
+              <DetailRow
+                label="Fee tier"
+                value={`${pool.fee / 10000}%`}
+              />
+              <DetailRow
+                label="Tick spacing"
+                value={pool.tickSpacing.toString()}
+              />
+              <DetailRow
+                label="Current tick"
+                value={pool.tickCurrent.toString()}
+              />
+              <DetailRow
+                label="Current price"
+                value={`${pool.token0Price.toSignificant(6)} ${currency1Token.symbol} per ${currency0Token.symbol}`}
+              />
+              <DetailRow
+                label="Liquidity"
+                value={pool.liquidity.toString()}
+              />
+            </div>
+          </div>
+        )}
+
+        {poolQuery.isLoading && (
+          <div className="border-border-muted bg-surface flex items-center justify-center rounded-2xl border p-6">
+            <div className="text-text-secondary animate-pulse text-sm">Loading pool...</div>
+          </div>
+        )}
+
+        {poolQuery.error && (
+          <div className="bg-error-muted text-error rounded-xl p-3 text-xs">{poolQuery.error.message}</div>
+        )}
 
         {/* Swap card */}
         <div className="border-border-muted bg-surface rounded-2xl border p-4">
@@ -535,4 +613,13 @@ function getStepActionLabel(step: SwapStep): string {
     case "completed":
       return "Completed";
   }
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between text-[11px]">
+      <span className="text-text-muted">{label}</span>
+      <span className="text-text-secondary font-mono">{value}</span>
+    </div>
+  );
 }
