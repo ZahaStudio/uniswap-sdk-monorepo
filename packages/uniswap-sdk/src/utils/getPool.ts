@@ -4,7 +4,6 @@ import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-import { sortTokens } from "@/helpers/tokens";
 import { getTokens } from "@/utils/getTokens";
 
 export const DEFAULT_HOOKS = zeroAddress;
@@ -19,10 +18,9 @@ export const DEFAULT_HOOKS = zeroAddress;
 export async function getPool(poolKey: PoolKey, instance: UniswapSDKInstance): Promise<Pool> {
   const { currency0, currency1, fee, tickSpacing, hooks } = poolKey;
 
-  const [_currencyA, _currencyB] = sortTokens(currency0 as Address, currency1 as Address);
   const tokenInstances = await getTokens(
     {
-      addresses: [_currencyA, _currencyB],
+      addresses: [currency0 as Address, currency1 as Address],
     },
     instance,
   );

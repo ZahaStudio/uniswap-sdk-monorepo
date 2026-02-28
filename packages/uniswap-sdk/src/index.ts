@@ -1,5 +1,4 @@
 export * from "@/core/sdk";
-export * from "@/errors";
 export * from "@/helpers";
 export * from "@/utils";
 

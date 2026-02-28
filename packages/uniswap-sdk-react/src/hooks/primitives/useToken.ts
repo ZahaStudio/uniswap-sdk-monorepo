@@ -107,7 +107,8 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
   const { address: connectedAddress, chainId } = useAccount();
   const account = accountOverride ?? connectedAddress;
   const isNative = tokenAddress.toLowerCase() === zeroAddress.toLowerCase();
-  const resolvedChain = getChainById(overrideChainId ?? chainId!);
+  const resolvedChainId = overrideChainId ?? chainId;
+  const resolvedChain = getChainById(resolvedChainId!);
 
   const erc20Metadata = useReadContracts({
     allowFailure: false,
@@ -143,7 +144,7 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
   }, [isNative, erc20Metadata.data, tokenAddress, resolvedChain]);
 
   const query = useQuery({
-    queryKey: tokenKeys.detail(tokenAddress, account, chainId),
+    queryKey: tokenKeys.detail(tokenAddress, account, resolvedChainId),
     queryFn: async (): Promise<UseTokenData> => {
       if (!token) {
         throw new Error("Token metadata not available");
@@ -157,7 +158,7 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
       }
 
       if (isNative) {
-        const bal = await getBalance(config, { address: account, chainId });
+        const bal = await getBalance(config, { address: account, chainId: resolvedChainId });
 
         return {
           token,
@@ -176,7 +177,7 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
             abi: erc20Abi,
             functionName: "balanceOf",
             args: [account],
-            chainId,
+            chainId: resolvedChainId,
           },
         ],
       });

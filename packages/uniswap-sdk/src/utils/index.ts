@@ -3,6 +3,7 @@ export * from "@/utils/buildCollectFeesCallData";
 export * from "@/utils/buildRemoveLiquidityCallData";
 export * from "@/utils/buildSwapCallData";
 export * from "@/utils/chains";
+export * from "@/utils/getDefaultDeadline";
 export * from "@/utils/getPool";
 export * from "@/utils/getPoolKeyFromPoolId";
 export * from "@/utils/getPosition";
