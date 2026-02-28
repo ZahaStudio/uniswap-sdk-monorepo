@@ -208,10 +208,6 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     },
     enabled: isQuoteEnabled,
     refetchInterval,
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message.includes("insufficient liquidity")) return false;
-      return failureCount < 3;
-    },
   });
 
   // Skip permit2 when paying with native ETH (either native pool or WETH wrapping)

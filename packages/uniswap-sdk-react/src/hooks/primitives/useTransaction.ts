@@ -195,6 +195,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const reset = useCallback(() => {
     txHashRef.current = undefined;
     setTxHash(undefined);
+    setIsPreparingTx(false);
     send.reset();
     confirmResolverRef.current = null;
   }, [send]);

@@ -82,12 +82,6 @@ export function usePosition(params: UsePositionParams, options: UseHookOptions =
     },
     enabled: !!tokenId && enabled && !!sdk,
     refetchInterval,
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message.includes("Position has no liquidity")) {
-        return false;
-      }
-      return failureCount < 3;
-    },
   });
 
   return { query };
