@@ -24,7 +24,7 @@ interface V4Contracts {
 interface UniswapSDKOptions {
   contracts?: V4Contracts; // Override contract addresses
   cache?: CacheAdapter; // Custom cache (default: LRU)
-  defaultDeadline?: number; // Seconds (default: 600)
+  defaultDeadline?: number; // Positive integer seconds (default: 600)
   defaultSlippageTolerance?: number; // BPS (default: 50 = 0.5%)
 }
 ```
@@ -335,7 +335,7 @@ interface CreatePositionArgs {
 
 ```ts
 type SwapStep = "quote" | "approval" | "permit2" | "swap" | "completed";
-type AddLiquidityStep = "approvalToken0" | "approvalToken1" | "permit2" | "execute" | "completed";
+type AddLiquidityStep = "approval0" | "approval1" | "permit2" | "execute" | "completed";
 ```
 
 ### `QuoteData` (extends QuoteResponse)
@@ -354,5 +354,22 @@ interface CalculatedPosition {
   amount1: bigint; // Raw token1 amount
   formattedAmount0: string; // Human-readable token0
   formattedAmount1: string; // Human-readable token1
+}
+```
+
+### `UseTransactionReturn`
+
+```ts
+interface UseTransactionReturn {
+  txHash: Hex | undefined;
+  receipt: TransactionReceipt | undefined;
+  status: "idle" | "pending" | "confirming" | "confirmed" | "error";
+  error: Error | undefined;
+  sendTransaction: (params: { to: Address; data: Hex; value?: bigint }) => Promise<Hex>;
+  sendAndConfirm: (params: { to: Address; data: Hex; value?: bigint }) => Promise<{
+    hash: Hex;
+    receipt: TransactionReceipt;
+  }>;
+  reset: () => void;
 }
 ```

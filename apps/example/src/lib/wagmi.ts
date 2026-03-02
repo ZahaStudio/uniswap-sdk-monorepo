@@ -26,7 +26,7 @@ const connectors = connectorsForWallets(
 export const wagmiConfig = createConfig({
   chains: [mainnet],
   transports: {
-    [mainnet.id]: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL),
+    [mainnet.id]: http(process.env.NEXT_PUBLIC_MAINNET_RPC_URL ?? "https://ethereum-rpc.publicnode.com"),
   },
   connectors,
   ssr: false,

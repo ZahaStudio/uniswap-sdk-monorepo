@@ -294,20 +294,22 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
   })();
 
   const approveAndSign = useCallback(async (): Promise<Permit2SignedResult> => {
-    if (token0IsRelevant && approval0.isRequired && approval0.transaction.status !== "confirmed") {
+    if (token0IsRelevant) {
       if (approval0.isRequired === undefined) {
         throw new Error("Awaiting approval status for token0");
       }
-      await approval0.approve();
-      await approval0.transaction.waitForConfirmation();
+      if (approval0.isRequired && approval0.transaction.status !== "confirmed") {
+        await approval0.approve();
+      }
     }
 
-    if (token1IsRelevant && approval1.isRequired && approval1.transaction.status !== "confirmed") {
+    if (token1IsRelevant) {
       if (approval1.isRequired === undefined) {
         throw new Error("Awaiting approval status for token1");
       }
-      await approval1.approve();
-      await approval1.transaction.waitForConfirmation();
+      if (approval1.isRequired && approval1.transaction.status !== "confirmed") {
+        await approval1.approve();
+      }
     }
 
     if (signed) {

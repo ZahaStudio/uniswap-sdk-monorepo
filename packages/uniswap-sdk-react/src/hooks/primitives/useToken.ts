@@ -108,22 +108,22 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
   const account = accountOverride ?? connectedAddress;
   const isNative = tokenAddress.toLowerCase() === zeroAddress.toLowerCase();
   const resolvedChainId = overrideChainId ?? chainId;
-  const resolvedChain = getChainById(resolvedChainId!);
+  const resolvedChain = resolvedChainId !== undefined ? getChainById(resolvedChainId) : undefined;
 
   const erc20Metadata = useReadContracts({
     allowFailure: false,
     contracts: [
-      { address: tokenAddress, abi: erc20Abi, functionName: "name", chainId: resolvedChain.id },
-      { address: tokenAddress, abi: erc20Abi, functionName: "symbol", chainId: resolvedChain.id },
-      { address: tokenAddress, abi: erc20Abi, functionName: "decimals", chainId: resolvedChain.id },
+      { address: tokenAddress, abi: erc20Abi, functionName: "name", chainId: resolvedChain?.id },
+      { address: tokenAddress, abi: erc20Abi, functionName: "symbol", chainId: resolvedChain?.id },
+      { address: tokenAddress, abi: erc20Abi, functionName: "decimals", chainId: resolvedChain?.id },
     ],
     query: {
-      enabled: enabled && !isNative,
+      enabled: enabled && !isNative && !!resolvedChain,
     },
   });
 
   const token = useMemo((): TokenDetails | undefined => {
-    if (isNative) {
+    if (isNative && resolvedChain) {
       return {
         address: zeroAddress,
         ...resolvedChain.nativeCurrency,
@@ -148,6 +148,9 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
     queryFn: async (): Promise<UseTokenData> => {
       if (!token) {
         throw new Error("Token metadata not available");
+      }
+      if (!resolvedChainId) {
+        throw new Error("No chain available. Connect a wallet or provide a chainId override.");
       }
 
       if (!account) {
@@ -190,7 +193,7 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
         },
       };
     },
-    enabled: enabled && !!tokenAddress && !!token,
+    enabled: enabled && !!tokenAddress && !!token && !!resolvedChainId,
     refetchInterval,
   });
 

@@ -46,9 +46,9 @@ export interface UseTokenApprovalReturn {
   /** The useTransaction instance managing the approval tx lifecycle */
   transaction: UseTransactionReturn;
   /**
-   * Send an approval transaction.
+   * Send and confirm an approval transaction.
    * @param amount - Amount to approve (defaults to maxUint256 for unlimited approval)
-   * @returns The transaction hash
+   * @returns The confirmed transaction hash
    */
   approve: (amount?: bigint) => Promise<`0x${string}`>;
 }
@@ -75,10 +75,7 @@ export interface UseTokenApprovalReturn {
  *   { chainId: 1 },
  * );
  *
- * if (approval.isRequired) {
- *   await approval.approve(); // Sends token.approve(PERMIT2, maxUint256)
- *   await approval.transaction.waitForConfirmation();
- * }
+ * if (approval.isRequired) await approval.approve(); // waits for confirmation
  * ```
  */
 export function useTokenApproval(
@@ -117,12 +114,7 @@ export function useTokenApproval(
     return allowance.data < amount;
   })();
 
-  const transaction = useTransaction({
-    onSuccess: () => {
-      // Refetch allowance after approval confirms
-      allowance.refetch();
-    },
-  });
+  const transaction = useTransaction();
 
   const approve = useCallback(
     async (approveAmount?: bigint) => {
@@ -137,12 +129,16 @@ export function useTokenApproval(
         args: [spender, approveAmount ?? maxUint256],
       });
 
-      return transaction.sendTransaction({
+      const { hash } = await transaction.sendAndConfirm({
         to: token,
         data,
       });
+
+      await allowance.refetch();
+
+      return hash;
     },
-    [isNativeToken, owner, token, spender, transaction],
+    [isNativeToken, owner, spender, transaction, token, allowance],
   );
 
   return {

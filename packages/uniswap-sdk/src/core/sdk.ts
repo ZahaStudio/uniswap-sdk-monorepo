@@ -133,8 +133,8 @@ export class UniswapSDK {
       defaultSlippageTolerance = 50, // 0.5%
     } = options;
 
-    if (defaultDeadline <= 0) {
-      throw new Error(`Invalid defaultDeadline: ${defaultDeadline}. Must be a positive number of seconds.`);
+    if (!Number.isInteger(defaultDeadline) || defaultDeadline <= 0) {
+      throw new Error(`Invalid defaultDeadline: ${defaultDeadline}. Must be a positive integer number of seconds.`);
     }
 
     if (defaultSlippageTolerance < 0 || defaultSlippageTolerance > 100_00) {

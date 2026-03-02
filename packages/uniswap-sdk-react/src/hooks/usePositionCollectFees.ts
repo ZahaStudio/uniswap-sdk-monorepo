@@ -63,12 +63,7 @@ export function usePositionCollectFees(
   const { sdk } = useUniswapSDK({ chainId: overrideChainId });
   const { query } = usePosition(params, { chainId: overrideChainId });
 
-  const transaction = useTransaction({
-    onSuccess: () => {
-      query.refetch();
-      onSuccess?.();
-    },
-  });
+  const transaction = useTransaction();
 
   const execute = useCallback(
     async (args: CollectFeesArgs): Promise<Hex> => {
@@ -81,13 +76,18 @@ export function usePositionCollectFees(
         deadlineDuration: args.deadlineDuration,
       });
 
-      return transaction.sendTransaction({
+      const { hash } = await transaction.sendAndConfirm({
         to: positionManager,
         data: calldata as Hex,
         value: BigInt(value),
       });
+
+      await query.refetch();
+      onSuccess?.();
+
+      return hash;
     },
-    [sdk, tokenId, transaction],
+    [sdk, tokenId, transaction, query, onSuccess],
   );
 
   return { execute, transaction };

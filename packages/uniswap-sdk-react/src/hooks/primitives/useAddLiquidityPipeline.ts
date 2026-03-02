@@ -114,11 +114,7 @@ export function useAddLiquidityPipeline<TArgs>(
     },
   );
 
-  const transaction = useTransaction({
-    onSuccess: () => {
-      onSuccess?.();
-    },
-  });
+  const transaction = useTransaction();
 
   const executeWithPermit = useCallback(
     async (args: TArgs, signedPermit2?: Permit2SignedResult): Promise<Hex> => {
@@ -131,13 +127,17 @@ export function useAddLiquidityPipeline<TArgs>(
 
       const { calldata, value } = await buildCalldata({ batchPermit, args });
 
-      return transaction.sendTransaction({
+      const { hash } = await transaction.sendAndConfirm({
         to: positionManager,
         data: calldata as Hex,
         value: BigInt(value),
       });
+
+      void onSuccess?.();
+
+      return hash;
     },
-    [permit2Hook.permit2, buildCalldata, transaction, positionManager],
+    [permit2Hook.permit2, buildCalldata, transaction, positionManager, onSuccess],
   );
 
   const execute = useCallback(async (args: TArgs): Promise<Hex> => executeWithPermit(args), [executeWithPermit]);

@@ -34,11 +34,11 @@ function App() {
 
 ### `UniswapSDKConfig`
 
-| Field                      | Type                          | Default       | Description                            |
-| -------------------------- | ----------------------------- | ------------- | -------------------------------------- |
-| `contracts`                | `Record<number, V4Contracts>` | Auto-resolved | Custom contract addresses per chain ID |
-| `defaultDeadline`          | `number`                      | `600`         | Default deadline in seconds            |
-| `defaultSlippageTolerance` | `number`                      | `50`          | Default slippage in BPS                |
+| Field                      | Type                          | Default       | Description                                  |
+| -------------------------- | ----------------------------- | ------------- | -------------------------------------------- |
+| `contracts`                | `Record<number, V4Contracts>` | Auto-resolved | Custom contract addresses per chain ID       |
+| `defaultDeadline`          | `number`                      | `600`         | Default deadline in positive integer seconds |
+| `defaultSlippageTolerance` | `number`                      | `50`          | Default slippage in BPS                      |
 
 ---
 
@@ -145,7 +145,6 @@ const quote = swap.steps.quote.data;
 // 2. Approve if needed
 if (swap.steps.approval.isRequired) {
   await swap.steps.approval.approve();
-  await swap.steps.approval.transaction.waitForConfirmation();
 }
 
 // 3. Sign permit2
@@ -233,12 +232,12 @@ const txHash = await create.executeAll({
 
 ---
 
-### `usePosition(tokenId, options?)`
+### `usePosition(params, options?)`
 
 Fetch position data by NFT token ID.
 
 ```tsx
-const position = usePosition("12345", { chainId: 1 });
+const position = usePosition({ tokenId: "12345" }, { chainId: 1 });
 // Returns UseQueryResult with GetPositionResponse data
 ```
 
@@ -249,10 +248,7 @@ const position = usePosition("12345", { chainId: 1 });
 Add liquidity to an existing position.
 
 ```tsx
-const increase = usePositionIncreaseLiquidity({
-  tokenId: "12345",
-  amount0: parseUnits("0.5", 18),
-});
+const increase = usePositionIncreaseLiquidity({ tokenId: "12345" }, { amount0: parseUnits("0.5", 18) });
 
 await increase.executeAll({ recipient: address });
 ```
@@ -264,12 +260,11 @@ await increase.executeAll({ recipient: address });
 Remove liquidity from a position.
 
 ```tsx
-const remove = usePositionRemoveLiquidity({
-  tokenId: "12345",
-  liquidityPercentage: 5000, // 50% in BPS
-});
+const remove = usePositionRemoveLiquidity({ tokenId: "12345" });
 
-await remove.executeAll();
+const hash = await remove.execute({ liquidityPercentage: 5000 }); // 50% in BPS
+console.log(hash);
+// Use remove.transaction.status / remove.transaction.receipt to track confirmation in UI.
 ```
 
 ---
@@ -280,7 +275,9 @@ Collect accrued fees from a position.
 
 ```tsx
 const collect = usePositionCollectFees({ tokenId: "12345" });
-await collect.execute({ recipient: address });
+const hash = await collect.execute({ recipient: address });
+console.log(hash);
+// Use collect.transaction.status / collect.transaction.receipt to track confirmation in UI.
 ```
 
 ---
@@ -295,7 +292,7 @@ Fetch token metadata and balance.
 
 ```tsx
 const { query } = useToken({ tokenAddress: "0x..." }, { enabled: true, chainId: 1 });
-// query.data = { symbol, name, decimals, balance: { raw, formatted } }
+// query.data = { token: { symbol, name, decimals, address }, balance: { raw, formatted } | undefined }
 ```
 
 #### `usePermit2(params, options?)`
@@ -315,8 +312,8 @@ const permit2 = usePermit2(
 const signedPermit = await permit2.approveAndSign();
 
 // Or individually:
-permit2.approvals[0].approve(); // ERC-20 approve
-permit2.permit2.sign(); // Off-chain sign
+await permit2.approvals[0].approve(); // ERC-20 approve + confirm
+await permit2.permit2.sign(); // Off-chain sign
 ```
 
 #### `useTokenApproval(params, options?)`
@@ -324,10 +321,9 @@ permit2.permit2.sign(); // Off-chain sign
 Single ERC-20 approval step.
 
 ```tsx
-const approval = useTokenApproval({ tokenAddress, spender, amount });
+const approval = useTokenApproval({ token, spender, amount });
 if (approval.isRequired) {
-  await approval.approve();
-  await approval.transaction.waitForConfirmation();
+  await approval.approve(); // approve + confirm
 }
 ```
 
@@ -338,7 +334,8 @@ Transaction lifecycle management (send, wait, status tracking).
 ```tsx
 const tx = useTransaction();
 const hash = await tx.sendTransaction({ to, data, value });
-await tx.waitForConfirmation();
+const { hash: confirmedHash, receipt } = await tx.sendAndConfirm({ to, data, value });
+console.log(hash, confirmedHash, receipt.transactionHash);
 // tx.status: "idle" | "pending" | "confirming" | "confirmed" | "error"
 ```
 
@@ -346,7 +343,7 @@ await tx.waitForConfirmation();
 
 ## Step-Based Architecture
 
-All workflow hooks (`useSwap`, `useCreatePosition`, `usePositionIncreaseLiquidity`, `usePositionRemoveLiquidity`) follow a consistent pattern:
+Workflow hooks with step orchestration (`useSwap`, `useCreatePosition`, `usePositionIncreaseLiquidity`) follow a consistent pattern:
 
 1. **`steps`** — individual lifecycle steps with their own state and actions
 2. **`currentStep`** — the first incomplete required step (for rendering UI)

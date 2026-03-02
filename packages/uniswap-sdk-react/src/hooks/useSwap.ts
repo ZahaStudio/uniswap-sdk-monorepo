@@ -120,7 +120,6 @@ export interface UseSwapReturn {
  * // Step through the flow
  * if (swap.steps.approval.isRequired) {
  *   await swap.steps.approval.approve();
- *   await swap.steps.approval.transaction.waitForConfirmation();
  * }
  * await swap.steps.permit2.sign();
  * const txHash = await swap.steps.swap.execute();
@@ -155,19 +154,18 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
 
   // When useNativeETH is set, check if the input side is the WETH token
-  const isNativeETHInput = useNativeETH
+  const isNativeEthInput = useNativeETH
     ? inputToken.toLowerCase() === sdk.getContractAddress("weth").toLowerCase()
     : false;
 
-  const hasValidAmount = amountIn > 0n;
-  const isWalletReady = !!connectedAddress;
-  const isQuoteEnabled = enabled && hasValidAmount && !!sdk;
-  const isSwapEnabled = isQuoteEnabled && isWalletReady;
+  const quoteEnabled = enabled && amountIn > 0n;
+  const swapEnabled = quoteEnabled && !!connectedAddress;
+  const requiresPermit2 = !isNativeInput && !isNativeEthInput;
 
   const { query: poolQuery } = usePoolState(
     { poolKey },
     {
-      enabled: isQuoteEnabled,
+      enabled: quoteEnabled,
       refetchInterval,
       chainId: chainIdOverride,
     },
@@ -176,10 +174,10 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const universalRouter = sdk.getContractAddress("universalRouter");
   const { query: inputTokenQuery } = useToken(
     {
-      tokenAddress: isNativeETHInput ? zeroAddress : inputToken,
+      tokenAddress: isNativeEthInput ? zeroAddress : inputToken,
     },
     {
-      enabled: isSwapEnabled,
+      enabled: swapEnabled,
       chainId,
     },
   );
@@ -206,12 +204,9 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
       return { ...quote, minAmountOut };
     },
-    enabled: isQuoteEnabled,
+    enabled: quoteEnabled,
     refetchInterval,
   });
-
-  // Skip permit2 when paying with native ETH (either native pool or WETH wrapping)
-  const skipPermit2 = isNativeInput || isNativeETHInput;
 
   const permit2 = usePermit2(
     {
@@ -224,25 +219,26 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       spender: universalRouter,
     },
     {
-      enabled: isSwapEnabled && !skipPermit2,
+      enabled: swapEnabled && requiresPermit2,
       chainId,
     },
   );
 
   const swapTransaction = useTransaction();
+  const quote = quoteQuery.data;
+  const pool = poolQuery.data?.pool;
+  const inputBalance = inputTokenQuery.data?.balance?.raw;
 
   const swapExecute = useCallback(
     async (signedPermit2?: Permit2SignedResult): Promise<Hex> => {
       assertSdkInitialized(sdk);
       assertWalletConnected(connectedAddress);
 
-      const quote = quoteQuery.data;
       if (!quote) {
         throw new Error("Quote not available");
       }
 
-      const inputBalanceRaw = inputTokenQuery.data?.balance?.raw;
-      if (inputBalanceRaw !== undefined && amountIn > inputBalanceRaw) {
+      if (inputBalance !== undefined && amountIn > inputBalance) {
         throw new Error("Insufficient balance for swap amount");
       }
 
@@ -253,12 +249,12 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
       const permit2Signature = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
 
-      if (!poolQuery.data) {
+      if (!pool) {
         throw new Error("Pool state not available");
       }
 
       const calldata = await sdk.buildSwapCallData({
-        pool: poolQuery.data.pool,
+        pool,
         amountIn,
         amountOutMinimum: quote.minAmountOut,
         zeroForOne,
@@ -270,37 +266,41 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       return swapTransaction.sendTransaction({
         to: universalRouter,
         data: calldata,
-        value: isNativeInput || isNativeETHInput ? amountIn : 0n,
+        value: isNativeInput || isNativeEthInput ? amountIn : 0n,
       });
     },
     [
       sdk,
       connectedAddress,
-      quoteQuery.data,
-      inputTokenQuery.data?.balance?.raw,
+      quote,
+      inputBalance,
       permit2.permit2,
-      poolQuery.data,
+      pool,
       amountIn,
       zeroForOne,
       recipient,
       swapTransaction,
       universalRouter,
       isNativeInput,
-      isNativeETHInput,
+      isNativeEthInput,
       useNativeETH,
     ],
   );
 
   const currentStep: SwapStep = (() => {
-    if (!quoteQuery.data || quoteQuery.isLoading || !isWalletReady) {
+    if (!quote || quoteQuery.isLoading || !connectedAddress) {
       return "quote";
     }
-    if (permit2.approvals[0].isRequired === undefined || permit2.approvals[0].isRequired) {
-      return "approval";
+
+    if (requiresPermit2) {
+      if (permit2.approvals[0].isRequired === undefined || permit2.approvals[0].isRequired) {
+        return "approval";
+      }
+      if (permit2.permit2.isRequired && !permit2.permit2.isSigned) {
+        return "permit2";
+      }
     }
-    if (permit2.permit2.isRequired && !permit2.permit2.isSigned) {
-      return "permit2";
-    }
+
     if (swapTransaction.status !== "confirmed") {
       return "swap";
     }

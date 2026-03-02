@@ -67,31 +67,29 @@ export function useUniswapSDK(options: UseUniswapSDKOptions = {}): UseUniswapSDK
   const context = useContext(UniswapSDKContext);
 
   if (!context) {
-    throw new Error(
-      "useUniswapSDK must be used within UniswapSDKProvider. " +
-        "Ensure UniswapSDKProvider is wrapped inside WagmiProvider and QueryClientProvider.",
-    );
+    throw new Error("useUniswapSDK must be used within UniswapSDKProvider.");
   }
 
   const connectedChainId = useChainId();
-  const effectiveChainId = options.chainId ?? connectedChainId;
-  const publicClient = usePublicClient({ chainId: effectiveChainId });
+  const resolvedChainId = options.chainId ?? connectedChainId;
+  const publicClient = usePublicClient({ chainId: resolvedChainId });
 
   const sdk = useMemo(() => {
     if (!publicClient) {
-      throw new Error(`No public client available for chain ID ${effectiveChainId}`);
+      throw new Error(`No public client available for chain ID ${resolvedChainId}`);
     }
 
     const instance = context.getSdk({
-      chainId: effectiveChainId,
+      chainId: resolvedChainId,
       publicClient,
     });
+
     return instance;
-  }, [context, effectiveChainId, publicClient]);
+  }, [context, resolvedChainId, publicClient]);
 
   return {
     sdk,
     isInitialized: sdk !== null,
-    chainId: effectiveChainId,
+    chainId: resolvedChainId,
   };
 }

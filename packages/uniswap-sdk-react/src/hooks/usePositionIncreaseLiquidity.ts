@@ -86,7 +86,6 @@ export interface UsePositionIncreaseLiquidityReturn {
  *
  * if (increase.steps.approvalToken0.isRequired) {
  *   await increase.steps.approvalToken0.approve();
- *   await increase.steps.approvalToken0.transaction.waitForConfirmation();
  * }
  * await increase.steps.permit2.sign();
  * await increase.steps.execute.execute({ amount0: "100", recipient: address });

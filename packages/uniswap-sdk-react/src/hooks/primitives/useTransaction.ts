@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 
-import { estimateGas } from "@wagmi/core";
+import { estimateGas, waitForTransactionReceipt } from "@wagmi/core";
 import type { Address, Hex, TransactionReceipt } from "viem";
 import { useConfig, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 
@@ -10,7 +10,7 @@ import { useConfig, useSendTransaction, useWaitForTransactionReceipt } from "wag
  * Transaction lifecycle status.
  *
  * - `idle` — No transaction in flight
- * - `pending` — Estimating gas and/or waiting for user wallet signature
+ * - `pending` — Waiting for user wallet signature
  * - `confirming` — Transaction broadcast, waiting for on-chain confirmation
  * - `confirmed` — Transaction confirmed on-chain
  * - `error` — A step in the lifecycle failed
@@ -21,8 +21,6 @@ export type TransactionStatus = "idle" | "pending" | "confirming" | "confirmed" 
  * Configuration options for the useTransaction hook.
  */
 export interface UseTransactionOptions {
-  /** Callback fired when the transaction is confirmed on-chain */
-  onSuccess?: (receipt: TransactionReceipt) => void;
   /** Number of block confirmations to wait for (default: 1) */
   confirmations?: number;
 }
@@ -43,24 +41,18 @@ export interface SendTransactionParams {
  * Return type for the useTransaction hook.
  */
 export interface UseTransactionReturn {
-  /** Wagmi useSendTransaction return */
-  send: ReturnType<typeof useSendTransaction>;
-  /** Wagmi useWaitForTransactionReceipt return — receipt query */
-  receipt: ReturnType<typeof useWaitForTransactionReceipt>;
-
   /** Current transaction hash (set after broadcast) */
   txHash: Hex | undefined;
+  /** Receipt for the most recently sent transaction when confirmed */
+  receipt: TransactionReceipt | undefined;
   /** Derived lifecycle status */
   status: TransactionStatus;
   /** First error from send or receipt */
   error: Error | undefined;
   /** Send a transaction. Resolves with the tx hash after broadcast. */
   sendTransaction: (params: SendTransactionParams) => Promise<Hex>;
-  /**
-   * Returns a promise that resolves when the current transaction is confirmed.
-   * Useful for chaining steps in a pipeline (e.g. approve → wait → swap).
-   */
-  waitForConfirmation: () => Promise<TransactionReceipt>;
+  /** Send a transaction and wait for confirmation. */
+  sendAndConfirm: (params: SendTransactionParams) => Promise<{ hash: Hex; receipt: TransactionReceipt }>;
   /** Reset all state back to idle */
   reset: () => void;
 }
@@ -76,43 +68,29 @@ export interface UseTransactionReturn {
  * All contract interactions should encode their calldata first and use
  * `sendTransaction` for consistent behavior.
  *
- * @param options - Optional callbacks and confirmation config
+ * @param options - Optional confirmation config
  * @returns Transaction lifecycle state and action functions
  *
  * @example
  * ```tsx
- * const tx = useTransaction({
- *   onSuccess: (receipt) => console.log("Confirmed!", receipt.transactionHash),
- * });
+ * const tx = useTransaction();
  *
  * // Send a transaction with pre-encoded calldata
- * await tx.sendTransaction({ to: "0x...", data: "0x...", value: 0n });
+ * const hash = await tx.sendTransaction({ to: "0x...", data: "0x...", value: 0n });
  *
- * // Wait for confirmation in a pipeline
- * const receipt = await tx.waitForConfirmation();
+ * // Send and await confirmation in one call
+ * const { receipt } = await tx.sendAndConfirm({ to: "0x...", data: "0x...", value: 0n });
  * ```
  */
 export function useTransaction(options: UseTransactionOptions = {}): UseTransactionReturn {
-  const { onSuccess, confirmations = 1 } = options;
+  const { confirmations = 1 } = options;
 
   const config = useConfig();
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
-  const txHashRef = useRef<Hex | undefined>(undefined);
-  const [isPreparingTx, setIsPreparingTx] = useState(false);
-
-  // Store onSuccess in a ref so the receipt effect doesn't re-fire
-  // when the caller passes an unstable (inline) callback.
-  const onSuccessRef = useRef(onSuccess);
-
-  // Ref-based promise resolver for waitForConfirmation()
-  const confirmResolverRef = useRef<{
-    resolve: (receipt: TransactionReceipt) => void;
-    reject: (err: Error) => void;
-  } | null>(null);
 
   const send = useSendTransaction();
 
-  const receipt = useWaitForTransactionReceipt({
+  const receiptQuery = useWaitForTransactionReceipt({
     hash: txHash,
     confirmations,
     query: {
@@ -120,32 +98,13 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     },
   });
 
-  useEffect(() => {
-    if (receipt.data) {
-      onSuccessRef.current?.(receipt.data);
-      if (confirmResolverRef.current) {
-        confirmResolverRef.current.resolve(receipt.data);
-        confirmResolverRef.current = null;
-      }
-    }
-  }, [receipt.data]);
-
-  useEffect(() => {
-    if (receipt.error) {
-      if (confirmResolverRef.current) {
-        confirmResolverRef.current.reject(receipt.error);
-        confirmResolverRef.current = null;
-      }
-    }
-  }, [receipt.error]);
-
-  const error = send.error ?? receipt.error ?? undefined;
+  const error = send.error ?? receiptQuery.error ?? undefined;
 
   const status: TransactionStatus = (() => {
     if (error) return "error";
-    if (receipt.isSuccess) return "confirmed";
-    if (txHash && receipt.isLoading) return "confirming";
-    if (send.isPending || isPreparingTx) return "pending";
+    if (receiptQuery.isSuccess) return "confirmed";
+    if (txHash && receiptQuery.isLoading) return "confirming";
+    if (send.isPending) return "pending";
     return "idle";
   })();
 
@@ -153,18 +112,12 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     async (params: SendTransactionParams): Promise<Hex> => {
       const value = params.value ?? 0n;
 
-      setIsPreparingTx(true);
-      let gasLimit: bigint;
-      try {
-        const estimated = await estimateGas(config, {
-          to: params.to,
-          data: params.data,
-          value,
-        });
-        gasLimit = estimated * 2n;
-      } finally {
-        setIsPreparingTx(false);
-      }
+      const estimated = await estimateGas(config, {
+        to: params.to,
+        data: params.data,
+        value,
+      });
+      const gasLimit = estimated * 2n;
 
       const hash = await send.sendTransactionAsync({
         to: params.to,
@@ -172,47 +125,36 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
         value,
         gas: gasLimit,
       });
-      txHashRef.current = hash;
       setTxHash(hash);
       return hash;
     },
     [send, config],
   );
 
-  const waitForConfirmation = useCallback((): Promise<TransactionReceipt> => {
-    // If already confirmed, resolve immediately
-    if (receipt.data) return Promise.resolve(receipt.data);
-
-    // If no tx in flight, reject
-    if (!txHashRef.current) return Promise.reject(new Error("No transaction to wait for"));
-
-    // Create a promise that will be resolved by the receipt effect
-    return new Promise<TransactionReceipt>((resolve, reject) => {
-      confirmResolverRef.current = { resolve, reject };
-    });
-  }, [receipt.data]);
+  const sendAndConfirm = useCallback(
+    async (params: SendTransactionParams): Promise<{ hash: Hex; receipt: TransactionReceipt }> => {
+      const hash = await sendTransaction(params);
+      const receipt = await waitForTransactionReceipt(config, {
+        hash,
+        confirmations,
+      });
+      return { hash, receipt };
+    },
+    [sendTransaction, config, confirmations],
+  );
 
   const reset = useCallback(() => {
-    txHashRef.current = undefined;
     setTxHash(undefined);
-    setIsPreparingTx(false);
     send.reset();
-    confirmResolverRef.current = null;
   }, [send]);
 
   return {
-    // Wagmi hook instances
-    send,
-    receipt,
-
-    // Derived state
     txHash,
+    receipt: receiptQuery.data,
     status,
     error,
-
-    // Actions
     sendTransaction,
-    waitForConfirmation,
+    sendAndConfirm,
     reset,
   };
 }
