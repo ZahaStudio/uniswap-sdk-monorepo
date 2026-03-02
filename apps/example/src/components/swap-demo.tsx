@@ -162,7 +162,6 @@ export function SwapDemo() {
       switch (currentStep) {
         case "approval":
           await steps.approval.approve();
-          await steps.approval.transaction.waitForConfirmation();
           break;
         case "permit2":
           await steps.permit2.sign();
