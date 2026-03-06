@@ -53,7 +53,7 @@ export async function getPool(poolKey: PoolKey, instance: UniswapSDKInstance): P
   }
 
   const [slot0Data, liquidityData] = poolData;
-  const poolExists = slot0Data && liquidityData;
+  const poolExists = slot0Data != null && liquidityData != null;
 
   if (!poolExists) {
     throw new Error("Pool does not exist");
