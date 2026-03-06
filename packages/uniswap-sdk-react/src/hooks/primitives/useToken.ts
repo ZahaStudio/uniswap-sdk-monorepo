@@ -3,12 +3,12 @@
 import { useMemo } from "react";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
-import { getBalance, readContracts } from "@wagmi/core";
 import { getChainById } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
 import { erc20Abi, formatUnits, zeroAddress } from "viem";
-import { useAccount, useReadContracts, useConfig } from "wagmi";
+import { useAccount, usePublicClient, useReadContracts } from "wagmi";
 
+import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
 import { tokenKeys } from "@/utils/queryKeys";
 
@@ -103,19 +103,20 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
   const { tokenAddress, account: accountOverride } = params;
   const { enabled = true, chainId: overrideChainId, refetchInterval } = options;
 
-  const config = useConfig();
-  const { address: connectedAddress, chainId } = useAccount();
+  const { address: connectedAddress } = useAccount();
+  const { chainId } = useUniswapSDK({ chainId: overrideChainId });
+  const publicClient = usePublicClient({ chainId });
+
   const account = accountOverride ?? connectedAddress;
   const isNative = tokenAddress.toLowerCase() === zeroAddress.toLowerCase();
-  const resolvedChainId = overrideChainId ?? chainId;
-  const resolvedChain = resolvedChainId !== undefined ? getChainById(resolvedChainId) : undefined;
+  const resolvedChain = getChainById(chainId);
 
   const erc20Metadata = useReadContracts({
     allowFailure: false,
     contracts: [
-      { address: tokenAddress, abi: erc20Abi, functionName: "name", chainId: resolvedChain?.id },
-      { address: tokenAddress, abi: erc20Abi, functionName: "symbol", chainId: resolvedChain?.id },
-      { address: tokenAddress, abi: erc20Abi, functionName: "decimals", chainId: resolvedChain?.id },
+      { address: tokenAddress, abi: erc20Abi, functionName: "name", chainId },
+      { address: tokenAddress, abi: erc20Abi, functionName: "symbol", chainId },
+      { address: tokenAddress, abi: erc20Abi, functionName: "decimals", chainId },
     ],
     query: {
       enabled: enabled && !isNative && !!resolvedChain,
@@ -144,13 +145,13 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
   }, [isNative, erc20Metadata.data, tokenAddress, resolvedChain]);
 
   const query = useQuery({
-    queryKey: tokenKeys.detail(tokenAddress, account, resolvedChainId),
+    queryKey: tokenKeys.detail(tokenAddress, account, chainId),
     queryFn: async (): Promise<UseTokenData> => {
       if (!token) {
         throw new Error("Token metadata not available");
       }
-      if (!resolvedChainId) {
-        throw new Error("No chain available. Connect a wallet or provide a chainId override.");
+      if (!publicClient) {
+        throw new Error(`No public client available for chain ID ${chainId}`);
       }
 
       if (!account) {
@@ -161,28 +162,22 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
       }
 
       if (isNative) {
-        const bal = await getBalance(config, { address: account, chainId: resolvedChainId });
+        const bal = await publicClient.getBalance({ address: account });
 
         return {
           token,
           balance: {
-            raw: bal.value,
-            formatted: formatUnits(bal.value, token.decimals),
+            raw: bal,
+            formatted: formatUnits(bal, token.decimals),
           },
         };
       }
 
-      const [result] = await readContracts(config, {
-        allowFailure: false,
-        contracts: [
-          {
-            address: tokenAddress,
-            abi: erc20Abi,
-            functionName: "balanceOf",
-            args: [account],
-            chainId: resolvedChainId,
-          },
-        ],
+      const result = await publicClient.readContract({
+        address: tokenAddress,
+        abi: erc20Abi,
+        functionName: "balanceOf",
+        args: [account],
       });
 
       return {
@@ -193,7 +188,7 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
         },
       };
     },
-    enabled: enabled && !!tokenAddress && !!token && !!resolvedChainId,
+    enabled: enabled && !!tokenAddress && !!token && !!publicClient,
     refetchInterval,
   });
 

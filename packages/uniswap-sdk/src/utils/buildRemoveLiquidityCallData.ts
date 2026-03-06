@@ -1,7 +1,7 @@
 import { V4PositionManager } from "@uniswap/v4-sdk";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-import { percentFromBips } from "@/helpers/percent";
+import { assertBasisPoints, percentFromBips } from "@/helpers/percent";
 import type { BuildCallDataResult } from "@/utils/buildAddLiquidityCallData";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { getPosition } from "@/utils/getPosition";
@@ -56,18 +56,10 @@ export async function buildRemoveLiquidityCallData(
   { liquidityPercentage, deadlineDuration, slippageTolerance, tokenId }: BuildRemoveLiquidityCallDataArgs,
   instance: UniswapSDKInstance,
 ): Promise<BuildCallDataResult> {
-  if (liquidityPercentage < 0 || liquidityPercentage > 10_000) {
-    throw new Error(
-      `Invalid liquidityPercentage: ${liquidityPercentage}. Must be between 0 and 10000 basis points (0-100%).`,
-    );
-  }
+  assertBasisPoints(liquidityPercentage, "liquidityPercentage");
 
   const resolvedSlippage = slippageTolerance ?? instance.defaultSlippageTolerance;
-  if (resolvedSlippage < 0 || resolvedSlippage > 10_000) {
-    throw new Error(
-      `Invalid slippageTolerance: ${resolvedSlippage}. Must be between 0 and 10000 basis points (0-100%).`,
-    );
-  }
+  assertBasisPoints(resolvedSlippage, "slippageTolerance");
 
   const positionData = await getPosition(tokenId, instance);
 

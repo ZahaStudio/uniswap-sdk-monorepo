@@ -143,12 +143,12 @@ export function useCreatePosition(
   const { poolKey, amount0, amount1, tickLower: paramTickLower, tickUpper: paramTickUpper } = params;
   const { chainId: overrideChainId, onSuccess } = options;
 
-  const { sdk } = useUniswapSDK({ chainId: overrideChainId });
+  const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
 
   const { query: poolQuery } = usePoolState(
     { poolKey },
     {
-      chainId: overrideChainId,
+      chainId,
     },
   );
 
@@ -255,7 +255,7 @@ export function useCreatePosition(
     currencies: pool ? [pool.currency0, pool.currency1] : undefined,
     permit2Amounts: [calculatedPosition?.amount0 ?? 0n, calculatedPosition?.amount1 ?? 0n],
     enabled: !!pool,
-    chainId: overrideChainId,
+    chainId,
     onSuccess,
     buildCalldata,
   });

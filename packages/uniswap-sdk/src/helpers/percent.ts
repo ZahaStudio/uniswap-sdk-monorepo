@@ -2,6 +2,12 @@ import { Percent } from "@uniswap/sdk-core";
 
 export const BIPS_BASE = 10_000;
 
+export function assertBasisPoints(value: number, label: string): void {
+  if (!Number.isInteger(value) || value < 0 || value > BIPS_BASE) {
+    throw new Error(`Invalid ${label}: ${value}. Must be an integer between 0 and 10000 basis points (0-100%).`);
+  }
+}
+
 /**
  * Converts a slippage in basis points (bps) to a Uniswap `Percent` instance.
  *
@@ -24,5 +30,6 @@ export const BIPS_BASE = 10_000;
  * ```
  */
 export function percentFromBips(bps: number): Percent {
+  assertBasisPoints(bps, "bps");
   return new Percent(bps, BIPS_BASE);
 }

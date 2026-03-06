@@ -4,7 +4,7 @@ import { Position, V4PositionManager } from "@uniswap/v4-sdk";
 import type { Address } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-import { percentFromBips } from "@/helpers/percent";
+import { assertBasisPoints, percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
 /**
@@ -148,11 +148,7 @@ export async function buildAddLiquidityCallData(
     permit2BatchSignature,
   } = params;
 
-  if (slippageTolerance < 0 || slippageTolerance > 10_000) {
-    throw new Error(
-      `Invalid slippageTolerance: ${slippageTolerance}. Must be between 0 and 10000 basis points (0-100%).`,
-    );
-  }
+  assertBasisPoints(slippageTolerance, "slippageTolerance");
 
   if (amount0 !== undefined && (amount0 === "" || BigInt(amount0) < 0n)) {
     throw new Error(`Invalid amount0: ${amount0}. Must be a non-negative integer string.`);

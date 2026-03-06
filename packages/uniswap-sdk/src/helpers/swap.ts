@@ -1,4 +1,4 @@
-import { BIPS_BASE } from "@/helpers/percent";
+import { assertBasisPoints, BIPS_BASE } from "@/helpers/percent";
 
 /**
  * Calculates the minimum output amount after applying slippage tolerance using native BigInt.
@@ -17,6 +17,7 @@ import { BIPS_BASE } from "@/helpers/percent";
  * ```
  */
 export function calculateMinimumOutput(expectedOutput: bigint, slippageBps: number): bigint {
+  assertBasisPoints(slippageBps, "slippageBps");
   const numerator = BigInt(BIPS_BASE - slippageBps);
   const denominator = BigInt(BIPS_BASE);
 

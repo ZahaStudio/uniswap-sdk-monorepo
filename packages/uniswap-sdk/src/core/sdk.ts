@@ -5,6 +5,7 @@ import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
 import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
+import { assertBasisPoints } from "@/helpers/percent";
 import {
   buildAddLiquidityCallData,
   type BuildAddLiquidityArgs,
@@ -137,11 +138,7 @@ export class UniswapSDK {
       throw new Error(`Invalid defaultDeadline: ${defaultDeadline}. Must be a positive integer number of seconds.`);
     }
 
-    if (defaultSlippageTolerance < 0 || defaultSlippageTolerance > 100_00) {
-      throw new Error(
-        `Invalid defaultSlippageTolerance: ${defaultSlippageTolerance}. Must be between 0 and 10000 basis points (0-100%).`,
-      );
-    }
+    assertBasisPoints(defaultSlippageTolerance, "defaultSlippageTolerance");
 
     const resolvedContracts =
       contracts ??

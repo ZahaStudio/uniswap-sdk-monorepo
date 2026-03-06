@@ -114,7 +114,7 @@ export function useTokenApproval(
     return allowance.data < amount;
   })();
 
-  const transaction = useTransaction();
+  const transaction = useTransaction({ chainId });
 
   const approve = useCallback(
     async (approveAmount?: bigint) => {

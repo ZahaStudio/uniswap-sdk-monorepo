@@ -105,8 +105,8 @@ export function usePositionIncreaseLiquidity(
 ): UsePositionIncreaseLiquidityReturn {
   const { chainId: overrideChainId, amount0 = 0n, amount1 = 0n, onSuccess } = options;
 
-  const { sdk } = useUniswapSDK({ chainId: overrideChainId });
-  const { query } = usePosition(params, { chainId: overrideChainId });
+  const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
+  const { query } = usePosition(params, { chainId });
 
   const position = query.data;
 
@@ -143,7 +143,7 @@ export function usePositionIncreaseLiquidity(
     currencies: position ? [position.currency0, position.currency1] : undefined,
     permit2Amounts: [amount0, amount1],
     enabled: !!position,
-    chainId: overrideChainId,
+    chainId,
     onSuccess: onPipelineSuccess,
     buildCalldata,
   });

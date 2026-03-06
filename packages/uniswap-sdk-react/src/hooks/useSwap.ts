@@ -167,7 +167,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     {
       enabled: quoteEnabled,
       refetchInterval,
-      chainId: chainIdOverride,
+      chainId,
     },
   );
 
@@ -224,7 +224,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     },
   );
 
-  const swapTransaction = useTransaction();
+  const swapTransaction = useTransaction({ chainId });
   const quote = quoteQuery.data;
   const pool = poolQuery.data?.pool;
   const inputBalance = inputTokenQuery.data?.balance?.raw;

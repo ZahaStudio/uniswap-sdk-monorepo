@@ -114,7 +114,7 @@ export function useAddLiquidityPipeline<TArgs>(
     },
   );
 
-  const transaction = useTransaction();
+  const transaction = useTransaction({ chainId });
 
   const executeWithPermit = useCallback(
     async (args: TArgs, signedPermit2?: Permit2SignedResult): Promise<Hex> => {

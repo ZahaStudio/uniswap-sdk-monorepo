@@ -60,10 +60,10 @@ export function usePositionCollectFees(
   const { tokenId } = params;
   const { chainId: overrideChainId, onSuccess } = options;
 
-  const { sdk } = useUniswapSDK({ chainId: overrideChainId });
-  const { query } = usePosition(params, { chainId: overrideChainId });
+  const { sdk, chainId } = useUniswapSDK({ chainId: overrideChainId });
+  const { query } = usePosition(params, { chainId });
 
-  const transaction = useTransaction();
+  const transaction = useTransaction({ chainId });
 
   const execute = useCallback(
     async (args: CollectFeesArgs): Promise<Hex> => {

@@ -2,9 +2,8 @@
 
 import { useCallback, useState } from "react";
 
-import { estimateGas, waitForTransactionReceipt } from "@wagmi/core";
 import type { Address, Hex, TransactionReceipt } from "viem";
-import { useConfig, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
 
 /**
  * Transaction lifecycle status.
@@ -23,6 +22,8 @@ export type TransactionStatus = "idle" | "pending" | "confirming" | "confirmed" 
 export interface UseTransactionOptions {
   /** Number of block confirmations to wait for (default: 1) */
   confirmations?: number;
+  /** Optional chain override applied to all transaction lifecycle calls */
+  chainId?: number;
 }
 
 /**
@@ -83,15 +84,17 @@ export interface UseTransactionReturn {
  * ```
  */
 export function useTransaction(options: UseTransactionOptions = {}): UseTransactionReturn {
-  const { confirmations = 1 } = options;
+  const { confirmations = 1, chainId } = options;
 
-  const config = useConfig();
+  const publicClient = usePublicClient({ chainId });
+  const { address: connectedAddress } = useAccount();
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
 
   const send = useSendTransaction();
 
   const receiptQuery = useWaitForTransactionReceipt({
     hash: txHash,
+    chainId,
     confirmations,
     query: {
       enabled: !!txHash,
@@ -110,12 +113,17 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
 
   const sendTransaction = useCallback(
     async (params: SendTransactionParams): Promise<Hex> => {
+      if (!publicClient) {
+        throw new Error(`No public client available for chain ID ${chainId}`);
+      }
+
       const value = params.value ?? 0n;
 
-      const estimated = await estimateGas(config, {
+      const estimated = await publicClient.estimateGas({
         to: params.to,
         data: params.data,
         value,
+        account: connectedAddress,
       });
       const gasLimit = estimated * 2n;
 
@@ -124,23 +132,28 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
         data: params.data,
         value,
         gas: gasLimit,
+        chainId,
       });
       setTxHash(hash);
       return hash;
     },
-    [send, config],
+    [publicClient, connectedAddress, send, chainId],
   );
 
   const sendAndConfirm = useCallback(
     async (params: SendTransactionParams): Promise<{ hash: Hex; receipt: TransactionReceipt }> => {
+      if (!publicClient) {
+        throw new Error(`No public client available for chain ID ${chainId}`);
+      }
+
       const hash = await sendTransaction(params);
-      const receipt = await waitForTransactionReceipt(config, {
+      const receipt = await publicClient.waitForTransactionReceipt({
         hash,
         confirmations,
       });
       return { hash, receipt };
     },
-    [sendTransaction, config, confirmations],
+    [sendTransaction, publicClient, confirmations, chainId],
   );
 
   const reset = useCallback(() => {
