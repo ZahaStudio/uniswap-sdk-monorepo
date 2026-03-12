@@ -116,7 +116,8 @@ export class UniswapSDK {
    * Creates a SDK instance for a specific chain.
    *
    * @param client - Viem public client for the target chain
-   * @param chainId - Chain ID for the target network (defaults to client.chain.id)
+   * @param chainId - Chain ID for the target network. This may intentionally differ from `client.chain?.id`
+   * when using a forked RPC client while still targeting the original chain's contract addresses.
    * @param options - Optional configuration: contracts, cache, defaultDeadline, defaultSlippageTolerance
    */
   public static create(client: PublicClient, chainId: number, options: UniswapSDKOptions = {}): UniswapSDK {

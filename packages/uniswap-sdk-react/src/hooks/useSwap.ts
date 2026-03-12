@@ -187,6 +187,10 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     queryFn: async (): Promise<QuoteData> => {
       assertSdkInitialized(sdk);
 
+      if (amountIn == 0n) {
+        throw new Error("Input amount must be greater than zero");
+      }
+
       const quoteParams: SwapExactInSingle = {
         poolKey: {
           currency0: poolKey.currency0 as Address,
@@ -204,7 +208,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
       return { ...quote, minAmountOut };
     },
-    enabled: quoteEnabled,
+    enabled: quoteEnabled && amountIn !== 0n,
     refetchInterval,
   });
 

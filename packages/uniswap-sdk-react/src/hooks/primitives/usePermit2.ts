@@ -13,7 +13,7 @@ import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions"
 
 /**
  * A token to include in the Permit2 flow.
- * Native tokens (zeroAddress) are automatically skipped for approval and signing.
+ * Native tokens (zeroAddress) and zero-amount entries are automatically skipped.
  */
 export interface UsePermit2Token {
   /** ERC-20 token address (use zeroAddress for native ETH) */
@@ -104,7 +104,7 @@ interface KeyedState<T> {
 const EMPTY_TOKEN: UsePermit2Token = { address: zeroAddress, amount: 0n };
 
 function isNonNative(token: UsePermit2Token): boolean {
-  return token.address.toLowerCase() !== zeroAddress.toLowerCase();
+  return token.address.toLowerCase() !== zeroAddress.toLowerCase() && token.amount > 0n;
 }
 
 function createPermit2InputsKey(
@@ -122,8 +122,9 @@ function createPermit2InputsKey(
  * ERC-20 approval(s) to the Permit2 contract, then off-chain Permit2 batch signing.
  *
  * Always uses batch permit2 signing regardless of token count.
- * Automatically detects whether signing is needed based on the number of non-native
- * tokens provided. Native tokens (zeroAddress) are skipped entirely.
+ * Automatically detects whether signing is needed based on the number of non-native,
+ * positive-amount tokens provided. Native tokens (zeroAddress) and zero-amount
+ * entries are skipped entirely.
  *
  * @param params - Tokens and spender address
  * @param options - Configuration: enabled, chainId
@@ -204,6 +205,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
 
   const [signedState, setSignedState] = useState<KeyedState<Permit2SignedResult> | undefined>(undefined);
   const [signErrorState, setSignErrorState] = useState<KeyedState<Error> | undefined>(undefined);
+  const [pendingSignKey, setPendingSignKey] = useState<string | undefined>(undefined);
 
   const inputsKey = createPermit2InputsKey(chainId, connectedAddress ?? zeroAddress, spender, token0, token1);
   const signed = signedState?.key === inputsKey ? signedState.value : undefined;
@@ -221,6 +223,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
 
     try {
       setSignErrorState(undefined);
+      setPendingSignKey(inputsKey);
 
       const batchTokens: Address[] = [];
       if (token0IsRelevant) batchTokens.push(token0.address);
@@ -244,10 +247,12 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
         data: prepareResult.buildPermit2BatchDataWithSignature(signature),
       };
       setSignedState({ key: inputsKey, value: result });
+      setPendingSignKey(undefined);
       return result;
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setSignErrorState({ key: inputsKey, value: error });
+      setPendingSignKey(undefined);
       throw error;
     }
   }, [
@@ -266,12 +271,13 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
   const permit2Reset = useCallback(() => {
     setSignedState(undefined);
     setSignErrorState(undefined);
+    setPendingSignKey(undefined);
     signTypedData.reset();
   }, [signTypedData]);
 
   const permit2Step: UsePermit2SignStep = {
     isRequired: signingKind !== "none",
-    isPending: signTypedData.isPending,
+    isPending: signTypedData.isPending && pendingSignKey === inputsKey,
     isSigned: !!signed,
     error: signError,
     kind: signingKind,
@@ -298,7 +304,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
       if (approval0.isRequired === undefined) {
         throw new Error("Awaiting approval status for token0");
       }
-      if (approval0.isRequired && approval0.transaction.status !== "confirmed") {
+      if (approval0.isRequired) {
         await approval0.approve();
       }
     }
@@ -307,7 +313,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
       if (approval1.isRequired === undefined) {
         throw new Error("Awaiting approval status for token1");
       }
-      if (approval1.isRequired && approval1.transaction.status !== "confirmed") {
+      if (approval1.isRequired) {
         await approval1.approve();
       }
     }

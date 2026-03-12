@@ -17,10 +17,6 @@ import { assertSdkInitialized } from "@/utils/assertions";
  * Arguments for increasing liquidity on a position.
  */
 export interface IncreaseLiquidityArgs {
-  /** Amount of token0 to add */
-  amount0?: bigint;
-  /** Amount of token1 to add */
-  amount1?: bigint;
   /** Recipient address for the position NFT */
   recipient: Address;
   /** Slippage tolerance in basis points (optional, default: 50 = 0.5%) */
@@ -33,9 +29,9 @@ export interface IncreaseLiquidityArgs {
  * Options for the usePositionIncreaseLiquidity hook.
  */
 export interface UsePositionIncreaseLiquidityOptions extends UseMutationHookOptions {
-  /** Amount of token0 for proactive approval checking */
+  /** Amount of token0 to add */
   amount0?: bigint;
-  /** Amount of token1 for proactive approval checking */
+  /** Amount of token1 to add */
   amount1?: bigint;
 }
 
@@ -75,7 +71,7 @@ export interface UsePositionIncreaseLiquidityReturn {
  * when the transaction confirms.
  *
  * @param params - Operation parameters: tokenId
- * @param options - Configuration: amounts for approval checking, chainId, onSuccess
+ * @param options - Configuration: liquidity amounts, chainId, onSuccess
  * @returns Pipeline steps, current step indicator, executeAll action, and reset
  *
  * @example Step-by-step control
@@ -88,7 +84,7 @@ export interface UsePositionIncreaseLiquidityReturn {
  *   await increase.steps.approvalToken0.approve();
  * }
  * await increase.steps.permit2.sign();
- * await increase.steps.execute.execute({ amount0: "100", recipient: address });
+ * await increase.steps.execute.execute({ recipient: address });
  * ```
  *
  * @example One-click with executeAll
@@ -96,7 +92,7 @@ export interface UsePositionIncreaseLiquidityReturn {
  * const increase = usePositionIncreaseLiquidity({ tokenId }, {
  *   amount0: parseUnits("100", 6),
  * });
- * const txHash = await increase.executeAll({ amount0: "100", recipient: address });
+ * const txHash = await increase.executeAll({ recipient: address });
  * ```
  */
 export function usePositionIncreaseLiquidity(
@@ -126,8 +122,8 @@ export function usePositionIncreaseLiquidity(
         pool: position.pool,
         tickLower: position.position.tickLower,
         tickUpper: position.position.tickUpper,
-        amount0: args.amount0?.toString(),
-        amount1: args.amount1?.toString(),
+        amount0: amount0 > 0n ? amount0.toString() : undefined,
+        amount1: amount1 > 0n ? amount1.toString() : undefined,
         recipient: args.recipient,
         slippageTolerance: args.slippageTolerance,
         deadlineDuration: args.deadlineDuration,
@@ -136,7 +132,7 @@ export function usePositionIncreaseLiquidity(
         >[0]["permit2BatchSignature"],
       });
     },
-    [position, sdk],
+    [position, sdk, amount0, amount1],
   );
 
   const pipeline = useAddLiquidityPipeline<IncreaseLiquidityArgs>({
