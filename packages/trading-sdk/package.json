@@ -1,0 +1,42 @@
+{
+  "name": "@zahastudio/trading-sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "sideEffects": false,
+  "license": "MIT",
+  "files": [
+    "dist/**",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZahaStudio/uniswap-sdk-monorepo.git"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+  },
+  "devDependencies": {
+    "@acme/eslint-config": "workspace:*",
+    "@acme/tsconfig": "workspace:*",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "viem": "catalog:"
+  },
+  "peerDependencies": {
+    "viem": "catalog:"
+  },
+  "dependencies": {
+    "ky": "^1.13.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

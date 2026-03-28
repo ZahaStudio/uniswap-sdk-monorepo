@@ -12,6 +12,7 @@
   "dependencies": {
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "catalog:",
+    "@zahastudio/trading-sdk-react": "workspace:*",
     "@zahastudio/uniswap-sdk": "workspace:*",
     "@zahastudio/uniswap-sdk-react": "workspace:*",
     "clsx": "^2.1.1",
