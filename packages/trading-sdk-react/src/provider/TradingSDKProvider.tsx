@@ -26,7 +26,14 @@ export function TradingSDKProvider({ children, config }: TradingSDKProviderProps
         universalRouterVersion: config.universalRouterVersion,
         permit2Disabled: config.permit2Disabled,
       }),
-    [config.apiKey, config.baseUrl, config.fetch, config.headers, config.universalRouterVersion, config.permit2Disabled],
+    [
+      config.apiKey,
+      config.baseUrl,
+      config.fetch,
+      config.headers,
+      config.universalRouterVersion,
+      config.permit2Disabled,
+    ],
   );
 
   const value = useMemo(() => ({ sdk }), [sdk]);

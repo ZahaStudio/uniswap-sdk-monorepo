@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
@@ -9,7 +9,6 @@ import {
   type TradingApprovalResponse,
   type TradingPermitData,
   type TradingQuoteResponse,
-  type TradingRouting,
   type Urgency,
 } from "@zahastudio/trading-sdk";
 import type { Address, Hex } from "viem";
@@ -42,14 +41,17 @@ export interface UseTradingOptions {
   enabled?: boolean;
   refetchInterval?: number | false;
   chainId?: number;
-  quoteDebounceMs?: number;
 }
 
 export interface UseTradingApprovalStep {
   isRequired: boolean;
+  resetRequired: boolean;
+  approveRequired: boolean;
   data: TradingApprovalResponse | undefined;
   query: UseQueryResult<TradingApprovalResponse, Error>;
   transaction: UseTransactionReturn;
+  executeReset: () => Promise<Hex>;
+  executeApprove: () => Promise<Hex>;
   execute: () => Promise<Hex>;
 }
 
@@ -75,7 +77,7 @@ export interface UseTradingSteps {
   swap: UseTradingSwapStep;
 }
 
-export type TradingStep = "quote" | "approval" | "permit2" | "swap" | "completed";
+export type TradingStep = "quote" | "approval-reset" | "approval" | "permit2" | "swap" | "completed";
 
 export interface UseTradingReturn {
   steps: UseTradingSteps;
@@ -113,25 +115,6 @@ function getPrimaryType(types: TradingPermitData["types"]): string {
   return primaryTypes[0]!;
 }
 
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    if (delayMs <= 0) {
-      setDebouncedValue(value);
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setDebouncedValue(value);
-    }, delayMs);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [delayMs, value]);
-
-  return debouncedValue;
-}
-
 export function useTrading(params: UseTradingParams, options: UseTradingOptions = {}): UseTradingReturn {
   const {
     tokenIn,
@@ -144,24 +127,22 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
     routingPreference,
     permit2Disabled = false,
   } = params;
-  const { enabled = true, refetchInterval = false, chainId: chainIdOverride, quoteDebounceMs = 350 } = options;
+  const { enabled = true, refetchInterval = false, chainId: chainIdOverride } = options;
 
   const { sdk, chainId } = useTradingSDK({ chainId: chainIdOverride });
   const { address: connectedAddress } = useAccount();
   const signTypedData = useSignTypedData();
 
   const swapper = swapperOverride ?? connectedAddress;
-  const debouncedAmountIn = useDebouncedValue(amountIn, quoteDebounceMs);
-  const isDebouncing = debouncedAmountIn !== amountIn;
   const isNativeInput = tokenIn.toLowerCase() === zeroAddress.toLowerCase();
-  const quoteEnabled = enabled && debouncedAmountIn > 0n && !!swapper;
+  const quoteEnabled = enabled && amountIn > 0n && !!swapper;
   const approvalEnabled = quoteEnabled && !isNativeInput;
 
   const quoteQuery = useQuery({
     queryKey: tradingKeys.quote({
       tokenIn,
       tokenOut,
-      amountIn: debouncedAmountIn,
+      amountIn,
       chainId,
       swapper,
       permit2Disabled,
@@ -177,7 +158,7 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
       return sdk.getQuote(
         {
           type: "EXACT_INPUT",
-          amount: debouncedAmountIn,
+          amount: amountIn,
           tokenIn,
           tokenOut,
           chainId,
@@ -199,7 +180,7 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
       walletAddress: swapper,
       tokenIn,
       tokenOut,
-      amountIn: debouncedAmountIn,
+      amountIn,
       chainId,
       permit2Disabled,
       urgency,
@@ -213,7 +194,7 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
         {
           walletAddress: swapper,
           token: tokenIn,
-          amount: debouncedAmountIn,
+          amount: amountIn,
           chainId,
           urgency,
           tokenOut,
@@ -234,12 +215,12 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
         chainId,
         tokenIn,
         tokenOut,
-        amountIn: debouncedAmountIn,
+        amountIn,
         swapper,
         permit2Disabled,
         requestId: quoteQuery.data?.requestId,
       }),
-    [chainId, debouncedAmountIn, permit2Disabled, quoteQuery.data?.requestId, swapper, tokenIn, tokenOut],
+    [amountIn, chainId, permit2Disabled, quoteQuery.data?.requestId, swapper, tokenIn, tokenOut],
   );
 
   const [signatureState, setSignatureState] = useState<KeyedState<Hex | undefined> | undefined>(undefined);
@@ -249,10 +230,35 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
   const permitSignature = signatureState?.key === permitKey ? signatureState.value : undefined;
   const permitError = permitErrorState?.key === permitKey ? permitErrorState.value : undefined;
 
-  const quote = isDebouncing ? undefined : quoteQuery.data;
-  const approval = isDebouncing ? undefined : approvalQuery.data;
+  const quote = quoteQuery.data;
+  const approval = approvalQuery.data;
+  const approvalDecisionPending =
+    approvalEnabled && !approvalQuery.error && !approval && (approvalQuery.isLoading || approvalQuery.isFetching);
   const permitRequired = !permit2Disabled && !!quote?.permitData;
-  const approvalRequired = !!approval?.approval && approvalTransaction.status !== "confirmed";
+  const approvalResetRequired = !approvalDecisionPending && !!approval?.cancel;
+  const approvalApproveRequired = !approvalDecisionPending && !!approval?.approval;
+  const approvalRequired = approvalResetRequired || approvalApproveRequired;
+
+  const refetchApproval = useCallback(async (): Promise<TradingApprovalResponse | undefined> => {
+    const result = await approvalQuery.refetch();
+    if (result.error) {
+      throw result.error;
+    }
+
+    return result.data;
+  }, [approvalQuery]);
+
+  const resolveApproval = useCallback(async (): Promise<TradingApprovalResponse | undefined> => {
+    if (!approvalEnabled) {
+      return undefined;
+    }
+
+    if (approval) {
+      return approval;
+    }
+
+    return refetchApproval();
+  }, [approval, approvalEnabled, refetchApproval]);
 
   const signPermit = useCallback(async (): Promise<Hex | undefined> => {
     if (!permitRequired) {
@@ -292,19 +298,61 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
     }
   }, [connectedAddress, permitKey, permitRequired, quote?.permitData, signTypedData, swapper]);
 
+  const executeApprovalReset = useCallback(async (): Promise<Hex> => {
+    assertWalletConnected(connectedAddress);
+    if (swapper) {
+      assertSameAddress(swapper, connectedAddress);
+    }
+
+    const approvalState = await resolveApproval();
+    if (!approvalState?.cancel) {
+      throw new Error("Approval reset transaction not available.");
+    }
+
+    const { hash } = await approvalTransaction.sendAndConfirm(approvalState.cancel);
+    await refetchApproval();
+    return hash;
+  }, [approvalTransaction, connectedAddress, refetchApproval, resolveApproval, swapper]);
+
   const executeApproval = useCallback(async (): Promise<Hex> => {
     assertWalletConnected(connectedAddress);
     if (swapper) {
       assertSameAddress(swapper, connectedAddress);
     }
 
-    if (!approval?.approval) {
+    const approvalState = await resolveApproval();
+    if (!approvalState?.approval) {
       throw new Error("Approval transaction not available.");
     }
 
-    const { hash } = await approvalTransaction.sendAndConfirm(approval.approval);
+    const { hash } = await approvalTransaction.sendAndConfirm(approvalState.approval);
+    await refetchApproval();
     return hash;
-  }, [approval?.approval, approvalTransaction, connectedAddress, swapper]);
+  }, [approvalTransaction, connectedAddress, refetchApproval, resolveApproval, swapper]);
+
+  const executeApprovalFlow = useCallback(async (): Promise<Hex> => {
+    let hash: Hex | undefined;
+    let approvalState = await resolveApproval();
+
+    if (!approvalState?.cancel && !approvalState?.approval) {
+      throw new Error("Approval transaction not available.");
+    }
+
+    if (approvalState?.cancel) {
+      hash = await executeApprovalReset();
+      approvalState = await resolveApproval();
+    }
+
+    if (approvalState?.approval) {
+      hash = await executeApproval();
+    }
+
+    if (!hash) {
+      throw new Error("Approval transaction not available.");
+    }
+
+    return hash;
+  }, [executeApproval, executeApprovalReset, resolveApproval]);
 
   const executeSwap = useCallback(
     async (signatureOverride?: Hex): Promise<Hex> => {
@@ -335,11 +383,15 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
   );
 
   const currentStep: TradingStep = (() => {
-    if (isDebouncing || !quote || quoteQuery.isLoading || !swapper) {
+    if (!quote || quoteQuery.isLoading || approvalDecisionPending || !swapper) {
       return "quote";
     }
 
-    if (approvalRequired) {
+    if (approvalResetRequired) {
+      return "approval-reset";
+    }
+
+    if (approvalApproveRequired) {
       return "approval";
     }
 
@@ -355,13 +407,14 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
   })();
 
   const executeAll = useCallback(async (): Promise<Hex> => {
-    if (approvalRequired) {
-      await executeApproval();
+    const approvalState = await resolveApproval();
+    if (approvalState?.cancel || approvalState?.approval) {
+      await executeApprovalFlow();
     }
 
     const signature = permitRequired ? await signPermit() : undefined;
     return executeSwap(signature);
-  }, [approvalRequired, executeApproval, executeSwap, permitRequired, signPermit]);
+  }, [executeApprovalFlow, executeSwap, permitRequired, resolveApproval, signPermit]);
 
   const resetPermit = useCallback(() => {
     setSignatureState(undefined);
@@ -379,15 +432,19 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
     quote: {
       ...quoteQuery,
       data: quote,
-      isFetching: quoteQuery.isFetching || isDebouncing,
-      isLoading: quoteQuery.isLoading || (isDebouncing && !quoteQuery.data),
+      isFetching: quoteQuery.isFetching,
+      isLoading: quoteQuery.isLoading,
     } as UseQueryResult<TradingQuoteResponse, Error>,
     approval: {
       isRequired: approvalRequired,
+      resetRequired: approvalResetRequired,
+      approveRequired: approvalApproveRequired,
       data: approval,
       query: approvalQuery,
       transaction: approvalTransaction,
-      execute: executeApproval,
+      executeReset: executeApprovalReset,
+      executeApprove: executeApproval,
+      execute: executeApprovalFlow,
     },
     permit2: {
       isRequired: permitRequired,

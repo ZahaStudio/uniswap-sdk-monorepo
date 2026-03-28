@@ -19,25 +19,10 @@ import { cn, shouldShowExecutionError, truncateAddress } from "@/lib/utils";
 const MAINNET_CHAIN_ID = 1;
 const QUOTE_REFRESH_INTERVAL = 30_000;
 
-const WETH = buildTokenInfo(
-  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" as Address,
-  "WETH",
-  "Wrapped Ether",
-  18,
-);
+const WETH = buildTokenInfo("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" as Address, "WETH", "Wrapped Ether", 18);
 const ETH = buildTokenInfo(zeroAddress, "ETH", "Ether", 18);
-const USDC = buildTokenInfo(
-  "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address,
-  "USDC",
-  "USD Coin",
-  6,
-);
-const USDT = buildTokenInfo(
-  "0xdAC17F958D2ee523a2206206994597C13D831ec7" as Address,
-  "USDT",
-  "Tether USD",
-  6,
-);
+const USDC = buildTokenInfo("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address, "USDC", "USD Coin", 6);
+const USDT = buildTokenInfo("0xdAC17F958D2ee523a2206206994597C13D831ec7" as Address, "USDT", "Tether USD", 6);
 
 interface TradingPreset {
   id: string;
@@ -133,7 +118,8 @@ function formatRouteLeg(routeLeg: TradingRoute[number], legIndex: number): strin
 
 function TradingStepIndicator({
   currentStep,
-  approvalRequired,
+  approvalResetRequired,
+  approvalApproveRequired,
   permitRequired,
   permit2Disabled,
   approvalStatus,
@@ -141,7 +127,8 @@ function TradingStepIndicator({
   swapStatus,
 }: {
   currentStep: TradingStep;
-  approvalRequired: boolean;
+  approvalResetRequired: boolean;
+  approvalApproveRequired: boolean;
   permitRequired: boolean;
   permit2Disabled: boolean;
   approvalStatus: "idle" | "pending" | "confirming" | "confirmed" | "error";
@@ -150,7 +137,8 @@ function TradingStepIndicator({
 }) {
   const order: TradingStep[] = [
     "quote",
-    ...(approvalRequired ? (["approval"] as const) : []),
+    ...(approvalResetRequired ? (["approval-reset"] as const) : []),
+    ...(approvalApproveRequired ? (["approval"] as const) : []),
     ...(!permit2Disabled && permitRequired ? (["permit2"] as const) : []),
     "swap",
     "completed",
@@ -166,7 +154,7 @@ function TradingStepIndicator({
   }
 
   function getLoading(stepId: TradingStep): string | undefined {
-    if (stepId === "approval") {
+    if (stepId === "approval-reset" || stepId === "approval") {
       if (approvalStatus === "pending") return "Awaiting wallet...";
       if (approvalStatus === "confirming") return "Confirming...";
     }
@@ -180,7 +168,16 @@ function TradingStepIndicator({
 
   const stepItems: Array<{ id: TradingStep; label: string; description: string }> = [
     { id: "quote", label: "Quote", description: "Fetch price from the Trading API" },
-    ...(approvalRequired
+    ...(approvalResetRequired
+      ? [
+          {
+            id: "approval-reset" as const,
+            label: "Reset approval",
+            description: "Clear the token allowance before re-approving",
+          },
+        ]
+      : []),
+    ...(approvalApproveRequired
       ? [{ id: "approval" as const, label: "Approve", description: "Broadcast approval for the router flow" }]
       : []),
     ...(!permit2Disabled && permitRequired
@@ -227,10 +224,7 @@ function TradingQuoteDetails({
         className="text-text-secondary hover:bg-surface-raised flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs transition-colors"
       >
         <span>
-          Route:{" "}
-          <span className="text-text font-medium">
-            {routeString ?? routing}
-          </span>
+          Route: <span className="text-text font-medium">{routeString ?? routing}</span>
         </span>
         <svg
           width="12"
@@ -322,10 +316,14 @@ export function TradingDemo() {
   const quoteError = steps.quote.error;
   const isFetchingQuote = steps.quote.isFetching;
   const approvalRequired = steps.approval.isRequired;
+  const approvalResetRequired = steps.approval.resetRequired;
+  const approvalApproveRequired = steps.approval.approveRequired;
   const permitRequired = steps.permit2.isRequired;
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
-  const outputDisplay = quoteData ? formatTokenAmount(BigInt(quoteData.quote.output.amount), tokenOut.decimals) : undefined;
+  const outputDisplay = quoteData
+    ? formatTokenAmount(BigInt(quoteData.quote.output.amount), tokenOut.decimals)
+    : undefined;
   const routeLines = quoteData?.quote.route?.map((routeLeg, index) => formatRouteLeg(routeLeg, index)) ?? [];
   const rawBalance = balanceQuery.data?.value;
   const hasInsufficientBalance = rawBalance !== undefined && amountInRaw > rawBalance;
@@ -354,13 +352,16 @@ export function TradingDemo() {
     setSecondsUntilRefresh(QUOTE_REFRESH_INTERVAL / 1000);
   }, []);
 
-  const handlePresetChange = useCallback((preset: TradingPreset) => {
-    setSelectedPreset(preset);
-    setAmountInput("");
-    setTxError(null);
-    setExecuting(false);
-    reset();
-  }, [reset]);
+  const handlePresetChange = useCallback(
+    (preset: TradingPreset) => {
+      setSelectedPreset(preset);
+      setAmountInput("");
+      setTxError(null);
+      setExecuting(false);
+      reset();
+    },
+    [reset],
+  );
 
   const handleMaxClick = useCallback(() => {
     if (balanceQuery.data?.formatted) {
@@ -389,8 +390,11 @@ export function TradingDemo() {
     setExecuting(true);
     try {
       switch (currentStep) {
+        case "approval-reset":
+          await steps.approval.executeReset();
+          break;
         case "approval":
-          await steps.approval.execute();
+          await steps.approval.executeApprove();
           break;
         case "permit2":
           await steps.permit2.sign();
@@ -461,7 +465,8 @@ export function TradingDemo() {
           <>
             <TradingStepIndicator
               currentStep={currentStep}
-              approvalRequired={approvalRequired}
+              approvalResetRequired={approvalResetRequired}
+              approvalApproveRequired={approvalApproveRequired}
               permitRequired={permitRequired}
               permit2Disabled={permit2Disabled}
               approvalStatus={steps.approval.transaction.status}
@@ -533,7 +538,7 @@ export function TradingDemo() {
                 />
                 <DetailRow
                   label="Route"
-                  value={quoteData.quote.routeString ?? (routeLines[0] ?? "Unavailable")}
+                  value={quoteData.quote.routeString ?? routeLines[0] ?? "Unavailable"}
                 />
                 <DetailRow
                   label="Request ID"
@@ -662,15 +667,17 @@ export function TradingDemo() {
                   {executing ? `${getStepActionLabel(currentStep)}...` : !quoteData ? "Enter an amount" : "Swap"}
                 </button>
 
-                {quoteData && !executing && (currentStep === "approval" || currentStep === "permit2") && (
-                  <button
-                    onClick={handleExecuteStep}
-                    disabled={executing || hasInsufficientBalance}
-                    className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {executing ? `${getStepActionLabel(currentStep)}...` : `Step: ${getStepActionLabel(currentStep)}`}
-                  </button>
-                )}
+                {quoteData &&
+                  !executing &&
+                  (currentStep === "approval-reset" || currentStep === "approval" || currentStep === "permit2") && (
+                    <button
+                      onClick={handleExecuteStep}
+                      disabled={executing || hasInsufficientBalance}
+                      className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {executing ? `${getStepActionLabel(currentStep)}...` : `Step: ${getStepActionLabel(currentStep)}`}
+                    </button>
+                  )}
               </div>
             )}
           </div>
@@ -684,6 +691,8 @@ function getStepActionLabel(step: TradingStep): string {
   switch (step) {
     case "quote":
       return "Refreshing quote";
+    case "approval-reset":
+      return "Reset approval";
     case "approval":
       return "Approve token";
     case "permit2":

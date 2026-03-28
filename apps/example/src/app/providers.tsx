@@ -28,16 +28,18 @@ const tradingApiKey = process.env.NEXT_PUBLIC_UNISWAP_API_KEY;
 export function Providers({ children }: PropsWithChildren) {
   const sdkTree = (
     <UniswapSDKProvider>
-      {tradingApiKey ? <TradingSDKProvider config={{ apiKey: tradingApiKey }}>{children}</TradingSDKProvider> : children}
+      {tradingApiKey ? (
+        <TradingSDKProvider config={{ apiKey: tradingApiKey }}>{children}</TradingSDKProvider>
+      ) : (
+        children
+      )}
     </UniswapSDKProvider>
   );
 
   return (
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={wagmiConfig}>
-        <RainbowKitProvider theme={darkTheme()}>
-          {sdkTree}
-        </RainbowKitProvider>
+        <RainbowKitProvider theme={darkTheme()}>{sdkTree}</RainbowKitProvider>
       </WagmiProvider>
     </QueryClientProvider>
   );

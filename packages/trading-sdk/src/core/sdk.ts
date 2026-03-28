@@ -299,7 +299,10 @@ export class TradingSDK {
     return new TradingSDK(config);
   }
 
-  public async getQuote(params: TradingQuoteParams, options: TradingRequestOptions = {}): Promise<TradingQuoteResponse> {
+  public async getQuote(
+    params: TradingQuoteParams,
+    options: TradingRequestOptions = {},
+  ): Promise<TradingQuoteResponse> {
     assertQuoteParams(params);
 
     const body = {
