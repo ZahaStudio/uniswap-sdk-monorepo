@@ -11,3 +11,14 @@ export function assertSameAddress(expected: Address, actual: Address): void {
     throw new Error("The connected wallet must match the configured swapper address.");
   }
 }
+
+export function assertConnectedSwapper(
+  expected: Address | undefined,
+  actual: Address | undefined,
+): asserts actual is Address {
+  assertWalletConnected(actual);
+
+  if (expected) {
+    assertSameAddress(expected, actual);
+  }
+}

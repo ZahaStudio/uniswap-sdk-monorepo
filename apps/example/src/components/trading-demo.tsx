@@ -275,13 +275,14 @@ export function TradingDemo() {
   const connectedChainId = useChainId();
 
   const [selectedPreset, setSelectedPreset] = useState<TradingPreset>(TRADING_PRESETS[0]!);
+  const [isReversed, setIsReversed] = useState(false);
   const [amountInput, setAmountInput] = useState("");
   const [permit2Disabled, setPermit2Disabled] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
 
-  const tokenIn = selectedPreset.tokenIn;
-  const tokenOut = selectedPreset.tokenOut;
+  const tokenIn = isReversed ? selectedPreset.tokenOut : selectedPreset.tokenIn;
+  const tokenOut = isReversed ? selectedPreset.tokenIn : selectedPreset.tokenOut;
   const amountInRaw = useMemo(() => parseTokenAmount(amountInput, tokenIn.decimals), [amountInput, tokenIn.decimals]);
   const approvalModeLabel = permit2Disabled ? "Proxy approval" : "Permit2";
   const isNativeInput = tokenIn.address.toLowerCase() === zeroAddress.toLowerCase();
@@ -315,9 +316,13 @@ export function TradingDemo() {
   const quoteLoading = steps.quote.isLoading;
   const quoteError = steps.quote.error;
   const isFetchingQuote = steps.quote.isFetching;
-  const approvalRequired = steps.approval.isRequired;
-  const approvalResetRequired = steps.approval.resetRequired;
-  const approvalApproveRequired = steps.approval.approveRequired;
+  const approvalRequired = steps.approvalReset.isRequired || steps.approval.isRequired;
+  const approvalResetRequired = steps.approvalReset.isRequired;
+  const approvalApproveRequired = steps.approval.isRequired;
+  const approvalStepStatus =
+    currentStep === "approval-reset" ? steps.approvalReset.transaction.status : steps.approval.transaction.status;
+  const approvalResetTxHash = steps.approvalReset.transaction.txHash;
+  const approvalTxHash = steps.approval.transaction.txHash;
   const permitRequired = steps.permit2.isRequired;
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
@@ -355,6 +360,7 @@ export function TradingDemo() {
   const handlePresetChange = useCallback(
     (preset: TradingPreset) => {
       setSelectedPreset(preset);
+      setIsReversed(false);
       setAmountInput("");
       setTxError(null);
       setExecuting(false);
@@ -362,6 +368,14 @@ export function TradingDemo() {
     },
     [reset],
   );
+
+  const handleFlipDirection = useCallback(() => {
+    setIsReversed((current) => !current);
+    setAmountInput("");
+    setTxError(null);
+    setExecuting(false);
+    reset();
+  }, [reset]);
 
   const handleMaxClick = useCallback(() => {
     if (balanceQuery.data?.formatted) {
@@ -391,10 +405,10 @@ export function TradingDemo() {
     try {
       switch (currentStep) {
         case "approval-reset":
-          await steps.approval.executeReset();
+          await steps.approvalReset.execute();
           break;
         case "approval":
-          await steps.approval.executeApprove();
+          await steps.approval.execute();
           break;
         case "permit2":
           await steps.permit2.sign();
@@ -469,10 +483,22 @@ export function TradingDemo() {
               approvalApproveRequired={approvalApproveRequired}
               permitRequired={permitRequired}
               permit2Disabled={permit2Disabled}
-              approvalStatus={steps.approval.transaction.status}
+              approvalStatus={approvalStepStatus}
               permitPending={steps.permit2.isPending}
               swapStatus={steps.swap.transaction.status}
             />
+            {steps.approvalReset.transaction.status !== "idle" && (
+              <TransactionStatus
+                status={steps.approvalReset.transaction.status}
+                txHash={approvalResetTxHash}
+              />
+            )}
+            {steps.approval.transaction.status !== "idle" && (
+              <TransactionStatus
+                status={steps.approval.transaction.status}
+                txHash={approvalTxHash}
+              />
+            )}
             {steps.swap.transaction.status !== "idle" && (
               <TransactionStatus
                 status={steps.swap.transaction.status}
@@ -526,10 +552,14 @@ export function TradingDemo() {
               label="Approval mode"
               value={approvalModeLabel}
             />
-            <DetailRow
-              label="Preset"
-              value={selectedPreset.description}
-            />
+                <DetailRow
+                  label="Preset"
+                  value={selectedPreset.description}
+                />
+                <DetailRow
+                  label="Direction"
+                  value={`${tokenIn.symbol} → ${tokenOut.symbol}`}
+                />
             {quoteData && (
               <>
                 <DetailRow
@@ -572,9 +602,28 @@ export function TradingDemo() {
 
           <div className="relative my-1 flex items-center justify-center">
             <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
-            <div className="border-border-muted bg-surface-raised text-text-secondary relative z-10 rounded-lg border px-3 py-1 text-[11px] font-medium">
-              Trading API
-            </div>
+            <button
+              onClick={handleFlipDirection}
+              disabled={executing || isSwapConfirmed}
+              className="border-border-muted bg-surface-raised hover:bg-surface-hover relative z-10 flex h-8 items-center justify-center gap-2 rounded-lg border px-3 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="text-text-secondary"
+              >
+                <path
+                  d="M7 4v16M7 20l-4-4m4 4 4-4M17 20V4m0 0 4 4m-4-4-4 4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span className="text-text-secondary text-[11px] font-medium">Flip pair</span>
+            </button>
           </div>
 
           <TokenInput
