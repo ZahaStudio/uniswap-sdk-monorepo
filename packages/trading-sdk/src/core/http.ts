@@ -1,7 +1,7 @@
 import ky, { HTTPError, type KyInstance } from "ky";
 
-import { TradingApiError } from "./errors";
 import { DEFAULT_BASE_URL } from "./constants";
+import { TradingApiError } from "./errors";
 import type { TradingRequestOptions, TradingSDKConfig } from "../types";
 
 interface ApiErrorResponse {

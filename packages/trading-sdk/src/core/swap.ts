@@ -1,5 +1,5 @@
-import { normalizeBigInt, normalizeTransactionRequest, type ApiTransactionRequest } from "../utils/normalize";
 import type { CreateTradingSwapParams, CreateTradingSwapResponse } from "../types";
+import { normalizeBigInt, normalizeTransactionRequest, type ApiTransactionRequest } from "../utils/normalize";
 
 export interface ApiCreateSwapResponse {
   requestId: string;

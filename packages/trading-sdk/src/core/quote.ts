@@ -1,6 +1,4 @@
 import { DEFAULT_AUTO_SLIPPAGE, DEFAULT_PROTOCOLS, DEFAULT_ROUTING_PREFERENCE, SUPPORTED_ROUTINGS } from "./constants";
-import { toAmountString } from "../utils/amounts";
-import { normalizeBigInt, normalizeTransactionRequest, type ApiTransactionRequest } from "../utils/normalize";
 import type {
   TradingQuoteParams,
   TradingQuoteResponse,
@@ -8,6 +6,8 @@ import type {
   TradingPermitData,
   TradingQuote,
 } from "../types";
+import { toAmountString } from "../utils/amounts";
+import { normalizeBigInt, normalizeTransactionRequest, type ApiTransactionRequest } from "../utils/normalize";
 
 export interface ApiQuoteResponse {
   requestId: string;
