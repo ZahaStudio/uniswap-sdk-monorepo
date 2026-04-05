@@ -32,16 +32,16 @@
     "tsdown": "catalog:",
     "typescript": "^5.9.3",
     "viem": "catalog:",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.2"
   },
   "dependencies": {
     "@uniswap/permit2-sdk": "^1.4.0",
-    "@uniswap/sdk-core": "^7.11.0",
-    "@uniswap/universal-router-sdk": "^4.32.0",
-    "@uniswap/v3-sdk": "^3.28.0",
-    "@uniswap/v4-sdk": "^1.28.0",
+    "@uniswap/sdk-core": "^7.13.0",
+    "@uniswap/universal-router-sdk": "^5.1.0",
+    "@uniswap/v3-sdk": "^3.30.0",
+    "@uniswap/v4-sdk": "^2.0.0",
     "hookmate": "^0.5.1",
-    "lru-cache": "^11.2.6"
+    "lru-cache": "^11.2.7"
   },
   "peerDependencies": {
     "viem": "catalog:"

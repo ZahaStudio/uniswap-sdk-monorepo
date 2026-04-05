@@ -34,7 +34,7 @@
     "viem": "catalog:"
   },
   "dependencies": {
-    "ky": "^1.13.0"
+    "ky": "^1.14.3"
   },
   "publishConfig": {
     "access": "public"
