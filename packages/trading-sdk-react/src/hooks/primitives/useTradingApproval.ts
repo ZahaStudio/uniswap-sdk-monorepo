@@ -5,6 +5,7 @@ import { useCallback } from "react";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { TradingApprovalResponse, TradingSDK, Urgency } from "@zahastudio/trading-sdk";
 import type { Address, Hex } from "viem";
+import { hashFn } from "wagmi/query";
 
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { assertConnectedSwapper } from "@/utils";
@@ -85,6 +86,7 @@ export function useTradingApproval({
       );
     },
     enabled,
+    queryKeyHashFn: hashFn,
   });
 
   const resetTransaction = useTransaction({ chainId });

@@ -13,6 +13,7 @@ import {
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
+import { hashFn } from "wagmi/query";
 
 import {
   useTradingApproval,
@@ -133,6 +134,7 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
       );
     },
     enabled: quoteEnabled,
+    queryKeyHashFn: hashFn,
     refetchInterval,
   });
 

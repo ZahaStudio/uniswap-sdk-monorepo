@@ -7,7 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TradingSDKProvider } from "@zahastudio/trading-sdk-react";
 import { UniswapSDKProvider } from "@zahastudio/uniswap-sdk-react";
 import { WagmiProvider } from "wagmi";
-import { hashFn } from "wagmi/query";
 
 import { wagmiConfig } from "@/lib/wagmi";
 
@@ -17,7 +16,6 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      queryKeyHashFn: hashFn,
     },
     mutations: {},
   },

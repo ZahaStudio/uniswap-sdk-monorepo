@@ -2,6 +2,7 @@
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { Pool, PoolKey } from "@zahastudio/uniswap-sdk";
+import { hashFn } from "wagmi/query";
 
 import { useUniswapSDK } from "./useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
@@ -78,6 +79,7 @@ export function usePoolState(params: UsePoolStateParams, options: UseHookOptions
       };
     },
     enabled: enabled && !!sdk,
+    queryKeyHashFn: hashFn,
     refetchInterval,
   });
 
