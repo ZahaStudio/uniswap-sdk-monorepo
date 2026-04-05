@@ -12,6 +12,7 @@ export const tradingKeys = {
     slippageTolerance?: number;
     autoSlippage?: string;
     urgency?: string;
+    routingPreference?: string;
   }) =>
     [
       ...tradingKeys.all,
@@ -25,6 +26,7 @@ export const tradingKeys = {
       params.slippageTolerance,
       params.autoSlippage,
       params.urgency,
+      params.routingPreference,
     ] as const,
   approval: (params: {
     walletAddress?: string;

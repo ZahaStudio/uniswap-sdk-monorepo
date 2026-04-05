@@ -109,6 +109,7 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
       slippageTolerance,
       autoSlippage,
       urgency,
+      routingPreference,
     }),
     queryFn: async ({ signal }): Promise<TradingQuoteResponse> => {
       if (!swapper) {

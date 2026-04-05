@@ -28,5 +28,23 @@
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=24"
-  }
+  },
+  "version": "1.0.0",
+  "description": "A TypeScript SDK for interacting with **Uniswap V4** — providing pool queries, token swaps, liquidity management, and Permit2 approvals out of the box. Includes first-class React bindings with hooks for every operation.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZahaStudio/uniswap-sdk-monorepo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ZahaStudio/uniswap-sdk-monorepo/issues"
+  },
+  "homepage": "https://github.com/ZahaStudio/uniswap-sdk-monorepo#readme"
 }
