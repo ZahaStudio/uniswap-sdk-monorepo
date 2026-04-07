@@ -198,8 +198,8 @@ importers:
         specifier: ^0.5.1
         version: 0.5.1(viem@2.47.10(bufferutil@4.1.0)(typescript@6.0.2)(utf-8-validate@5.0.10))
       lru-cache:
-        specifier: ^11.3.2
-        version: 11.3.2
+        specifier: 11.2.7
+        version: 11.2.7
     devDependencies:
       '@acme/tsconfig':
         specifier: workspace:*
@@ -3377,8 +3377,8 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
-  lru-cache@11.3.2:
-    resolution: {integrity: sha512-wgWa6FWQ3QRRJbIjbsldRJZxdxYngT/dO0I5Ynmlnin8qy7tC6xYzbcJjtN4wHLXtkbVwHzk0C+OejVw1XM+DQ==}
+  lru-cache@11.2.7:
+    resolution: {integrity: sha512-aY/R+aEsRelme17KGQa/1ZSIpLpNYYrhcrepKTZgE+W3WM16YMCaPwOHLHsmopZHELU0Ojin1lPVxKR0MihncA==}
     engines: {node: 20 || >=22}
 
   lucide-react@1.7.0:
@@ -8592,7 +8592,7 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
-  lru-cache@11.3.2: {}
+  lru-cache@11.2.7: {}
 
   lucide-react@1.7.0(react@19.2.4):
     dependencies:
@@ -9448,7 +9448,7 @@ snapshots:
       chokidar: 5.0.0
       destr: 2.0.5
       h3: 1.15.5
-      lru-cache: 11.3.2
+      lru-cache: 11.2.7
       node-fetch-native: 1.6.7
       ofetch: 1.5.1
       ufo: 1.6.3

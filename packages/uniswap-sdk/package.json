@@ -33,7 +33,7 @@
     "@uniswap/v3-sdk": "^3.30.0",
     "@uniswap/v4-sdk": "^2.0.0",
     "hookmate": "^0.5.1",
-    "lru-cache": "^11.3.2"
+    "lru-cache": "11.2.7"
   },
   "devDependencies": {
     "@acme/tsconfig": "workspace:*",
