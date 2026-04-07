@@ -2,15 +2,17 @@
 
 import { useMemo } from "react";
 
+import type { Address } from "viem";
+
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { getChainById } from "@zahastudio/uniswap-sdk";
-import type { Address } from "viem";
 import { erc20Abi, formatUnits, zeroAddress } from "viem";
 import { useAccount, usePublicClient, useReadContracts } from "wagmi";
 import { hashFn } from "wagmi/query";
 
-import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
+
+import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { tokenKeys } from "@/utils/queryKeys";
 
 /**

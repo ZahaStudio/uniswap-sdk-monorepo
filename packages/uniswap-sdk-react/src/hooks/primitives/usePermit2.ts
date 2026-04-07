@@ -2,8 +2,9 @@
 
 import { useCallback, useState } from "react";
 
-import { type PreparePermit2BatchDataResult } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
+
+import { type PreparePermit2BatchDataResult } from "@zahastudio/uniswap-sdk";
 import { zeroAddress } from "viem";
 import { useAccount, useSignTypedData } from "wagmi";
 

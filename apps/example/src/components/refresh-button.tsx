@@ -11,7 +11,7 @@ export function RefreshButton({ onClick, disabled, spinning }: RefreshButtonProp
     <button
       onClick={onClick}
       disabled={disabled}
-      className="text-text-muted hover:text-accent flex items-center gap-1 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+      className="flex items-center gap-1 text-xs text-text-muted transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
     >
       <svg
         width="14"

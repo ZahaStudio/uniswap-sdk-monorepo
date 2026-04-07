@@ -2,6 +2,7 @@ import { Pool } from "@uniswap/v4-sdk";
 import { unichain } from "viem/chains";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+
 import { UniswapSDK } from "@/core/sdk";
 import { UNICHAIN_POOL_ID, UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
 import { createPinnedUnichainClient } from "@/test/integration/pinnedClient";

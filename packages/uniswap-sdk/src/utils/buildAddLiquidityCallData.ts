@@ -1,9 +1,11 @@
-import { encodeSqrtRatioX96, nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
 import type { BatchPermitOptions, Pool } from "@uniswap/v4-sdk";
-import { Position, V4PositionManager } from "@uniswap/v4-sdk";
 import type { Address } from "viem";
 
+import { encodeSqrtRatioX96, nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
+import { Position, V4PositionManager } from "@uniswap/v4-sdk";
+
 import type { UniswapSDKInstance } from "@/core/sdk";
+
 import { assertBasisPoints, percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 

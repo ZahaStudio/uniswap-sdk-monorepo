@@ -2,6 +2,7 @@ import { v4 } from "hookmate/abi";
 import { pad, toHex } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+
 import { getPositionInfo } from "@/utils/getPositionInfo";
 
 const Q128 = 2n ** 128n;

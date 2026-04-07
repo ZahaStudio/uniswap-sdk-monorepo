@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { TradingPermitData } from "@zahastudio/trading-sdk";
 import type { Address, Hex } from "viem";
+
 import { zeroAddress } from "viem";
 import { useSignTypedData } from "wagmi";
 

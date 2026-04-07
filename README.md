@@ -4,12 +4,12 @@ A TypeScript monorepo for interacting with **Uniswap V4**, with an additional **
 
 ## Packages
 
-| Package                                                         | Description                                                |
-| --------------------------------------------------------------- | ---------------------------------------------------------- |
-| [`@zahastudio/uniswap-sdk`](./packages/uniswap-sdk)             | Core SDK — framework-agnostic, works with any viem client  |
-| [`@zahastudio/uniswap-sdk-react`](./packages/uniswap-sdk-react) | React hooks and provider built on `wagmi` + TanStack Query |
+| Package                                                         | Description                                                                              |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| [`@zahastudio/uniswap-sdk`](./packages/uniswap-sdk)             | Core SDK — framework-agnostic, works with any viem client                                |
+| [`@zahastudio/uniswap-sdk-react`](./packages/uniswap-sdk-react) | React hooks and provider built on `wagmi` + TanStack Query                               |
 | [`@zahastudio/trading-sdk`](./packages/trading-sdk)             | Experimental Trading SDK for quote, approval, and swap flows via the Uniswap Trading API |
-| [`@zahastudio/trading-sdk-react`](./packages/trading-sdk-react) | Experimental React provider and hooks for the Trading SDK  |
+| [`@zahastudio/trading-sdk-react`](./packages/trading-sdk-react) | Experimental React provider and hooks for the Trading SDK                                |
 
 An [example](./apps/example) app is provided in the repo implementing swap, position management, and experimental Trading API flows.
 
@@ -187,7 +187,6 @@ uniswap-sdk-monorepo/
 ├── apps/
 │   └── example/              # Next.js demo app for V4 + experimental trading flows
 └── tooling/
-    ├── acme-eslint/          # Shared ESLint config
     └── acme-tsconfig/        # Shared TypeScript config
 ```
 
@@ -214,6 +213,8 @@ pnpm typecheck
 
 # Format code
 pnpm format
+# Check formatting in CI/local
+pnpm format:check
 ```
 
 ### Running with Anvil (local mainnet fork)

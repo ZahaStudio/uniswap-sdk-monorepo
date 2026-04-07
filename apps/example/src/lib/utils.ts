@@ -1,6 +1,7 @@
+import type { Address } from "viem";
+
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { Address } from "viem";
 
 import { buildTokenInfo, type TokenInfo } from "@/lib/tokens";
 

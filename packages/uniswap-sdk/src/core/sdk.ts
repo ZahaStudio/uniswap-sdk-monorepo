@@ -1,6 +1,7 @@
 import type { Currency } from "@uniswap/sdk-core";
-import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 import type { Pool, PoolKey } from "@uniswap/v4-sdk";
+
+import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 

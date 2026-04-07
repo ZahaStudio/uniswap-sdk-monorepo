@@ -1,13 +1,16 @@
 "use client";
 
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { Pool, PoolKey } from "@zahastudio/uniswap-sdk";
+
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { hashFn } from "wagmi/query";
 
-import { useUniswapSDK } from "./useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
+
 import { assertSdkInitialized } from "@/utils";
 import { poolKeys } from "@/utils/queryKeys";
+
+import { useUniswapSDK } from "./useUniswapSDK";
 
 /**
  * Combined query data returned by usePoolState.

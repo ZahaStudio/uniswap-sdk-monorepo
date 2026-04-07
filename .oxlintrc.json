@@ -1,0 +1,21 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/.turbo/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/out/**",
+    "**/.cache/**"
+  ],
+  "plugins": ["typescript", "unicorn", "oxc", "react", "react-perf", "nextjs"],
+  "settings": {
+    "next": {
+      "rootDir": "apps/example"
+    },
+    "react": {
+      "version": "19.2.4"
+    }
+  }
+}

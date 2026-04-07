@@ -1,5 +1,6 @@
-import { type Currency, Ether, Token } from "@uniswap/sdk-core";
 import type { Address } from "viem";
+
+import { type Currency, Ether, Token } from "@uniswap/sdk-core";
 import { erc20Abi, getAddress, zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";

@@ -1,5 +1,6 @@
-import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 import type { Address } from "viem";
+
+import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 
 import { sortTokens } from "@/helpers/tokens";
 

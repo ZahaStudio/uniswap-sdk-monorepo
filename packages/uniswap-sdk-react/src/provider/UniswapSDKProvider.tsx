@@ -2,8 +2,9 @@
 
 import { createContext, useCallback, type ReactNode } from "react";
 
-import { UniswapSDK, type V4Contracts } from "@zahastudio/uniswap-sdk";
 import type { PublicClient } from "viem";
+
+import { UniswapSDK, type V4Contracts } from "@zahastudio/uniswap-sdk";
 
 /**
  * Configuration for the Uniswap SDK React provider.

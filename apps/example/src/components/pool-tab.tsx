@@ -1,9 +1,11 @@
 "use client";
 
-import { useToken } from "@zahastudio/uniswap-sdk-react";
 import type { Address } from "viem";
 
+import { useToken } from "@zahastudio/uniswap-sdk-react";
+
 import type { PoolPreset } from "@/lib/tokens";
+
 import { cn } from "@/lib/utils";
 
 export function PoolTab({

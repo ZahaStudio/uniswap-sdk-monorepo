@@ -1,11 +1,13 @@
 "use client";
 
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { GetPositionResponse, GetUncollectedFeesResponse } from "@zahastudio/uniswap-sdk";
+
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { hashFn } from "wagmi/query";
 
-import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
+
+import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { assertSdkInitialized } from "@/utils/assertions";
 import { positionKeys } from "@/utils/queryKeys";
 

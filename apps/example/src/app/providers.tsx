@@ -9,7 +9,6 @@ import { UniswapSDKProvider } from "@zahastudio/uniswap-sdk-react";
 import { WagmiProvider } from "wagmi";
 
 import { wagmiConfig } from "@/lib/wagmi";
-
 import "@rainbow-me/rainbowkit/styles.css";
 
 const queryClient = new QueryClient({

@@ -8,7 +8,7 @@ export function ConnectWalletButton() {
       {({ openConnectModal }) => (
         <button
           onClick={openConnectModal}
-          className="glow-accent bg-accent hover:bg-accent-hover w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+          className="glow-accent w-full rounded-xl bg-accent py-3.5 text-sm font-semibold text-white transition-all hover:bg-accent-hover active:scale-[0.98]"
         >
           Connect Wallet
         </button>

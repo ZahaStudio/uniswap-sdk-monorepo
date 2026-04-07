@@ -1,6 +1,7 @@
+import type { PublicClient } from "viem";
+
 import { Token } from "@uniswap/sdk-core";
 import { Pool } from "@uniswap/v4-sdk";
-import type { PublicClient } from "viem";
 import { zeroAddress } from "viem";
 
 import { UniswapSDK } from "@/core/sdk";

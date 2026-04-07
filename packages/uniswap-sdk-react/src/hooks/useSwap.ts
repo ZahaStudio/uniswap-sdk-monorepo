@@ -2,6 +2,8 @@
 
 import { useCallback } from "react";
 
+import type { Address, Hex } from "viem";
+
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   calculateMinimumOutput,
@@ -9,18 +11,18 @@ import {
   type QuoteResponse,
   type SwapExactInSingle,
 } from "@zahastudio/uniswap-sdk";
-import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { hashFn } from "wagmi/query";
 
+import type { UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
+import type { UseHookOptions } from "@/types/hooks";
+
 import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { useToken } from "@/hooks/primitives/useToken";
-import type { UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePoolState } from "@/hooks/usePoolState";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
-import type { UseHookOptions } from "@/types/hooks";
 import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions";
 import { swapKeys } from "@/utils/queryKeys";
 

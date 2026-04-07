@@ -4,10 +4,11 @@ import { useCallback } from "react";
 
 import type { Address, Hex } from "viem";
 
+import type { UseMutationHookOptions } from "@/types/hooks";
+
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
-import type { UseMutationHookOptions } from "@/types/hooks";
 import { assertSdkInitialized } from "@/utils/assertions";
 
 /**

@@ -1,14 +1,5 @@
 import { HTTPError, type KyInstance } from "ky";
 
-import { buildApprovalRequest, normalizeApprovalResponse, type ApiApprovalResponse } from "./approval";
-import { createBaseHeaders, createHttpClient, createRequestHeaders, parseHttpError } from "./http";
-import { assertQuoteParams, buildQuoteRequest, normalizeQuoteResponse, type ApiQuoteResponse } from "./quote";
-import {
-  assertCreateSwapParams,
-  buildCreateSwapRequest,
-  normalizeCreateSwapResponse,
-  type ApiCreateSwapResponse,
-} from "./swap";
 import type {
   CreateTradingSwapParams,
   CreateTradingSwapResponse,
@@ -19,6 +10,16 @@ import type {
   TradingRequestOptions,
   TradingSDKConfig,
 } from "../types";
+
+import { buildApprovalRequest, normalizeApprovalResponse, type ApiApprovalResponse } from "./approval";
+import { createBaseHeaders, createHttpClient, createRequestHeaders, parseHttpError } from "./http";
+import { assertQuoteParams, buildQuoteRequest, normalizeQuoteResponse, type ApiQuoteResponse } from "./quote";
+import {
+  assertCreateSwapParams,
+  buildCreateSwapRequest,
+  normalizeCreateSwapResponse,
+  type ApiCreateSwapResponse,
+} from "./swap";
 
 export class TradingSDK {
   private readonly baseHeaders: Headers;

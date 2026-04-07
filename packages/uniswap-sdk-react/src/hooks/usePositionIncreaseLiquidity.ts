@@ -4,13 +4,14 @@ import { useCallback } from "react";
 
 import type { Address, Hex } from "viem";
 
+import type { UseMutationHookOptions } from "@/types/hooks";
+
 import { useAddLiquidityPipeline, type AddLiquidityStep } from "@/hooks/primitives/useAddLiquidityPipeline";
 import { type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePosition, type UsePositionParams } from "@/hooks/usePosition";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
-import type { UseMutationHookOptions } from "@/types/hooks";
 import { assertSdkInitialized } from "@/utils/assertions";
 
 /**

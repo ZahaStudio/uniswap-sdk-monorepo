@@ -212,18 +212,18 @@ export function SwapDemo() {
       {/* Left panel: Lifecycle + Settings */}
       <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
         {/* Settings panel */}
-        <div className="border-border-muted bg-surface rounded-xl border p-4">
-          <div className="text-text-muted mb-3 text-xs font-medium">Settings</div>
+        <div className="rounded-xl border border-border-muted bg-surface p-4">
+          <div className="mb-3 text-xs font-medium text-text-muted">Settings</div>
           <label className="flex cursor-pointer items-center gap-2.5">
             <input
               type="checkbox"
               checked={useNativeETH}
               onChange={(e) => setUseNativeETH(e.target.checked)}
-              className="accent-accent h-3.5 w-3.5 rounded"
+              className="h-3.5 w-3.5 rounded accent-accent"
             />
             <div>
-              <div className="text-text-secondary text-xs font-medium">Use native ETH</div>
-              <div className="text-text-muted text-[11px]">Wrap/unwrap ETH for WETH pools</div>
+              <div className="text-xs font-medium text-text-secondary">Use native ETH</div>
+              <div className="text-[11px] text-text-muted">Wrap/unwrap ETH for WETH pools</div>
             </div>
           </label>
         </div>
@@ -246,9 +246,9 @@ export function SwapDemo() {
             )}
           </>
         ) : (
-          <div className="border-border-muted bg-surface rounded-xl border p-4">
-            <div className="text-text-muted mb-3 text-xs font-medium">Swap lifecycle</div>
-            <p className="text-text-muted text-xs">
+          <div className="rounded-xl border border-border-muted bg-surface p-4">
+            <div className="mb-3 text-xs font-medium text-text-muted">Swap lifecycle</div>
+            <p className="text-xs text-text-muted">
               {!isConnected
                 ? "Connect wallet to begin"
                 : !amountInput || amountInput === "0"
@@ -277,16 +277,16 @@ export function SwapDemo() {
 
         {/* Pool info */}
         {pool && (
-          <div className="border-border-muted bg-surface rounded-2xl border p-4">
+          <div className="rounded-2xl border border-border-muted bg-surface p-4">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-text-muted text-xs font-medium">Pool Info</span>
+              <span className="text-xs font-medium text-text-muted">Pool Info</span>
               <RefreshButton
                 onClick={handleRefreshAll}
                 disabled={executing || isSwapConfirmed}
                 spinning={isFetchingQuote || poolQuery.isFetching}
               />
             </div>
-            <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
+            <div className="space-y-1.5 rounded-xl bg-surface-raised p-3">
               <DetailRow
                 label="Fee tier"
                 value={`${pool.fee / 10000}%`}
@@ -312,19 +312,19 @@ export function SwapDemo() {
         )}
 
         {poolQuery.isLoading && (
-          <div className="border-border-muted bg-surface flex items-center justify-center rounded-2xl border p-6">
-            <div className="text-text-secondary animate-pulse text-sm">Loading pool...</div>
+          <div className="flex items-center justify-center rounded-2xl border border-border-muted bg-surface p-6">
+            <div className="animate-pulse text-sm text-text-secondary">Loading pool...</div>
           </div>
         )}
 
         {poolQuery.error && (
-          <div className="bg-error-muted text-error rounded-xl p-3 text-xs">{poolQuery.error.message}</div>
+          <div className="rounded-xl bg-error-muted p-3 text-xs text-error">{poolQuery.error.message}</div>
         )}
 
         {/* Swap card */}
-        <div className="border-border-muted bg-surface rounded-2xl border p-4">
+        <div className="rounded-2xl border border-border-muted bg-surface p-4">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-text-muted text-xs font-medium">Swap</span>
+            <span className="text-xs font-medium text-text-muted">Swap</span>
             <RefreshButton
               onClick={handleRefreshAll}
               disabled={executing || isSwapConfirmed}
@@ -346,11 +346,11 @@ export function SwapDemo() {
 
           {/* Flip direction button */}
           <div className="relative my-1 flex items-center justify-center">
-            <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
+            <div className="absolute inset-x-0 top-1/2 h-px bg-border-muted" />
             <button
               onClick={handleFlipDirection}
               disabled={executing || isSwapConfirmed}
-              className="border-border-muted bg-surface-raised hover:bg-surface-hover relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              className="relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-border-muted bg-surface-raised transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg
                 width="14"
@@ -386,7 +386,7 @@ export function SwapDemo() {
               <button
                 onClick={handleRefreshQuote}
                 disabled={isFetchingQuote || executing}
-                className="text-accent hover:text-accent-hover flex items-center gap-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex items-center gap-1.5 text-xs font-medium text-accent transition-colors hover:text-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg
                   width="12"
@@ -425,7 +425,7 @@ export function SwapDemo() {
 
           {/* Error display */}
           {(quoteError || txError || insufficientBalanceError) && (
-            <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">
+            <div className="mt-3 rounded-lg bg-error-muted p-3 text-xs text-error">
               {insufficientBalanceError ?? quoteError?.message ?? txError}
             </div>
           )}
@@ -437,7 +437,7 @@ export function SwapDemo() {
             ) : isSwapConfirmed ? (
               <button
                 onClick={handleReset}
-                className="bg-success/10 text-success hover:bg-success/20 w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]"
+                className="w-full rounded-xl bg-success/10 py-3.5 text-sm font-semibold text-success transition-all hover:bg-success/20 active:scale-[0.98]"
               >
                 Swap another
               </button>
@@ -455,8 +455,8 @@ export function SwapDemo() {
                   }
                   className={cn(
                     "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
-                    "bg-accent hover:bg-accent-hover text-white",
-                    "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
+                    "bg-accent text-white hover:bg-accent-hover",
+                    "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-accent",
                   )}
                 >
                   {executing ? getStepActionLabel(currentStep) + "..." : !quoteData ? "Enter an amount" : "Swap"}
@@ -466,7 +466,7 @@ export function SwapDemo() {
                   <button
                     onClick={handleExecuteStep}
                     disabled={executing || hasInsufficientBalance}
-                    className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
+                    className="w-full rounded-xl border border-border bg-surface-raised py-3 text-xs font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {executing ? getStepActionLabel(currentStep) + "..." : `Step: ${getStepActionLabel(currentStep)}`}
                   </button>
