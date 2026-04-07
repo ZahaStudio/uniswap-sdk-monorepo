@@ -12,6 +12,7 @@ import {
 import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
+import { hashFn } from "wagmi/query";
 
 import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { useToken } from "@/hooks/primitives/useToken";
@@ -209,6 +210,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       return { ...quote, minAmountOut };
     },
     enabled: quoteEnabled && amountIn !== 0n,
+    queryKeyHashFn: hashFn,
     refetchInterval,
   });
 

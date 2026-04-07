@@ -2,6 +2,7 @@
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import type { GetPositionResponse, GetUncollectedFeesResponse } from "@zahastudio/uniswap-sdk";
+import { hashFn } from "wagmi/query";
 
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
@@ -81,6 +82,7 @@ export function usePosition(params: UsePositionParams, options: UseHookOptions =
       };
     },
     enabled: !!tokenId && enabled && !!sdk,
+    queryKeyHashFn: hashFn,
     refetchInterval,
   });
 

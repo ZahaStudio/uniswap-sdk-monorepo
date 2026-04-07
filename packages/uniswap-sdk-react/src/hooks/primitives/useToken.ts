@@ -7,6 +7,7 @@ import { getChainById } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
 import { erc20Abi, formatUnits, zeroAddress } from "viem";
 import { useAccount, usePublicClient, useReadContracts } from "wagmi";
+import { hashFn } from "wagmi/query";
 
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import type { UseHookOptions } from "@/types/hooks";
@@ -189,6 +190,7 @@ export function useToken(params: UseTokenParams, options: UseHookOptions = {}): 
       };
     },
     enabled: enabled && !!tokenAddress && !!token && !!publicClient,
+    queryKeyHashFn: hashFn,
     refetchInterval,
   });
 

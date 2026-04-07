@@ -1,14 +1,20 @@
 {
-  "name": "@zahastudio/uniswap-sdk",
-  "version": "0.3.0",
+  "name": "@zahastudio/trading-sdk-react",
+  "version": "0.1.0",
   "type": "module",
+  "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
   "sideEffects": false,
   "license": "MIT",
   "files": [
     "dist/**",
-    "docs/**",
     "README.md"
   ],
   "repository": {
@@ -20,31 +26,30 @@
     "dev": "tsdown --watch",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:ci": "pnpm run typecheck && pnpm run test",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "viem": ">=2.0.0",
+    "@tanstack/react-query": ">=5.0.0",
+    "@wagmi/core": ">=2.0.0",
+    "wagmi": ">=2.0.0"
+  },
+  "dependencies": {
+    "@zahastudio/trading-sdk": "workspace:*"
   },
   "devDependencies": {
     "@acme/eslint-config": "workspace:*",
     "@acme/tsconfig": "workspace:*",
-    "@types/node": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "eslint": "catalog:",
+    "react": "catalog:",
     "tsdown": "catalog:",
-    "typescript": "^5.9.3",
+    "typescript": "catalog:",
     "viem": "catalog:",
-    "vitest": "^4.1.2"
-  },
-  "dependencies": {
-    "@uniswap/permit2-sdk": "^1.4.0",
-    "@uniswap/sdk-core": "^7.13.0",
-    "@uniswap/universal-router-sdk": "^5.1.0",
-    "@uniswap/v3-sdk": "^3.30.0",
-    "@uniswap/v4-sdk": "^2.0.0",
-    "hookmate": "^0.5.1",
-    "lru-cache": "^11.2.7"
-  },
-  "peerDependencies": {
-    "viem": "catalog:"
+    "wagmi": "catalog:"
   },
   "publishConfig": {
     "access": "public"

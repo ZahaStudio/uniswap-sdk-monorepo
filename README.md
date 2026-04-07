@@ -1,6 +1,6 @@
 # Community Uniswap SDK
 
-A TypeScript SDK for interacting with **Uniswap V4** — providing pool queries, token swaps, liquidity management, and Permit2 approvals out of the box. Includes first-class React bindings with hooks for every operation.
+A TypeScript monorepo for interacting with **Uniswap V4**, with an additional **experimental Trading SDK** for Uniswap Trading API flows. The V4 SDK provides pool queries, token swaps, liquidity management, and Permit2 approvals out of the box, and includes first-class React bindings with hooks for every operation.
 
 ## Packages
 
@@ -8,8 +8,10 @@ A TypeScript SDK for interacting with **Uniswap V4** — providing pool queries,
 | --------------------------------------------------------------- | ---------------------------------------------------------- |
 | [`@zahastudio/uniswap-sdk`](./packages/uniswap-sdk)             | Core SDK — framework-agnostic, works with any viem client  |
 | [`@zahastudio/uniswap-sdk-react`](./packages/uniswap-sdk-react) | React hooks and provider built on `wagmi` + TanStack Query |
+| [`@zahastudio/trading-sdk`](./packages/trading-sdk)             | Experimental Trading SDK for quote, approval, and swap flows via the Uniswap Trading API |
+| [`@zahastudio/trading-sdk-react`](./packages/trading-sdk-react) | Experimental React provider and hooks for the Trading SDK  |
 
-An [example](./apps/example) app is provided in the repo implementing the swap and position management flows.
+An [example](./apps/example) app is provided in the repo implementing swap, position management, and experimental Trading API flows.
 
 ## Features
 
@@ -94,6 +96,39 @@ Available hooks:
 | `useTokenApproval()`             | ERC20 approval workflow                               |
 | `useTransaction()`               | Transaction lifecycle management                      |
 
+### Trading SDK (Experimental)
+
+The Trading SDK packages in this branch are **experimental**. Expect API and ergonomics changes while the package surface settles.
+
+```bash
+pnpm install @zahastudio/trading-sdk viem
+```
+
+```ts
+import { TradingSDK } from "@zahastudio/trading-sdk";
+
+const sdk = TradingSDK.create({
+  apiKey: process.env.UNISWAP_API_KEY!,
+});
+
+const quote = await sdk.getQuote({
+  type: "EXACT_INPUT",
+  amount: 1000000n,
+  tokenIn: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+  tokenOut: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  chainId: 1,
+  swapper: "0x0000000000000000000000000000000000000001",
+});
+```
+
+React bindings are also available experimentally:
+
+```bash
+pnpm install @zahastudio/trading-sdk-react @zahastudio/trading-sdk viem wagmi @tanstack/react-query react
+```
+
+Use `TradingSDKProvider` and `useTrading()` for quote, approval, permit, and swap execution flows backed by the Uniswap Trading API.
+
 ## API Reference
 
 ### `UniswapSDK`
@@ -126,15 +161,31 @@ await sdk.preparePermit2BatchData(batchArgs);       // Multi-token batch permit
 
 Contract addresses are resolved automatically via [hookmate](https://github.com/akshatmittal/hookmate) for supported chains. Pass a custom `V4Contracts` object to override.
 
+### `TradingSDK` (Experimental)
+
+```ts
+// Create an instance
+const sdk = TradingSDK.create({ apiKey, baseUrl?, headers?, permit2Disabled? });
+
+// Trading API flows
+await sdk.getQuote(quoteArgs);             // Request a Trading API quote
+await sdk.checkApproval(approvalArgs);     // Check whether approval/reset is needed
+await sdk.createSwap(createSwapArgs);      // Build the executable swap transaction
+```
+
+`TradingSDK` requires a Uniswap Trading API key and is currently experimental.
+
 ## Monorepo Structure
 
 ```
 uniswap-sdk-monorepo/
 ├── packages/
 │   ├── uniswap-sdk/          # Core SDK
-│   └── uniswap-sdk-react/    # React hooks & provider
+│   ├── uniswap-sdk-react/    # React hooks & provider
+│   ├── trading-sdk/          # Experimental Trading API SDK
+│   └── trading-sdk-react/    # Experimental React hooks & provider
 ├── apps/
-│   └── example/              # Next.js demo app
+│   └── example/              # Next.js demo app for V4 + experimental trading flows
 └── tooling/
     ├── acme-eslint/          # Shared ESLint config
     └── acme-tsconfig/        # Shared TypeScript config
