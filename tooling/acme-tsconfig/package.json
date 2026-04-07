@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
+  "exports": {
+    "./config.json": "./config.json"
+  },
   "publishConfig": {
     "access": "public"
   }

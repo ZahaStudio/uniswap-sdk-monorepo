@@ -1,4 +1,3 @@
-import type { Currency } from "@uniswap/sdk-core";
 import type { Pool, PoolKey } from "@uniswap/v4-sdk";
 
 import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
@@ -25,7 +24,7 @@ import { getPosition, type GetPositionResponse } from "@/utils/getPosition";
 import { getPositionInfo, type GetPositionInfoResponse } from "@/utils/getPositionInfo";
 import { getQuote, type QuoteResponse, type SwapExactInSingle } from "@/utils/getQuote";
 import { getTickInfo, type GetTickInfoArgs, type TickInfoResponse } from "@/utils/getTickInfo";
-import { getTokens, type GetTokensArgs } from "@/utils/getTokens";
+import { getTokens, type GetTokensResult } from "@/utils/getTokens";
 import { getUncollectedFees, type GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
 import {
   preparePermit2BatchData,
@@ -208,10 +207,12 @@ export class UniswapSDK {
    * using the chain ID. For ERC20 tokens, it creates Token instances with the fetched metadata.
    *
    * @param args @type {GetTokensArgs} - Array of token addresses to fetch
-   * @returns Promise<Currency[]> - Array of Currency instances (Token or Ether)
+   * @returns Promise - Currency instances (Token or Ether) in the same order as the input addresses
    * @throws Error if token data cannot be fetched from the blockchain
    */
-  public async getTokens(args: GetTokensArgs): Promise<Currency[]> {
+  public async getTokens<const TAddresses extends readonly [Address, ...Address[]]>(args: {
+    addresses: TAddresses;
+  }): Promise<GetTokensResult<TAddresses>> {
     return getTokens(args, this.instance);
   }
 

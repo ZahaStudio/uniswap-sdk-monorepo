@@ -1,10 +1,10 @@
 {
-  "extends": "@acme/tsconfig/base.json",
-  "include": ["."],
+  "extends": "@acme/tsconfig/config.json",
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]
     }
   },
+  "include": ["."],
   "exclude": ["dist", "build", "node_modules"]
 }

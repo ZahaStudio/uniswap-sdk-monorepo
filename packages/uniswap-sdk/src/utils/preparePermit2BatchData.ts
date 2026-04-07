@@ -161,7 +161,11 @@ export async function preparePermit2BatchData(
   });
 
   const results = noNativeTokens.map((token, index) => {
-    const { nonce } = details[index];
+    const detail = details[index];
+    if (!detail) {
+      throw new Error(`Failed to fetch Permit2 allowance details for token ${token}`);
+    }
+    const { nonce } = detail;
     return {
       token,
       amount: MaxUint160.toString(),

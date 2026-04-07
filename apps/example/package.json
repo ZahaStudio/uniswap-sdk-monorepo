@@ -6,7 +6,6 @@
     "build": "next build --webpack",
     "start": "next start --webpack",
     "dev": "next dev --webpack",
-    "lint": "oxlint .",
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf .next"
   },
   "dependencies": {
