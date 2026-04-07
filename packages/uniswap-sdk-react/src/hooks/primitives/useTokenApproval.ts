@@ -3,11 +3,13 @@
 import { useCallback } from "react";
 
 import type { Address } from "viem";
+
 import { erc20Abi, encodeFunctionData, maxUint256, zeroAddress } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 
-import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import type { UseHookOptions } from "@/types/hooks";
+
+import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { assertWalletConnected } from "@/utils/assertions";
 
 /**

@@ -1,6 +1,7 @@
 "use client";
 
 import type { TokenInfo } from "@/lib/tokens";
+
 import { cn } from "@/lib/utils";
 
 interface TokenInputProps {
@@ -37,17 +38,17 @@ export function TokenInput({
   };
 
   return (
-    <div className="bg-surface-raised rounded-xl p-4">
+    <div className="rounded-xl bg-surface-raised p-4">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-text-muted text-xs font-medium">{label}</span>
+        <span className="text-xs font-medium text-text-muted">{label}</span>
         {(balance !== undefined || balanceLoading) && (
           <button
             type="button"
             onClick={onMaxClick}
             disabled={!onMaxClick || disabled || balanceLoading}
             className={cn(
-              "text-text-muted text-xs font-medium transition-colors",
-              onMaxClick && !disabled && "hover:text-accent cursor-pointer",
+              "text-xs font-medium text-text-muted transition-colors",
+              onMaxClick && !disabled && "cursor-pointer hover:text-accent",
               balanceLoading && "animate-pulse",
             )}
           >
@@ -66,15 +67,15 @@ export function TokenInput({
           readOnly={readOnly}
           disabled={disabled}
           className={cn(
-            "text-text placeholder:text-text-muted min-w-0 flex-1 bg-transparent text-2xl font-semibold outline-none",
+            "min-w-0 flex-1 bg-transparent text-2xl font-semibold text-text outline-none placeholder:text-text-muted",
             readOnly && "cursor-default",
-            loading && "text-text-secondary animate-pulse",
+            loading && "animate-pulse text-text-secondary",
           )}
         />
 
         {/* Token badge */}
-        <div className="border-border-muted bg-surface flex shrink-0 items-center gap-2 rounded-full border py-1.5 pr-3 pl-1.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+        <div className="flex shrink-0 items-center gap-2 rounded-full border border-border-muted bg-surface py-1.5 pr-3 pl-1.5">
+          {/* oxlint-disable-next-line nextjs/no-img-element */}
           <img
             src={token.logoUrl}
             alt={token.symbol}
@@ -95,7 +96,7 @@ export function TokenInput({
               }
             }}
           />
-          <span className="text-text text-sm font-semibold">{token.symbol}</span>
+          <span className="text-sm font-semibold text-text">{token.symbol}</span>
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 
 import type { Currency } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
+
 import { zeroAddress } from "viem";
 
 import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";

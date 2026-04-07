@@ -18,11 +18,11 @@ export function SwapDetails({ minOutput, outputSymbol, slippageBps }: SwapDetail
     <div className="mt-3">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="text-text-secondary hover:bg-surface-raised flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs transition-colors"
+        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-text-secondary transition-colors hover:bg-surface-raised"
       >
         <span>
           Min. received:{" "}
-          <span className="text-text font-medium">
+          <span className="font-medium text-text">
             {minOutput} {outputSymbol}
           </span>
         </span>
@@ -44,7 +44,7 @@ export function SwapDetails({ minOutput, outputSymbol, slippageBps }: SwapDetail
       </button>
 
       {expanded && (
-        <div className="bg-surface-raised/50 mt-1 space-y-2 rounded-lg px-3 py-2.5">
+        <div className="mt-1 space-y-2 rounded-lg bg-surface-raised/50 px-3 py-2.5">
           <DetailRow
             label="Slippage tolerance"
             value={`${(slippageBps / 100).toFixed(2)}%`}

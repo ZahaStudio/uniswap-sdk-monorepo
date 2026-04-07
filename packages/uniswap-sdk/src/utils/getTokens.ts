@@ -1,5 +1,6 @@
-import { type Currency, Ether, Token } from "@uniswap/sdk-core";
 import type { Address } from "viem";
+
+import { type Currency, Ether, Token } from "@uniswap/sdk-core";
 import { erc20Abi, getAddress, zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
@@ -12,14 +13,21 @@ export interface GetTokensArgs {
   addresses: [Address, ...Address[]];
 }
 
+export type GetTokensResult<TAddresses extends readonly [Address, ...Address[]]> = {
+  [TIndex in keyof TAddresses]: Currency;
+};
+
 /**
  * Retrieves Token instances for a list of token addresses on a specific chain.
  * @param params Parameters including token addresses
  * @param instance UniswapSDKInstance
- * @returns Promise resolving to array of Token instances
+ * @returns Promise resolving to Currency instances in the same order as the input addresses
  * @throws Error if token data cannot be fetched
  */
-export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInstance): Promise<Currency[]> {
+export async function getTokens<const TAddresses extends readonly [Address, ...Address[]]>(
+  params: { addresses: TAddresses },
+  instance: UniswapSDKInstance,
+): Promise<GetTokensResult<TAddresses>> {
   const { addresses } = params;
   const { client, chain, cache } = instance;
   const resultByAddress = new Map<string, Currency>();
@@ -51,7 +59,7 @@ export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInsta
         throw new Error(`Failed to fetch token data for ${address}`);
       }
       return cachedToken;
-    });
+    }) as GetTokensResult<TAddresses>;
   }
 
   const calls = missingAddresses
@@ -86,7 +94,7 @@ export async function getTokens(params: GetTokensArgs, instance: UniswapSDKInsta
         throw new Error(`Failed to fetch token data for ${address}`);
       }
       return token;
-    });
+    }) as GetTokensResult<TAddresses>;
   } catch (err) {
     throw new Error(`Failed to fetch token data: ${(err as Error).message} `);
   }

@@ -2,8 +2,9 @@
 
 import { useState, useMemo, useCallback } from "react";
 
-import { useCreatePosition, useToken, type AddLiquidityStep } from "@zahastudio/uniswap-sdk-react";
 import type { Address } from "viem";
+
+import { useCreatePosition, useToken, type AddLiquidityStep } from "@zahastudio/uniswap-sdk-react";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
@@ -218,9 +219,9 @@ export function CreatePositionDemo() {
             )}
           </>
         ) : (
-          <div className="border-border-muted bg-surface rounded-xl border p-4">
-            <div className="text-text-muted mb-3 text-xs font-medium">Create position lifecycle</div>
-            <p className="text-text-muted text-xs">
+          <div className="rounded-xl border border-border-muted bg-surface p-4">
+            <div className="mb-3 text-xs font-medium text-text-muted">Create position lifecycle</div>
+            <p className="text-xs text-text-muted">
               {!isConnected
                 ? "Connect wallet to begin"
                 : poolQuery.isLoading
@@ -249,16 +250,16 @@ export function CreatePositionDemo() {
 
         {/* Pool info */}
         {pool && (
-          <div className="border-border-muted bg-surface rounded-2xl border p-4">
+          <div className="rounded-2xl border border-border-muted bg-surface p-4">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-text-muted text-xs font-medium">Pool Info</span>
+              <span className="text-xs font-medium text-text-muted">Pool Info</span>
               <RefreshButton
                 onClick={handleRefreshAll}
                 disabled={executing || isExecuteConfirmed}
                 spinning={poolQuery.isFetching}
               />
             </div>
-            <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
+            <div className="space-y-1.5 rounded-xl bg-surface-raised p-3">
               <DetailRow
                 label="Fee tier"
                 value={`${pool.fee / 10000}%`}
@@ -284,17 +285,17 @@ export function CreatePositionDemo() {
         )}
 
         {poolQuery.isLoading && (
-          <div className="border-border-muted bg-surface flex items-center justify-center rounded-2xl border p-6">
-            <div className="text-text-secondary animate-pulse text-sm">Loading pool...</div>
+          <div className="flex items-center justify-center rounded-2xl border border-border-muted bg-surface p-6">
+            <div className="animate-pulse text-sm text-text-secondary">Loading pool...</div>
           </div>
         )}
 
         {poolQuery.error && (
-          <div className="bg-error-muted text-error rounded-xl p-3 text-xs">{poolQuery.error.message}</div>
+          <div className="rounded-xl bg-error-muted p-3 text-xs text-error">{poolQuery.error.message}</div>
         )}
 
         {/* Tick range + Amount inputs */}
-        <div className="border-border-muted bg-surface rounded-2xl border p-4">
+        <div className="rounded-2xl border border-border-muted bg-surface p-4">
           {/* Tick range sliders */}
           {pool && (
             <TickRangeSliders
@@ -321,8 +322,8 @@ export function CreatePositionDemo() {
 
           {/* Plus divider */}
           <div className="relative my-1 flex items-center justify-center">
-            <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
-            <div className="border-border-muted bg-surface-raised relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border">
+            <div className="absolute inset-x-0 top-1/2 h-px bg-border-muted" />
+            <div className="relative z-10 flex h-8 w-8 items-center justify-center rounded-lg border border-border-muted bg-surface-raised">
               <svg
                 width="14"
                 height="14"
@@ -354,7 +355,7 @@ export function CreatePositionDemo() {
 
           {/* Error display */}
           {(insufficientBalanceError || txError) && (
-            <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">
+            <div className="mt-3 rounded-lg bg-error-muted p-3 text-xs text-error">
               {insufficientBalanceError ?? txError}
             </div>
           )}
@@ -366,7 +367,7 @@ export function CreatePositionDemo() {
             ) : isExecuteConfirmed ? (
               <button
                 onClick={handleReset}
-                className="bg-success/10 text-success hover:bg-success/20 w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]"
+                className="w-full rounded-xl bg-success/10 py-3.5 text-sm font-semibold text-success transition-all hover:bg-success/20 active:scale-[0.98]"
               >
                 Create another position
               </button>
@@ -376,8 +377,8 @@ export function CreatePositionDemo() {
                 disabled={executing || !hasAmount || !pool || poolQuery.isLoading || hasInsufficientBalance}
                 className={cn(
                   "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
-                  "bg-accent hover:bg-accent-hover text-white",
-                  "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
+                  "bg-accent text-white hover:bg-accent-hover",
+                  "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-accent",
                 )}
               >
                 {executing
@@ -422,7 +423,7 @@ function TickRangeSliders({
 
   return (
     <div className="mb-4">
-      <div className="text-text-muted mb-2 text-xs font-medium">
+      <div className="mb-2 text-xs font-medium text-text-muted">
         Tick Range <span className="text-text-muted/60">(current tick: {pool.tickCurrent})</span>
       </div>
       <div className="grid grid-cols-2 gap-2">
@@ -467,10 +468,10 @@ function TickSlider({
   disabled: boolean;
 }) {
   return (
-    <div className="bg-surface-raised rounded-xl p-3">
+    <div className="rounded-xl bg-surface-raised p-3">
       <div className="mb-1.5 flex items-center justify-between">
-        <label className="text-text-muted text-[10px] font-medium">{label}</label>
-        <span className="text-text font-mono text-xs font-medium">{value}</span>
+        <label className="text-[10px] font-medium text-text-muted">{label}</label>
+        <span className="font-mono text-xs font-medium text-text">{value}</span>
       </div>
       <input
         type="range"
@@ -480,9 +481,9 @@ function TickSlider({
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value, 10))}
         disabled={disabled}
-        className="accent-accent w-full"
+        className="w-full accent-accent"
       />
-      <div className="text-text-muted mt-1 flex justify-between text-[10px]">
+      <div className="mt-1 flex justify-between text-[10px] text-text-muted">
         <span>{min}</span>
         <span>{max}</span>
       </div>

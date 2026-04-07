@@ -1,9 +1,11 @@
-import { V4PositionManager } from "@uniswap/v4-sdk";
 import type { Address } from "viem";
 
+import { V4PositionManager } from "@uniswap/v4-sdk";
+
 import type { UniswapSDKInstance } from "@/core/sdk";
-import { percentFromBips } from "@/helpers/percent";
 import type { BuildCallDataResult } from "@/utils/buildAddLiquidityCallData";
+
+import { percentFromBips } from "@/helpers/percent";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { getPosition } from "@/utils/getPosition";
 

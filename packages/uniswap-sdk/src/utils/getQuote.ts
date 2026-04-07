@@ -1,6 +1,7 @@
 import type { SwapExactInSingle as UniswapSwapExactInSingle } from "@uniswap/v4-sdk";
-import { v4 } from "hookmate/abi";
 import type { Address, Hex } from "viem";
+
+import { v4 } from "hookmate/abi";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 

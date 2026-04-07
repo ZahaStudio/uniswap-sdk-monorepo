@@ -1,9 +1,11 @@
-import { AllowanceTransfer, MaxUint160, type PermitBatch, type PermitBatchData } from "@uniswap/permit2-sdk";
 import type { BatchPermitOptions } from "@uniswap/v4-sdk";
 import type { Address, Hex } from "viem";
+
+import { AllowanceTransfer, MaxUint160, type PermitBatch, type PermitBatchData } from "@uniswap/permit2-sdk";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
 /**
@@ -159,7 +161,11 @@ export async function preparePermit2BatchData(
   });
 
   const results = noNativeTokens.map((token, index) => {
-    const { nonce } = details[index];
+    const detail = details[index];
+    if (!detail) {
+      throw new Error(`Failed to fetch Permit2 allowance details for token ${token}`);
+    }
+    const { nonce } = detail;
     return {
       token,
       amount: MaxUint160.toString(),

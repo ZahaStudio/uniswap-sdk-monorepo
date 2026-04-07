@@ -7,11 +7,10 @@ catalog:
   "@types/node": ^24.12.2
   "@types/react": ^19.2.14
   "@types/react-dom": ^19.2.3
-  eslint: ^9.39.4
   react: ^19.2.4
   react-dom: ^19.2.4
   tsdown: ^0.21.7
-  typescript: ^5.9.3
+  typescript: ^6.0.2
   viem: ^2.47.10
   wagmi: ^2.19.5
   "@tanstack/react-query": ^5.96.2

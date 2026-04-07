@@ -71,7 +71,6 @@ uniswap-sdk-monorepo/
 ├── apps/
 │   └── example/              # Next.js demo app
 └── tooling/
-    ├── acme-eslint/          # Shared ESLint config
     └── acme-tsconfig/        # Shared TypeScript config
 ```
 
@@ -83,5 +82,7 @@ pnpm build            # Build all packages
 pnpm dev              # Watch mode for all packages + example app
 pnpm test             # Run tests
 pnpm lint             # Lint
+pnpm format           # Format
+pnpm format:check     # Check formatting
 pnpm typecheck        # TypeScript type checking
 ```

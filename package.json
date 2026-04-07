@@ -1,16 +1,36 @@
 {
   "name": "uniswap-sdk-monorepo",
+  "version": "1.0.0",
   "private": true,
+  "description": "A TypeScript SDK for interacting with **Uniswap V4** — providing pool queries, token swaps, liquidity management, and Permit2 approvals out of the box. Includes first-class React bindings with hooks for every operation.",
+  "keywords": [],
+  "homepage": "https://github.com/ZahaStudio/uniswap-sdk-monorepo#readme",
+  "bugs": {
+    "url": "https://github.com/ZahaStudio/uniswap-sdk-monorepo/issues"
+  },
+  "license": "ISC",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZahaStudio/uniswap-sdk-monorepo.git"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "type": "commonjs",
+  "main": "index.js",
   "scripts": {
     "build": "turbo run build",
     "build:lib": "turbo run build --filter='!@acme/*'",
     "dev": "turbo run dev",
     "dev:lib": "turbo run dev --filter='!@acme/*'",
-    "lint": "turbo run lint",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix --fix-suggestions --fix-dangerously",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,mjs,md,json,css}\"",
+    "format": "oxfmt .",
+    "format:check": "oxfmt . --check",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish",
@@ -20,31 +40,12 @@
     "@changesets/changelog-github": "^0.6.0",
     "@changesets/cli": "^2.30.0",
     "@changesets/config": "^3.1.3",
-    "eslint": "catalog:",
-    "prettier": "^3.8.1",
-    "prettier-plugin-tailwindcss": "^0.7.2",
-    "turbo": "^2.9.3"
+    "oxfmt": "^0.44.0",
+    "oxlint": "^1.59.0",
+    "turbo": "^2.9.4"
   },
-  "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=24"
   },
-  "version": "1.0.0",
-  "description": "A TypeScript SDK for interacting with **Uniswap V4** — providing pool queries, token swaps, liquidity management, and Permit2 approvals out of the box. Includes first-class React bindings with hooks for every operation.",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ZahaStudio/uniswap-sdk-monorepo.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/ZahaStudio/uniswap-sdk-monorepo/issues"
-  },
-  "homepage": "https://github.com/ZahaStudio/uniswap-sdk-monorepo#readme"
+  "packageManager": "pnpm@10.33.0"
 }

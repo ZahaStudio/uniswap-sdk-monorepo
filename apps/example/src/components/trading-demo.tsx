@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useTrading, type TradingRoute, type TradingStep } from "@zahastudio/trading-sdk-react";
 import type { Address } from "viem";
+
+import { useTrading, type TradingRoute, type TradingStep } from "@zahastudio/trading-sdk-react";
 import { zeroAddress } from "viem";
 import { useAccount, useBalance, useChainId } from "wagmi";
 
@@ -221,10 +222,10 @@ function TradingQuoteDetails({
     <div className="mt-3">
       <button
         onClick={() => setExpanded((current) => !current)}
-        className="text-text-secondary hover:bg-surface-raised flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs transition-colors"
+        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-text-secondary transition-colors hover:bg-surface-raised"
       >
         <span>
-          Route: <span className="text-text font-medium">{routeString ?? routing}</span>
+          Route: <span className="font-medium text-text">{routeString ?? routing}</span>
         </span>
         <svg
           width="12"
@@ -244,7 +245,7 @@ function TradingQuoteDetails({
       </button>
 
       {expanded && (
-        <div className="bg-surface-raised/50 mt-1 space-y-2 rounded-lg px-3 py-2.5">
+        <div className="mt-1 space-y-2 rounded-lg bg-surface-raised/50 px-3 py-2.5">
           <DetailRow
             label="Expected output"
             value={`${outputDisplay} ${outputSymbol}`}
@@ -316,7 +317,6 @@ export function TradingDemo() {
   const quoteLoading = steps.quote.isLoading;
   const quoteError = steps.quote.error;
   const isFetchingQuote = steps.quote.isFetching;
-  const approvalRequired = steps.approvalReset.isRequired || steps.approval.isRequired;
   const approvalResetRequired = steps.approvalReset.isRequired;
   const approvalApproveRequired = steps.approval.isRequired;
   const approvalStepStatus =
@@ -459,18 +459,18 @@ export function TradingDemo() {
   return (
     <div className="flex w-full items-start justify-center gap-6">
       <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
-        <div className="border-border-muted bg-surface rounded-xl border p-4">
-          <div className="text-text-muted mb-3 text-xs font-medium">Settings</div>
+        <div className="rounded-xl border border-border-muted bg-surface p-4">
+          <div className="mb-3 text-xs font-medium text-text-muted">Settings</div>
           <label className="flex cursor-pointer items-center gap-2.5">
             <input
               type="checkbox"
               checked={permit2Disabled}
               onChange={(event) => setPermit2Disabled(event.target.checked)}
-              className="accent-accent h-3.5 w-3.5 rounded"
+              className="h-3.5 w-3.5 rounded accent-accent"
             />
             <div>
-              <div className="text-text-secondary text-xs font-medium">Disable Permit2</div>
-              <div className="text-text-muted text-[11px]">Send x-permit2-disabled for proxy approval flows</div>
+              <div className="text-xs font-medium text-text-secondary">Disable Permit2</div>
+              <div className="text-[11px] text-text-muted">Send x-permit2-disabled for proxy approval flows</div>
             </div>
           </label>
         </div>
@@ -507,9 +507,9 @@ export function TradingDemo() {
             )}
           </>
         ) : (
-          <div className="border-border-muted bg-surface rounded-xl border p-4">
-            <div className="text-text-muted mb-3 text-xs font-medium">Swap lifecycle</div>
-            <p className="text-text-muted text-xs">
+          <div className="rounded-xl border border-border-muted bg-surface p-4">
+            <div className="mb-3 text-xs font-medium text-text-muted">Swap lifecycle</div>
+            <p className="text-xs text-text-muted">
               {!isConnected
                 ? "Connect wallet to begin"
                 : !amountInput || amountInput === "0"
@@ -534,16 +534,16 @@ export function TradingDemo() {
           ))}
         </div>
 
-        <div className="border-border-muted bg-surface rounded-2xl border p-4">
+        <div className="rounded-2xl border border-border-muted bg-surface p-4">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-text-muted text-xs font-medium">Trade Info</span>
+            <span className="text-xs font-medium text-text-muted">Trade Info</span>
             <RefreshButton
               onClick={handleRefreshAll}
               disabled={executing || isSwapConfirmed}
               spinning={isFetchingQuote}
             />
           </div>
-          <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
+          <div className="space-y-1.5 rounded-xl bg-surface-raised p-3">
             <DetailRow
               label="Chain"
               value={connectedChainId === MAINNET_CHAIN_ID ? "Mainnet ready" : "Switch to Mainnet"}
@@ -552,14 +552,14 @@ export function TradingDemo() {
               label="Approval mode"
               value={approvalModeLabel}
             />
-                <DetailRow
-                  label="Preset"
-                  value={selectedPreset.description}
-                />
-                <DetailRow
-                  label="Direction"
-                  value={`${tokenIn.symbol} → ${tokenOut.symbol}`}
-                />
+            <DetailRow
+              label="Preset"
+              value={selectedPreset.description}
+            />
+            <DetailRow
+              label="Direction"
+              value={`${tokenIn.symbol} → ${tokenOut.symbol}`}
+            />
             {quoteData && (
               <>
                 <DetailRow
@@ -579,9 +579,9 @@ export function TradingDemo() {
           </div>
         </div>
 
-        <div className="border-border-muted bg-surface rounded-2xl border p-4">
+        <div className="rounded-2xl border border-border-muted bg-surface p-4">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-text-muted text-xs font-medium">Swap</span>
+            <span className="text-xs font-medium text-text-muted">Swap</span>
             <RefreshButton
               onClick={handleRefreshAll}
               disabled={executing || isSwapConfirmed}
@@ -601,11 +601,11 @@ export function TradingDemo() {
           />
 
           <div className="relative my-1 flex items-center justify-center">
-            <div className="bg-border-muted absolute inset-x-0 top-1/2 h-px" />
+            <div className="absolute inset-x-0 top-1/2 h-px bg-border-muted" />
             <button
               onClick={handleFlipDirection}
               disabled={executing || isSwapConfirmed}
-              className="border-border-muted bg-surface-raised hover:bg-surface-hover relative z-10 flex h-8 items-center justify-center gap-2 rounded-lg border px-3 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              className="relative z-10 flex h-8 items-center justify-center gap-2 rounded-lg border border-border-muted bg-surface-raised px-3 transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg
                 width="14"
@@ -622,7 +622,7 @@ export function TradingDemo() {
                   strokeLinejoin="round"
                 />
               </svg>
-              <span className="text-text-secondary text-[11px] font-medium">Flip pair</span>
+              <span className="text-[11px] font-medium text-text-secondary">Flip pair</span>
             </button>
           </div>
 
@@ -640,7 +640,7 @@ export function TradingDemo() {
               <button
                 onClick={handleRefreshQuote}
                 disabled={isFetchingQuote || executing}
-                className="text-accent hover:text-accent-hover flex items-center gap-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex items-center gap-1.5 text-xs font-medium text-accent transition-colors hover:text-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <svg
                   width="12"
@@ -680,7 +680,7 @@ export function TradingDemo() {
           )}
 
           {(quoteError || txError || insufficientBalanceError) && (
-            <div className="bg-error-muted text-error mt-3 rounded-lg p-3 text-xs">
+            <div className="mt-3 rounded-lg bg-error-muted p-3 text-xs text-error">
               {insufficientBalanceError ?? quoteError?.message ?? txError}
             </div>
           )}
@@ -691,7 +691,7 @@ export function TradingDemo() {
             ) : isSwapConfirmed ? (
               <button
                 onClick={handleReset}
-                className="bg-success/10 text-success hover:bg-success/20 w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]"
+                className="w-full rounded-xl bg-success/10 py-3.5 text-sm font-semibold text-success transition-all hover:bg-success/20 active:scale-[0.98]"
               >
                 Swap another
               </button>
@@ -709,8 +709,8 @@ export function TradingDemo() {
                   }
                   className={cn(
                     "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
-                    "bg-accent hover:bg-accent-hover text-white",
-                    "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
+                    "bg-accent text-white hover:bg-accent-hover",
+                    "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-accent",
                   )}
                 >
                   {executing ? `${getStepActionLabel(currentStep)}...` : !quoteData ? "Enter an amount" : "Swap"}
@@ -722,7 +722,7 @@ export function TradingDemo() {
                     <button
                       onClick={handleExecuteStep}
                       disabled={executing || hasInsufficientBalance}
-                      className="border-border bg-surface-raised text-text-secondary hover:bg-surface-hover w-full rounded-xl border py-3 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40"
+                      className="w-full rounded-xl border border-border bg-surface-raised py-3 text-xs font-medium text-text-secondary transition-all hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {executing ? `${getStepActionLabel(currentStep)}...` : `Step: ${getStepActionLabel(currentStep)}`}
                     </button>

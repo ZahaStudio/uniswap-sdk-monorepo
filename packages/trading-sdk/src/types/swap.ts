@@ -1,8 +1,8 @@
 import type { Hex } from "viem";
 
+import type { NormalizedTransactionRequest } from "../utils/normalize";
 import type { TradingPermitData, Urgency } from "./common";
 import type { TradingQuote } from "./quote";
-import type { NormalizedTransactionRequest } from "../utils/normalize";
 
 export interface CreateTradingSwapParams {
   quote: TradingQuote;

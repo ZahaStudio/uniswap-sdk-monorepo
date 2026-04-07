@@ -1,8 +1,10 @@
-import { Token } from "@uniswap/sdk-core";
 import type { PoolKey } from "@uniswap/v4-sdk";
+
+import { Token } from "@uniswap/sdk-core";
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+
 import { getPool } from "@/utils/getPool";
 import { getTokens } from "@/utils/getTokens";
 

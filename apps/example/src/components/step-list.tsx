@@ -18,8 +18,8 @@ interface StepListProps {
 
 export function StepList({ title, steps, children }: StepListProps) {
   return (
-    <div className="border-border-muted bg-surface rounded-xl border p-4">
-      <div className="text-text-muted mb-3 text-xs font-medium">{title}</div>
+    <div className="rounded-xl border border-border-muted bg-surface p-4">
+      <div className="mb-3 text-xs font-medium text-text-muted">{title}</div>
 
       <div className="space-y-1">
         {steps.map((step, i) => (
@@ -34,7 +34,7 @@ export function StepList({ title, steps, children }: StepListProps) {
                   "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
                   step.status === "completed" && "border-success bg-success text-white",
                   step.status === "active" && "border-accent bg-accent-muted text-accent",
-                  step.status === "pending" && "border-border text-text-muted bg-transparent",
+                  step.status === "pending" && "border-border bg-transparent text-text-muted",
                 )}
               >
                 {step.status === "completed" ? (
@@ -53,9 +53,9 @@ export function StepList({ title, steps, children }: StepListProps) {
                     />
                   </svg>
                 ) : step.status === "active" ? (
-                  <div className="bg-accent h-1.5 w-1.5 animate-pulse rounded-full" />
+                  <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" />
                 ) : (
-                  <div className="bg-text-muted/40 h-1.5 w-1.5 rounded-full" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-text-muted/40" />
                 )}
               </div>
               {i < steps.length - 1 && (
@@ -80,7 +80,7 @@ export function StepList({ title, steps, children }: StepListProps) {
               >
                 {step.label}
               </div>
-              <div className="text-text-muted text-[11px]">{step.description}</div>
+              <div className="text-[11px] text-text-muted">{step.description}</div>
             </div>
 
             {/* Loading spinner */}
@@ -91,7 +91,7 @@ export function StepList({ title, steps, children }: StepListProps) {
                   height="12"
                   viewBox="0 0 24 24"
                   fill="none"
-                  className="text-accent animate-spin"
+                  className="animate-spin text-accent"
                 >
                   <circle
                     cx="12"
@@ -108,7 +108,7 @@ export function StepList({ title, steps, children }: StepListProps) {
                     strokeLinecap="round"
                   />
                 </svg>
-                <span className="text-accent text-[11px] font-medium whitespace-nowrap">{step.loadingLabel}</span>
+                <span className="text-[11px] font-medium whitespace-nowrap text-accent">{step.loadingLabel}</span>
               </div>
             )}
           </div>

@@ -17,9 +17,9 @@ export function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="bg-background/80 fixed inset-x-0 top-0 z-50 mx-auto flex max-w-6xl items-center justify-between px-4 py-4 backdrop-blur-md">
+    <header className="fixed inset-x-0 top-0 z-50 mx-auto flex max-w-6xl items-center justify-between bg-background/80 px-4 py-4 backdrop-blur-md">
       <div className="flex items-center gap-3">
-        <div className="bg-accent/10 flex h-9 w-9 items-center justify-center rounded-lg">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10">
           <svg
             width="20"
             height="20"
@@ -37,8 +37,8 @@ export function Header() {
           </svg>
         </div>
         <div>
-          <span className="text-text text-sm font-semibold">Uniswap SDK</span>
-          <span className="bg-accent/10 text-accent ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-medium">EXAMPLE</span>
+          <span className="text-sm font-semibold text-text">Uniswap SDK</span>
+          <span className="ml-1.5 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">EXAMPLE</span>
         </div>
       </div>
 
@@ -50,8 +50,8 @@ export function Header() {
             className={cn(
               "rounded-lg px-5 py-2 text-sm font-medium transition-all",
               pathname === tab.href
-                ? "border-accent/30 bg-accent-muted text-accent border"
-                : "text-text-secondary hover:text-text hover:bg-surface-hover border border-transparent",
+                ? "border border-accent/30 bg-accent-muted text-accent"
+                : "border border-transparent text-text-secondary hover:bg-surface-hover hover:text-text",
             )}
           >
             {tab.label}

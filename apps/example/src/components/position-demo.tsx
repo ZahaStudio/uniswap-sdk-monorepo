@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useMemo } from "react";
 
+import type { Address } from "viem";
+
 import {
   usePosition,
   usePositionCollectFees,
@@ -9,7 +11,6 @@ import {
   useUniswapSDK,
   type TransactionStatus,
 } from "@zahastudio/uniswap-sdk-react";
-import type { Address } from "viem";
 import { useAccount, useReadContract } from "wagmi";
 
 import { ConnectWalletButton } from "@/components/connect-wallet-button";
@@ -146,9 +147,9 @@ export function PositionDemo() {
             removePercentage={removePercentage}
           />
         ) : (
-          <div className="border-border-muted bg-surface rounded-xl border p-4">
-            <div className="text-text-muted mb-3 text-xs font-medium">Position lifecycle</div>
-            <p className="text-text-muted text-xs">
+          <div className="rounded-xl border border-border-muted bg-surface p-4">
+            <div className="mb-3 text-xs font-medium text-text-muted">Position lifecycle</div>
+            <p className="text-xs text-text-muted">
               {activeTokenId && positionQuery.isLoading ? "Loading position..." : "Load a position to begin"}
             </p>
           </div>
@@ -158,8 +159,8 @@ export function PositionDemo() {
       {/* Main content */}
       <div className="w-full max-w-120 min-w-120 space-y-4">
         {/* Token ID input */}
-        <div className="border-border-muted bg-surface rounded-2xl border p-4">
-          <label className="text-text-muted mb-2 block text-xs font-medium">Position Token ID</label>
+        <div className="rounded-2xl border border-border-muted bg-surface p-4">
+          <label className="mb-2 block text-xs font-medium text-text-muted">Position Token ID</label>
           <div className="flex gap-2">
             <input
               type="text"
@@ -171,15 +172,15 @@ export function PositionDemo() {
                 if (val === "" || /^\d*$/.test(val)) setTokenIdInput(val);
               }}
               onKeyDown={handleKeyDown}
-              className="text-text placeholder:text-text-muted bg-surface-raised min-w-0 flex-1 rounded-xl px-4 py-3 text-sm font-medium outline-none"
+              className="min-w-0 flex-1 rounded-xl bg-surface-raised px-4 py-3 text-sm font-medium text-text outline-none placeholder:text-text-muted"
             />
             <button
               onClick={handleLoad}
               disabled={!tokenIdInput.trim() || !/^\d+$/.test(tokenIdInput.trim())}
               className={cn(
                 "glow-accent rounded-xl px-6 py-3 text-sm font-semibold transition-all active:scale-[0.98]",
-                "bg-accent hover:bg-accent-hover text-white",
-                "disabled:hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
+                "bg-accent text-white hover:bg-accent-hover",
+                "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-accent",
               )}
             >
               Load
@@ -189,34 +190,34 @@ export function PositionDemo() {
 
         {/* Loading */}
         {activeTokenId && positionQuery.isLoading && (
-          <div className="border-border-muted bg-surface flex items-center justify-center rounded-2xl border p-8">
-            <div className="text-text-secondary animate-pulse text-sm">Loading position #{activeTokenId}...</div>
+          <div className="flex items-center justify-center rounded-2xl border border-border-muted bg-surface p-8">
+            <div className="animate-pulse text-sm text-text-secondary">Loading position #{activeTokenId}...</div>
           </div>
         )}
 
         {/* Error */}
         {positionQuery.error && (
-          <div className="bg-error-muted text-error rounded-xl p-3 text-xs">{positionQuery.error.message}</div>
+          <div className="rounded-xl bg-error-muted p-3 text-xs text-error">{positionQuery.error.message}</div>
         )}
 
         {/* Position data */}
         {data && (
           <>
             {/* Overview card */}
-            <div className="border-border-muted bg-surface space-y-4 rounded-2xl border p-4">
+            <div className="space-y-4 rounded-2xl border border-border-muted bg-surface p-4">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-text text-lg font-semibold">Position #{activeTokenId}</h2>
+                    <h2 className="text-lg font-semibold text-text">Position #{activeTokenId}</h2>
                     <RefreshButton
                       onClick={() => positionQuery.refetch()}
                       spinning={positionQuery.isFetching}
                     />
                   </div>
-                  <p className="text-text-secondary text-sm">
+                  <p className="text-sm text-text-secondary">
                     {symbol0} / {symbol1}
-                    <span className="text-text-muted ml-2 text-xs">{data.pool.fee / 10000}% fee</span>
+                    <span className="ml-2 text-xs text-text-muted">{data.pool.fee / 10000}% fee</span>
                   </p>
                 </div>
                 <div
@@ -230,45 +231,45 @@ export function PositionDemo() {
               </div>
 
               {/* Owner */}
-              <div className="bg-surface-raised rounded-xl p-3">
-                <div className="text-text-muted mb-1 text-xs font-medium">Owner</div>
+              <div className="rounded-xl bg-surface-raised p-3">
+                <div className="mb-1 text-xs font-medium text-text-muted">Owner</div>
                 <div className="flex items-center gap-2">
                   {ownerLoading ? (
-                    <span className="text-text-secondary animate-pulse font-mono text-sm">Loading...</span>
+                    <span className="animate-pulse font-mono text-sm text-text-secondary">Loading...</span>
                   ) : owner ? (
                     <>
-                      <span className="text-text font-mono text-sm">{truncateAddress(owner as string)}</span>
+                      <span className="font-mono text-sm text-text">{truncateAddress(owner as string)}</span>
                       {isOwner && (
-                        <span className="bg-accent-muted text-accent rounded px-1.5 py-0.5 text-[10px] font-semibold">
+                        <span className="rounded bg-accent-muted px-1.5 py-0.5 text-[10px] font-semibold text-accent">
                           You
                         </span>
                       )}
                     </>
                   ) : (
-                    <span className="text-text-muted text-sm">Unknown</span>
+                    <span className="text-sm text-text-muted">Unknown</span>
                   )}
                 </div>
               </div>
 
               {/* Price range */}
-              <div className="bg-surface-raised space-y-2 rounded-xl p-3">
-                <div className="text-text-muted text-xs font-medium">Price Range</div>
+              <div className="space-y-2 rounded-xl bg-surface-raised p-3">
+                <div className="text-xs font-medium text-text-muted">Price Range</div>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-surface rounded-lg p-2.5">
-                    <div className="text-text-muted text-[10px] font-medium">Lower</div>
-                    <div className="text-text text-sm font-semibold">
+                  <div className="rounded-lg bg-surface p-2.5">
+                    <div className="text-[10px] font-medium text-text-muted">Lower</div>
+                    <div className="text-sm font-semibold text-text">
                       {data.position.token0PriceLower.toSignificant(6)}
                     </div>
-                    <div className="text-text-muted text-[10px]">
+                    <div className="text-[10px] text-text-muted">
                       {symbol1} per {symbol0}
                     </div>
                   </div>
-                  <div className="bg-surface rounded-lg p-2.5">
-                    <div className="text-text-muted text-[10px] font-medium">Upper</div>
-                    <div className="text-text text-sm font-semibold">
+                  <div className="rounded-lg bg-surface p-2.5">
+                    <div className="text-[10px] font-medium text-text-muted">Upper</div>
+                    <div className="text-sm font-semibold text-text">
                       {data.position.token0PriceUpper.toSignificant(6)}
                     </div>
-                    <div className="text-text-muted text-[10px]">
+                    <div className="text-[10px] text-text-muted">
                       {symbol1} per {symbol0}
                     </div>
                   </div>
@@ -280,21 +281,21 @@ export function PositionDemo() {
               </div>
 
               {/* Token amounts */}
-              <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
-                <div className="text-text-muted text-xs font-medium">Position Tokens</div>
+              <div className="space-y-1.5 rounded-xl bg-surface-raised p-3">
+                <div className="text-xs font-medium text-text-muted">Position Tokens</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-text-secondary text-sm">{symbol0}</span>
-                  <span className="text-text font-mono text-sm font-medium">
+                  <span className="text-sm text-text-secondary">{symbol0}</span>
+                  <span className="font-mono text-sm font-medium text-text">
                     {data.position.amount0.toSignificant(6)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-text-secondary text-sm">{symbol1}</span>
-                  <span className="text-text font-mono text-sm font-medium">
+                  <span className="text-sm text-text-secondary">{symbol1}</span>
+                  <span className="font-mono text-sm font-medium text-text">
                     {data.position.amount1.toSignificant(6)}
                   </span>
                 </div>
-                <div className="border-border-muted border-t pt-1.5">
+                <div className="border-t border-border-muted pt-1.5">
                   <DetailRow
                     label="Liquidity"
                     value={data.position.liquidity.toString()}
@@ -303,8 +304,8 @@ export function PositionDemo() {
               </div>
 
               {/* Pool details */}
-              <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
-                <div className="text-text-muted text-xs font-medium">Pool Details</div>
+              <div className="space-y-1.5 rounded-xl bg-surface-raised p-3">
+                <div className="text-xs font-medium text-text-muted">Pool Details</div>
                 <DetailRow
                   label="Pool ID"
                   value={truncateAddress(data.poolId)}
@@ -333,25 +334,25 @@ export function PositionDemo() {
             </div>
 
             {/* Uncollected Fees */}
-            <div className="border-border-muted bg-surface space-y-3 rounded-2xl border p-4">
-              <h3 className="text-text text-sm font-semibold">Uncollected Fees</h3>
+            <div className="space-y-3 rounded-2xl border border-border-muted bg-surface p-4">
+              <h3 className="text-sm font-semibold text-text">Uncollected Fees</h3>
 
-              <div className="bg-surface-raised space-y-1.5 rounded-xl p-3">
+              <div className="space-y-1.5 rounded-xl bg-surface-raised p-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-text-secondary text-sm">{symbol0}</span>
-                  <span className="text-text font-mono text-sm font-medium">
+                  <span className="text-sm text-text-secondary">{symbol0}</span>
+                  <span className="font-mono text-sm font-medium text-text">
                     {formatTokenAmount(data.periphery.uncollectedFees.amount0, decimals0)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-text-secondary text-sm">{symbol1}</span>
-                  <span className="text-text font-mono text-sm font-medium">
+                  <span className="text-sm text-text-secondary">{symbol1}</span>
+                  <span className="font-mono text-sm font-medium text-text">
                     {formatTokenAmount(data.periphery.uncollectedFees.amount1, decimals1)}
                   </span>
                 </div>
               </div>
 
-              {collectError && <div className="bg-error-muted text-error rounded-lg p-3 text-xs">{collectError}</div>}
+              {collectError && <div className="rounded-lg bg-error-muted p-3 text-xs text-error">{collectError}</div>}
 
               {collectFees.transaction.status !== "idle" && (
                 <TxStatusBanner
@@ -369,7 +370,7 @@ export function PositionDemo() {
                     "w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
                     collectFees.transaction.status === "confirmed"
                       ? "bg-success/10 text-success"
-                      : "glow-accent bg-accent hover:bg-accent-hover text-white",
+                      : "glow-accent bg-accent text-white hover:bg-accent-hover",
                     "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
                   )}
                 >
@@ -382,7 +383,7 @@ export function PositionDemo() {
                         : "Collect Fees"}
                 </button>
               ) : isConnected ? (
-                <div className="text-text-muted border-border-muted rounded-xl border py-3.5 text-center text-xs">
+                <div className="rounded-xl border border-border-muted py-3.5 text-center text-xs text-text-muted">
                   Only the position owner can collect fees
                 </div>
               ) : (
@@ -391,8 +392,8 @@ export function PositionDemo() {
             </div>
 
             {/* Remove Liquidity */}
-            <div className="border-border-muted bg-surface space-y-3 rounded-2xl border p-4">
-              <h3 className="text-text text-sm font-semibold">Remove Liquidity</h3>
+            <div className="space-y-3 rounded-2xl border border-border-muted bg-surface p-4">
+              <h3 className="text-sm font-semibold text-text">Remove Liquidity</h3>
 
               <div className="flex gap-2">
                 {REMOVE_PRESETS.map((preset) => (
@@ -413,7 +414,7 @@ export function PositionDemo() {
                 ))}
               </div>
 
-              {removeError && <div className="bg-error-muted text-error rounded-lg p-3 text-xs">{removeError}</div>}
+              {removeError && <div className="rounded-lg bg-error-muted p-3 text-xs text-error">{removeError}</div>}
 
               {removeLiquidity.transaction.status !== "idle" && (
                 <TxStatusBanner
@@ -433,7 +434,7 @@ export function PositionDemo() {
                     "w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
                     removeLiquidity.transaction.status === "confirmed"
                       ? "bg-success/10 text-success"
-                      : "glow-accent bg-accent hover:bg-accent-hover text-white",
+                      : "glow-accent bg-accent text-white hover:bg-accent-hover",
                     "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none",
                   )}
                 >
@@ -446,7 +447,7 @@ export function PositionDemo() {
                         : `Remove ${removePercentage / 100}% liquidity`}
                 </button>
               ) : isConnected ? (
-                <div className="text-text-muted border-border-muted rounded-xl border py-3.5 text-center text-xs">
+                <div className="rounded-xl border border-border-muted py-3.5 text-center text-xs text-text-muted">
                   Only the position owner can remove liquidity
                 </div>
               ) : (
@@ -518,7 +519,7 @@ function PositionLifecycle({
           href={`${EXPLORER_BASE}${collectFeesTxHash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-text-muted hover:text-text-secondary mt-3 block truncate font-mono text-[10px] transition-colors"
+          className="mt-3 block truncate font-mono text-[10px] text-text-muted transition-colors hover:text-text-secondary"
         >
           Collect tx: {collectFeesTxHash.slice(0, 10)}...
         </a>
@@ -528,7 +529,7 @@ function PositionLifecycle({
           href={`${EXPLORER_BASE}${removeLiquidityTxHash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-text-muted hover:text-text-secondary mt-1 block truncate font-mono text-[10px] transition-colors"
+          className="mt-1 block truncate font-mono text-[10px] text-text-muted transition-colors hover:text-text-secondary"
         >
           Remove tx: {removeLiquidityTxHash.slice(0, 10)}...
         </a>
@@ -567,7 +568,7 @@ function TxStatusBanner({
           href={explorerUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-text-muted hover:text-text-secondary text-[10px] font-medium transition-colors"
+          className="text-[10px] font-medium text-text-muted transition-colors hover:text-text-secondary"
         >
           View tx
         </a>

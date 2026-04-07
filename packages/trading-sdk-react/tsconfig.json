@@ -1,11 +1,11 @@
 {
-  "extends": "@acme/tsconfig/base.json",
-  "include": ["."],
+  "extends": "@acme/tsconfig/config.json",
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
       "@zahastudio/trading-sdk": ["../trading-sdk/src/index.ts"]
     }
   },
+  "include": ["."],
   "exclude": ["dist", "build", "node_modules"]
 }

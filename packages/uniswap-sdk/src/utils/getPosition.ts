@@ -1,7 +1,9 @@
 import type { Currency } from "@uniswap/sdk-core";
+
 import { Pool, Position as V4Position } from "@uniswap/v4-sdk";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+
 import { getPositionInfo } from "@/utils/getPositionInfo";
 import { getTokens } from "@/utils/getTokens";
 

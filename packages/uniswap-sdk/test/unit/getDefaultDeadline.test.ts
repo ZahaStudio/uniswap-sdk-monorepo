@@ -1,4 +1,5 @@
 import type { UniswapSDKInstance } from "@/core/sdk";
+
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 
 describe("getDefaultDeadline", () => {

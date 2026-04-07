@@ -1,4 +1,5 @@
 import type { TradingApprovalParams, TradingApprovalResponse } from "../types";
+
 import { toAmountString } from "../utils/amounts";
 import { normalizeBigInt, normalizeTransactionRequest, type ApiTransactionRequest } from "../utils/normalize";
 

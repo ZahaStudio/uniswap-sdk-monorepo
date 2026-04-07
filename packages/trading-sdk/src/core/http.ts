@@ -1,8 +1,9 @@
 import ky, { HTTPError, type KyInstance } from "ky";
 
+import type { TradingRequestOptions, TradingSDKConfig } from "../types";
+
 import { DEFAULT_BASE_URL } from "./constants";
 import { TradingApiError } from "./errors";
-import type { TradingRequestOptions, TradingSDKConfig } from "../types";
 
 interface ApiErrorResponse {
   errorCode?: string;
@@ -37,7 +38,7 @@ export function createBaseHeaders(config: TradingSDKConfig): Headers {
 
 export function createHttpClient(config: TradingSDKConfig, baseHeaders: HeadersInit): KyInstance {
   return ky.create({
-    prefixUrl: normalizeBaseUrl(config.baseUrl ?? DEFAULT_BASE_URL),
+    prefix: normalizeBaseUrl(config.baseUrl ?? DEFAULT_BASE_URL),
     fetch: resolveFetch(config.fetch),
     headers: baseHeaders,
   });
@@ -63,13 +64,7 @@ export function createRequestHeaders(
 
 export async function parseHttpError(error: HTTPError): Promise<never> {
   const response = error.response;
-  let payload: ApiErrorResponse | undefined;
-
-  try {
-    payload = (await response.clone().json()) as ApiErrorResponse;
-  } catch {
-    payload = undefined;
-  }
+  const payload = isApiErrorResponse(error.data) ? error.data : undefined;
 
   throw new TradingApiError({
     status: response.status,
@@ -77,4 +72,8 @@ export async function parseHttpError(error: HTTPError): Promise<never> {
     detail: payload?.detail,
     requestId: payload?.requestId,
   });
+}
+
+function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
+  return typeof value === "object" && value !== null;
 }

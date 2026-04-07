@@ -1,5 +1,6 @@
-import { sortTokens, type PoolKey } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
+
+import { sortTokens, type PoolKey } from "@zahastudio/uniswap-sdk";
 import { zeroAddress } from "viem";
 
 // ---------------------------------------------------------------------------

@@ -1,5 +1,6 @@
 import type { Address } from "viem";
 
+import type { NormalizedTransactionRequest } from "../utils/normalize";
 import type {
   AutoSlippage,
   RoutingPreference,
@@ -10,7 +11,6 @@ import type {
   TradingRouting,
   Urgency,
 } from "./common";
-import type { NormalizedTransactionRequest } from "../utils/normalize";
 
 export interface TradingQuote {
   input: TradingQuoteAmounts;

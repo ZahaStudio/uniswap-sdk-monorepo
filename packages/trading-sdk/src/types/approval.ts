@@ -1,7 +1,7 @@
 import type { Address } from "viem";
 
-import type { Urgency } from "./common";
 import type { NormalizedTransactionRequest } from "../utils/normalize";
+import type { Urgency } from "./common";
 
 export interface TradingApprovalParams {
   walletAddress: Address;

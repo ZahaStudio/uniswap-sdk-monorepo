@@ -2,6 +2,8 @@
 
 import { useCallback } from "react";
 
+import type { Address, Hex } from "viem";
+
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   type AutoSlippage,
@@ -10,7 +12,6 @@ import {
   type TradingQuoteResponse,
   type Urgency,
 } from "@zahastudio/trading-sdk";
-import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 import { hashFn } from "wagmi/query";

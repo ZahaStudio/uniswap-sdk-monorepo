@@ -117,7 +117,7 @@ export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
   if (status === "idle") return null;
 
   return (
-    <div className={cn("border-border-muted flex items-center gap-3 rounded-xl border p-4", c.bg)}>
+    <div className={cn("flex items-center gap-3 rounded-xl border border-border-muted p-4", c.bg)}>
       <div className={c.color}>{c.icon}</div>
       <div className="min-w-0 flex-1">
         <div className={cn("text-xs font-medium", c.color)}>{c.label}</div>
@@ -126,7 +126,7 @@ export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
             href={etherscanUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-text-muted hover:text-text-secondary mt-0.5 block truncate font-mono text-[10px] transition-colors"
+            className="mt-0.5 block truncate font-mono text-[10px] text-text-muted transition-colors hover:text-text-secondary"
           >
             {txHash}
           </a>
@@ -137,7 +137,7 @@ export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
           href={etherscanUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="border-border-muted text-text-secondary hover:bg-surface-hover hover:text-text shrink-0 rounded-lg border px-2.5 py-1 text-[10px] font-medium transition-all"
+          className="shrink-0 rounded-lg border border-border-muted px-2.5 py-1 text-[10px] font-medium text-text-secondary transition-all hover:bg-surface-hover hover:text-text"
         >
           View
         </a>
