@@ -3,7 +3,6 @@ import { decodeFunctionData, type Hex } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
-import { mapRoute } from "@/utils/swapRoute";
 import {
   UNICHAIN_ETH_TO_WETH_ROUTE,
   UNICHAIN_POOL_KEY,
@@ -12,6 +11,7 @@ import {
 } from "@/test/fixtures/unichain";
 import { TEST_RECIPIENT } from "@/test/integration/constants";
 import { createPinnedUnichainClient } from "@/test/integration/pinnedClient";
+import { mapRoute } from "@/utils/swapRoute";
 
 describe("buildSwapCallData (unichain rpc)", () => {
   it("builds universal router calldata for a single-hop route", async () => {
@@ -126,6 +126,36 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const [commands, inputs, deadline] = decoded.args as [Hex, Hex[], bigint];
     expect(commands).toBe("0x100c");
     expect(inputs).toHaveLength(2);
+    expect(deadline).toBe(expectedDeadline);
+    expect(calldata).toMatch(/^0x[0-9a-f]+$/);
+  });
+
+  it("adds both WRAP_ETH and UNWRAP_WETH commands when a route starts and ends with WETH", async () => {
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
+    const block = await client.getBlock();
+    const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
+    const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
+
+    const calldata = await sdk.buildSwapCallData({
+      currencyIn: UNICHAIN_TOKENS.WETH,
+      route: [{ pool }, { pool }],
+      amountIn: 1_000_000n,
+      amountOutMinimum: 0n,
+      recipient: TEST_RECIPIENT,
+      useNativeETH: true,
+    });
+
+    const decoded = decodeFunctionData({
+      abi: utility.UniversalRouterArtifact.abi,
+      data: calldata,
+    });
+
+    expect(decoded.functionName).toBe("execute");
+
+    const [commands, inputs, deadline] = decoded.args as [Hex, Hex[], bigint];
+    expect(commands).toBe("0x0b100c");
+    expect(inputs).toHaveLength(3);
     expect(deadline).toBe(expectedDeadline);
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });

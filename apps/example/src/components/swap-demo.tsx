@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uniswap-sdk-react";
-import { zeroAddress, type Address } from "viem";
+import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
 import { ConnectWalletButton } from "@/components/connect-wallet-button";

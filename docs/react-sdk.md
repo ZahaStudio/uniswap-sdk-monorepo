@@ -107,14 +107,14 @@ const swap = useSwap(
 
 **Params:** `UseSwapParams`
 
-| Field          | Type                    | Required | Description                                  |
-| -------------- | ----------------------- | -------- | -------------------------------------------- |
-| `currencyIn`   | `Address`               | Yes      | Input currency for the first hop             |
-| `route`        | `[UseSwapRouteHop, ...]`| Yes      | Ordered route; single-hop = array of 1       |
-| `amountIn`     | `bigint`                | Yes      | Input amount (base units)                    |
-| `recipient`    | `Address`               | No       | Output recipient (default: connected wallet) |
-| `slippageBps`  | `number`                | No       | Slippage in BPS (default: SDK default)       |
-| `useNativeETH` | `boolean`               | No       | Wrap/unwrap native ETH                       |
+| Field          | Type                     | Required | Description                                  |
+| -------------- | ------------------------ | -------- | -------------------------------------------- |
+| `currencyIn`   | `Address`                | Yes      | Input currency for the first hop             |
+| `route`        | `[UseSwapRouteHop, ...]` | Yes      | Ordered route; single-hop = array of 1       |
+| `amountIn`     | `bigint`                 | Yes      | Input amount (base units)                    |
+| `recipient`    | `Address`                | No       | Output recipient (default: connected wallet) |
+| `slippageBps`  | `number`                 | No       | Slippage in BPS (default: SDK default)       |
+| `useNativeETH` | `boolean`                | No       | Wrap/unwrap native ETH                       |
 
 **Returns:** `UseSwapReturn`
 

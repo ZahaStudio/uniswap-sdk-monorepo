@@ -74,7 +74,9 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   const outputPool = route[route.length - 1]!.pool;
   const inputCurrencyObject = getInputCurrencyFromFirstPool(inputPool, currencyIn);
   const outputCurrencyObject =
-    outputPool.poolKey.currency0.toLowerCase() === outputCurrency.toLowerCase() ? outputPool.currency0 : outputPool.currency1;
+    outputPool.poolKey.currency0.toLowerCase() === outputCurrency.toLowerCase()
+      ? outputPool.currency0
+      : outputPool.currency1;
 
   // Determine if WRAP_ETH or UNWRAP_WETH is needed for WETH-denominated pools
   let wrapInput = false;
@@ -87,7 +89,9 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
 
     if (normalizedInputCurrency === wethAddress) {
       wrapInput = true;
-    } else if (normalizedOutputCurrency === wethAddress) {
+    }
+
+    if (normalizedOutputCurrency === wethAddress) {
       unwrapOutput = true;
     }
   }

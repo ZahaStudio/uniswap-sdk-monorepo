@@ -50,13 +50,7 @@ export const swapKeys = {
   all: [PACKAGE_KEY, "useSwap"] as const,
 
   /** Key for a swap quote by input currency, ordered route, amount, slippage, and chain. */
-  quote: (
-    currencyIn: string,
-    route: SwapRoute,
-    amountIn: bigint,
-    slippageBps: number,
-    chainId?: number,
-  ) =>
+  quote: (currencyIn: string, route: SwapRoute, amountIn: bigint, slippageBps: number, chainId?: number) =>
     [
       ...swapKeys.all,
       "quote",

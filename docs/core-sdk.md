@@ -120,11 +120,11 @@ const quote = await sdk.getQuote({
 
 **Args:** `SwapExactIn`
 
-| Field        | Type                        | Required | Description                                 |
-| ------------ | --------------------------- | -------- | ------------------------------------------- |
-| `currencyIn` | `Address`                   | Yes      | Input currency for the first hop            |
-| `route`      | `[SwapRouteHop, ...]`       | Yes      | Ordered swap route; single-hop = array of 1 |
-| `amountIn`   | `bigint \| string`         | Yes      | Input amount in smallest unit               |
+| Field        | Type                  | Required | Description                                 |
+| ------------ | --------------------- | -------- | ------------------------------------------- |
+| `currencyIn` | `Address`             | Yes      | Input currency for the first hop            |
+| `route`      | `[SwapRouteHop, ...]` | Yes      | Ordered swap route; single-hop = array of 1 |
+| `amountIn`   | `bigint \| string`    | Yes      | Input amount in smallest unit               |
 
 **Returns:** `Promise<QuoteResponse>` — `{ amountOut: bigint, timestamp: number }`
 
@@ -211,17 +211,17 @@ const calldata = await sdk.buildSwapCallData({
 
 **Args:** `BuildSwapCallDataArgs`
 
-| Field              | Type                          | Required | Description                                 |
-| ------------------ | ----------------------------- | -------- | ------------------------------------------- |
-| `currencyIn`       | `Address`                     | Yes      | Input currency for the first hop            |
-| `route`            | `[{ pool, hookData? }, ...]`  | Yes      | Ordered route; single-hop = array of 1      |
-| `amountIn`         | `bigint`                      | Yes      | Input amount (must be > 0)                  |
-| `amountOutMinimum` | `bigint`                      | Yes      | Min output after slippage                   |
-| `recipient`        | `Address`                     | Yes      | Output token recipient                      |
-| `permit2Signature` | `BatchPermitOptions`          | No       | Permit2 batch signature                     |
-| `deadlineDuration` | `number`                      | No       | Seconds from now (default 300)              |
-| `useNativeETH`     | `boolean`                     | No       | Wrap/unwrap ETH for WETH route edges        |
-| `customActions`    | `Array<{action, parameters}>` | No       | Override default swap actions               |
+| Field              | Type                          | Required | Description                            |
+| ------------------ | ----------------------------- | -------- | -------------------------------------- |
+| `currencyIn`       | `Address`                     | Yes      | Input currency for the first hop       |
+| `route`            | `[{ pool, hookData? }, ...]`  | Yes      | Ordered route; single-hop = array of 1 |
+| `amountIn`         | `bigint`                      | Yes      | Input amount (must be > 0)             |
+| `amountOutMinimum` | `bigint`                      | Yes      | Min output after slippage              |
+| `recipient`        | `Address`                     | Yes      | Output token recipient                 |
+| `permit2Signature` | `BatchPermitOptions`          | No       | Permit2 batch signature                |
+| `deadlineDuration` | `number`                      | No       | Seconds from now (default 300)         |
+| `useNativeETH`     | `boolean`                     | No       | Wrap/unwrap ETH for WETH route edges   |
+| `customActions`    | `Array<{action, parameters}>` | No       | Override default swap actions          |
 
 **Returns:** `Promise<Hex>` — encoded `execute()` calldata for Universal Router.
 

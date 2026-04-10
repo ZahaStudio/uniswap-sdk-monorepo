@@ -8,7 +8,6 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   calculateMinimumOutput,
   mapRoute,
-  type PoolKey,
   type QuoteResponse,
   type SwapExactIn,
   type SwapRoute,

@@ -42,10 +42,7 @@ export function mapRoute<TRoute extends readonly [unknown, ...unknown[]], TOutpu
   return [firstHop, ...remainingHops];
 }
 
-export function resolveSwapRoute(
-  currencyIn: Address,
-  route: SwapRoute,
-): ResolvedSwapRoute {
+export function resolveSwapRoute(currencyIn: Address, route: SwapRoute): ResolvedSwapRoute {
   let currentCurrency = currencyIn.toLowerCase();
   const path = mapRoute(route, ({ poolKey, hookData }, hopIndex) => {
     const currency0 = poolKey.currency0.toLowerCase();
@@ -57,9 +54,7 @@ export function resolveSwapRoute(
     } else if (currentCurrency === currency1) {
       intermediateCurrency = poolKey.currency0 as Address;
     } else {
-      throw new Error(
-        `Invalid swap route: hop ${hopIndex + 1} does not connect to currency ${currentCurrency}.`,
-      );
+      throw new Error(`Invalid swap route: hop ${hopIndex + 1} does not connect to currency ${currentCurrency}.`);
     }
 
     currentCurrency = intermediateCurrency.toLowerCase();

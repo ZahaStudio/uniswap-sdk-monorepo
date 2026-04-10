@@ -128,7 +128,10 @@ export const SWAP_PRESETS: SwapPreset[] = [
   },
 ];
 
-export function resolveRouteOutputCurrency(currencyIn: Address, route: readonly [SwapRouteHop, ...SwapRouteHop[]]): Address {
+export function resolveRouteOutputCurrency(
+  currencyIn: Address,
+  route: readonly [SwapRouteHop, ...SwapRouteHop[]],
+): Address {
   let currentCurrency = currencyIn.toLowerCase();
   let outputCurrency = currencyIn;
 
