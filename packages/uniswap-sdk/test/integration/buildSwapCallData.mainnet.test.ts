@@ -3,6 +3,7 @@ import { decodeFunctionData, type Hex } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
+import { mapRoute } from "@/utils/swapRoute";
 import {
   UNICHAIN_ETH_TO_WETH_ROUTE,
   UNICHAIN_POOL_KEY,
@@ -50,10 +51,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
 
     const calldata = await sdk.buildSwapCallData({
       currencyIn: UNICHAIN_TOKENS.ETH,
-      route: UNICHAIN_ETH_TO_WETH_ROUTE.map((_, index) => ({ pool: pools[index]! })) as [
-        { pool: (typeof pools)[number]; hookData?: Hex },
-        ...{ pool: (typeof pools)[number]; hookData?: Hex }[],
-      ],
+      route: mapRoute(UNICHAIN_ETH_TO_WETH_ROUTE, (_, index) => ({ pool: pools[index]! })),
       amountIn: 1_000_000n,
       amountOutMinimum: 0n,
       recipient: TEST_RECIPIENT,

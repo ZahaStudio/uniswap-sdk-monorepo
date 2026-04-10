@@ -1,11 +1,10 @@
-import type { PoolKey } from "@uniswap/v4-sdk";
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 
 import { v4 } from "hookmate/abi";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
-import { resolveSwapRoute } from "@/utils/swapRoute";
+import { resolveSwapRoute, type SwapRoute } from "@/utils/swapRoute";
 
 /**
  * Exact-input swap quote parameters for a single route.
@@ -30,18 +29,6 @@ import { resolveSwapRoute } from "@/utils/swapRoute";
  * };
  * ```
  */
-export interface SwapRouteHop {
-  /**
-   * Pool key with currency addresses, fee, tick spacing, and hooks.
-   */
-  poolKey: PoolKey;
-
-  /**
-   * Additional data for the hooks.
-   */
-  hookData?: Hex;
-}
-
 export interface SwapExactIn {
   /**
    * Input currency for the first hop in the route.
@@ -51,7 +38,7 @@ export interface SwapExactIn {
   /**
    * Ordered list of pools to route through. A single-hop swap is a route with one entry.
    */
-  route: readonly [SwapRouteHop, ...SwapRouteHop[]];
+  route: SwapRoute;
 
   /**
    * The amount of tokens being swapped, as string (numberish).

@@ -52,16 +52,7 @@ export const swapKeys = {
   /** Key for a swap quote by input currency, ordered route, amount, slippage, and chain. */
   quote: (
     currencyIn: string,
-    route: readonly [
-      {
-        poolKey: { currency0: string; currency1: string; fee: number; tickSpacing: number; hooks: string };
-        hookData?: string;
-      },
-      ...{
-        poolKey: { currency0: string; currency1: string; fee: number; tickSpacing: number; hooks: string };
-        hookData?: string;
-      }[],
-    ],
+    route: SwapRoute,
     amountIn: bigint,
     slippageBps: number,
     chainId?: number,
@@ -83,3 +74,4 @@ export const swapKeys = {
       chainId,
     ] as const,
 };
+import type { SwapRoute } from "@zahastudio/uniswap-sdk";

@@ -9,7 +9,7 @@ import { encodeFunctionData } from "viem";
 import type { UniswapSDKInstance } from "@/core/sdk";
 
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
-import { resolveSwapRoute } from "@/utils/swapRoute";
+import { mapRoute, resolveSwapRoute, type SwapRouteWithPools } from "@/utils/swapRoute";
 
 /**
  * Parameters for building a V4 swap
@@ -20,16 +20,7 @@ export interface BuildSwapCallDataArgs {
   /** Input currency for the first hop in the route. */
   currencyIn: Address;
   /** Ordered list of pools to route through. A single-hop swap is a route with one entry. */
-  route: readonly [
-    {
-      pool: Pool;
-      hookData?: Hex;
-    },
-    ...{
-      pool: Pool;
-      hookData?: Hex;
-    }[],
-  ];
+  route: SwapRouteWithPools;
   recipient: Address;
   /** Deadline duration in seconds from now. Defaults to 300 (5 minutes). */
   deadlineDuration?: number;
@@ -77,10 +68,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
 
   const v4Planner = new V4Planner();
   const routePlanner = new RoutePlanner();
-  const routeWithPoolKeys = route.map(({ pool, hookData }) => ({ poolKey: pool.poolKey, hookData })) as [
-    { poolKey: (typeof route)[number]["pool"]["poolKey"]; hookData?: Hex },
-    ...{ poolKey: (typeof route)[number]["pool"]["poolKey"]; hookData?: Hex }[],
-  ];
+  const routeWithPoolKeys = mapRoute(route, ({ pool, hookData }) => ({ poolKey: pool.poolKey, hookData }));
   const { path, outputCurrency } = resolveSwapRoute(currencyIn, routeWithPoolKeys);
   const inputPool = route[0].pool;
   const outputPool = route[route.length - 1]!.pool;

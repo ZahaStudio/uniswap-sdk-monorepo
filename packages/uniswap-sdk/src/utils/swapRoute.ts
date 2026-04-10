@@ -1,10 +1,19 @@
-import type { PoolKey } from "@uniswap/v4-sdk";
+import type { Pool, PoolKey } from "@uniswap/v4-sdk";
 import type { Address, Hex } from "viem";
 
-export interface SwapRouteHopLike {
+export interface SwapRouteHop {
   poolKey: PoolKey;
   hookData?: Hex;
 }
+
+export type SwapRoute = readonly [SwapRouteHop, ...SwapRouteHop[]];
+
+export interface SwapRoutePoolHop {
+  pool: Pool;
+  hookData?: Hex;
+}
+
+export type SwapRouteWithPools = readonly [SwapRoutePoolHop, ...SwapRoutePoolHop[]];
 
 export interface RoutePathKey {
   intermediateCurrency: Address;
@@ -19,12 +28,26 @@ export interface ResolvedSwapRoute {
   outputCurrency: Address;
 }
 
+export function mapRoute<TRoute extends readonly [unknown, ...unknown[]], TOutput>(
+  route: TRoute,
+  map: (hop: TRoute[number], index: number) => TOutput,
+): [TOutput, ...TOutput[]] {
+  const mappedRoute = route.map(map);
+  const [firstHop, ...remainingHops] = mappedRoute;
+
+  if (firstHop === undefined) {
+    throw new Error("Invalid swap route: route must contain at least one hop.");
+  }
+
+  return [firstHop, ...remainingHops];
+}
+
 export function resolveSwapRoute(
   currencyIn: Address,
-  route: readonly [SwapRouteHopLike, ...SwapRouteHopLike[]],
+  route: SwapRoute,
 ): ResolvedSwapRoute {
   let currentCurrency = currencyIn.toLowerCase();
-  const path = route.map(({ poolKey, hookData }, hopIndex) => {
+  const path = mapRoute(route, ({ poolKey, hookData }, hopIndex) => {
     const currency0 = poolKey.currency0.toLowerCase();
     const currency1 = poolKey.currency1.toLowerCase();
 
@@ -48,7 +71,7 @@ export function resolveSwapRoute(
       hooks: poolKey.hooks as Address,
       hookData: hookData ?? "0x",
     };
-  }) as [RoutePathKey, ...RoutePathKey[]];
+  });
 
   return {
     path,

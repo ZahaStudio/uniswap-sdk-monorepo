@@ -7,9 +7,11 @@ import type { Address, Hex } from "viem";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   calculateMinimumOutput,
+  mapRoute,
   type PoolKey,
   type QuoteResponse,
   type SwapExactIn,
+  type SwapRoute,
 } from "@zahastudio/uniswap-sdk";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
@@ -32,16 +34,7 @@ export interface UseSwapParams {
   /** Input currency for the first hop in the route. */
   currencyIn: Address;
   /** Ordered route to swap through. A single-hop swap is a route with one entry. */
-  route: readonly [
-    {
-      poolKey: PoolKey;
-      hookData?: Hex;
-    },
-    ...{
-      poolKey: PoolKey;
-      hookData?: Hex;
-    }[],
-  ];
+  route: SwapRoute;
   /** Amount of input tokens in base units */
   amountIn: bigint;
   /** Recipient address for the output tokens (defaults to connected wallet) */
@@ -195,7 +188,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
       const quoteParams: SwapExactIn = {
         currencyIn,
-        route: route.map(({ poolKey, hookData }) => ({
+        route: mapRoute(route, ({ poolKey, hookData }) => ({
           poolKey: {
             currency0: poolKey.currency0 as Address,
             currency1: poolKey.currency1 as Address,
@@ -204,7 +197,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
             hooks: poolKey.hooks as Address,
           },
           hookData,
-        })) as unknown as SwapExactIn["route"],
+        })),
         amountIn: amountIn.toString(),
       };
 
@@ -262,10 +255,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
       const calldata = await sdk.buildSwapCallData({
         currencyIn,
-        route: route.map((hop, index) => ({ pool: pools[index]!, hookData: hop.hookData })) as [
-          { pool: (typeof pools)[number]; hookData?: Hex },
-          ...{ pool: (typeof pools)[number]; hookData?: Hex }[],
-        ],
+        route: mapRoute(route, (hop, index) => ({ pool: pools[index]!, hookData: hop.hookData })),
         amountIn,
         amountOutMinimum: quote.minAmountOut,
         recipient: recipient ?? connectedAddress,

@@ -13,3 +13,4 @@ export * from "@/utils/getTickInfo";
 export * from "@/utils/getTokens";
 export * from "@/utils/getUncollectedFees";
 export * from "@/utils/preparePermit2BatchData";
+export * from "@/utils/swapRoute";
