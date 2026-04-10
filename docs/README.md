@@ -31,7 +31,7 @@ Every pool in V4 is identified by a `PoolKey` — a struct of `{ currency0, curr
 
 ### Token Ordering
 
-Tokens in a pool are always sorted by address. Use `sortTokens(addressA, addressB)` from the SDK to get the correct order. The "zero for one" direction (`zeroForOne: true`) means swapping currency0 → currency1.
+Tokens in a pool are always sorted by address. Use `sortTokens(addressA, addressB)` from the SDK to get the correct order. Swaps now use `currencyIn + route[]`, so direction is inferred from the current currency and each pool in the ordered route.
 
 ### Basis Points (BPS)
 

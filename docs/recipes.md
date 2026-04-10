@@ -13,16 +13,17 @@ const sdk = UniswapSDK.create(client, 1);
 const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ZERO_HOOKS = "0x0000000000000000000000000000000000000000";
+const poolKey = {
+  currency0: USDC,
+  currency1: WETH,
+  fee: 3000,
+  tickSpacing: 60,
+  hooks: ZERO_HOOKS,
+};
 
 const quote = await sdk.getQuote({
-  poolKey: {
-    currency0: USDC, // currency0 < currency1 (sorted by address)
-    currency1: WETH,
-    fee: 3000,
-    tickSpacing: 60,
-    hooks: ZERO_HOOKS,
-  },
-  zeroForOne: false, // WETH → USDC (WETH is currency1)
+  currencyIn: WETH,
+  route: [{ poolKey }],
   amountIn: 1000000000000000000n, // 1 WETH
 });
 
@@ -61,12 +62,11 @@ const poolKey = {
 };
 
 const amountIn = parseEther("1");
-const zeroForOne = WETH.toLowerCase() === currency0.toLowerCase(); // true if WETH is token0
 
 // Step 1: Get quote
 const quote = await sdk.getQuote({
-  poolKey,
-  zeroForOne,
+  currencyIn: WETH,
+  route: [{ poolKey }],
   amountIn,
 });
 
@@ -75,7 +75,7 @@ const minAmountOut = calculateMinimumOutput(quote.amountOut, 50); // 0.5% slippa
 // Step 2: Prepare Permit2 (skip for native ETH)
 const universalRouter = sdk.getContractAddress("universalRouter");
 const permitData = await sdk.preparePermit2BatchData({
-  tokens: [zeroForOne ? currency0 : currency1],
+  tokens: [WETH],
   spender: universalRouter,
   owner: account.address,
 });
@@ -93,10 +93,10 @@ const permit2Signature = permitData.buildPermit2BatchDataWithSignature(signature
 // Step 3: Get pool and build calldata
 const pool = await sdk.getPool(poolKey);
 const calldata = await sdk.buildSwapCallData({
-  pool,
+  currencyIn: WETH,
+  route: [{ pool }],
   amountIn,
   amountOutMinimum: minAmountOut,
-  zeroForOne,
   recipient: account.address,
   permit2Signature,
 });
@@ -121,10 +121,10 @@ When swapping native ETH, skip Permit2 and send `value` with the transaction.
 ```ts
 // For a pool with WETH as one of the currencies
 const calldata = await sdk.buildSwapCallData({
-  pool,
+  currencyIn: WETH,
+  route: [{ pool }],
   amountIn: parseEther("1"),
   amountOutMinimum: minAmountOut,
-  zeroForOne: true,
   recipient: account.address,
   useNativeETH: true, // enables WRAP_ETH / UNWRAP_WETH commands
 });
@@ -243,15 +243,19 @@ export function SwapWidget() {
 
   const swap = useSwap(
     {
-      poolKey: {
-        currency0: USDC,
-        currency1: WETH,
-        fee: 3000,
-        tickSpacing: 60,
-        hooks: zeroAddress,
-      },
+      currencyIn: WETH,
+      route: [
+        {
+          poolKey: {
+            currency0: USDC,
+            currency1: WETH,
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: zeroAddress,
+          },
+        },
+      ],
       amountIn: parseEther(amount || "0"),
-      zeroForOne: false, // WETH → USDC
       slippageBps: 50,
     },
     { refetchInterval: 12000 },

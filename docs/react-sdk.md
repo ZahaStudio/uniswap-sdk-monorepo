@@ -94,9 +94,9 @@ Full swap lifecycle: quote → approve → permit2 sign → execute.
 ```tsx
 const swap = useSwap(
   {
-    poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: ZERO_ADDRESS },
+    currencyIn: WETH,
+    route: [{ poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: ZERO_ADDRESS } }],
     amountIn: parseEther("1"),
-    zeroForOne: true,
     slippageBps: 50, // optional, default from SDK
     recipient: address, // optional, defaults to connected wallet
     useNativeETH: false, // optional, wrap/unwrap ETH
@@ -107,14 +107,14 @@ const swap = useSwap(
 
 **Params:** `UseSwapParams`
 
-| Field          | Type      | Required | Description                                  |
-| -------------- | --------- | -------- | -------------------------------------------- |
-| `poolKey`      | `PoolKey` | Yes      | Pool to swap through                         |
-| `amountIn`     | `bigint`  | Yes      | Input amount (base units)                    |
-| `zeroForOne`   | `boolean` | Yes      | Swap direction                               |
-| `recipient`    | `Address` | No       | Output recipient (default: connected wallet) |
-| `slippageBps`  | `number`  | No       | Slippage in BPS (default: SDK default)       |
-| `useNativeETH` | `boolean` | No       | Wrap/unwrap native ETH                       |
+| Field          | Type                    | Required | Description                                  |
+| -------------- | ----------------------- | -------- | -------------------------------------------- |
+| `currencyIn`   | `Address`               | Yes      | Input currency for the first hop             |
+| `route`        | `[UseSwapRouteHop, ...]`| Yes      | Ordered route; single-hop = array of 1       |
+| `amountIn`     | `bigint`                | Yes      | Input amount (base units)                    |
+| `recipient`    | `Address`               | No       | Output recipient (default: connected wallet) |
+| `slippageBps`  | `number`                | No       | Slippage in BPS (default: SDK default)       |
+| `useNativeETH` | `boolean`               | No       | Wrap/unwrap native ETH                       |
 
 **Returns:** `UseSwapReturn`
 

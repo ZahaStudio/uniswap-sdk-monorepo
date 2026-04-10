@@ -22,7 +22,7 @@ import { getChainById } from "@/utils/chains";
 import { getPool } from "@/utils/getPool";
 import { getPosition, type GetPositionResponse } from "@/utils/getPosition";
 import { getPositionInfo, type GetPositionInfoResponse } from "@/utils/getPositionInfo";
-import { getQuote, type QuoteResponse, type SwapExactInSingle } from "@/utils/getQuote";
+import { getQuote, type QuoteResponse, type SwapExactIn } from "@/utils/getQuote";
 import { getTickInfo, type GetTickInfoArgs, type TickInfoResponse } from "@/utils/getTickInfo";
 import { getTokens, type GetTokensResult } from "@/utils/getTokens";
 import { getUncollectedFees, type GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
@@ -219,15 +219,15 @@ export class UniswapSDK {
   /**
    * Simulates a token swap using the V4 Quoter contract to get exact output amounts and gas estimates.
    *
-   * This method uses client.simulateContract() to call V4Quoter.quoteExactInputSingle() and simulate
-   * the swap without executing it. It provides accurate pricing information and gas estimates for
-   * the transaction without requiring multicall since it's a single contract simulation.
+   * This method uses client.simulateContract() to call V4Quoter.quoteExactInput() and simulate
+   * the swap without executing it. It provides accurate pricing information for route-based
+   * swaps without sending a transaction.
    *
-   * @param args @type {SwapExactInSingle} - Swap parameters including pool key, amount in, and direction
+   * @param args @type {SwapExactIn} - Swap parameters including input currency, route, and amount in
    * @returns Promise<QuoteResponse> - Quote data with amount out, gas estimate, and timestamp
    * @throws Error if simulation fails or contract call reverts
    */
-  public async getQuote(args: SwapExactInSingle): Promise<QuoteResponse> {
+  public async getQuote(args: SwapExactIn): Promise<QuoteResponse> {
     return getQuote(args, this.instance);
   }
 
@@ -304,7 +304,7 @@ export class UniswapSDK {
    * Generates Universal Router calldata for executing token swaps using Uniswap V4.
    *
    * This method uses the V4Planner from the Uniswap V4 SDK to build swap actions and parameters.
-   * It creates SWAP_EXACT_IN_SINGLE actions with settle and take operations, and optionally
+   * It creates SWAP_EXACT_IN actions with settle and take operations, and optionally
    * includes Permit2 signatures for token approvals. Fetches the current block timestamp to
    * compute the transaction deadline.
    *

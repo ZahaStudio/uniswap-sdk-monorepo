@@ -1,11 +1,11 @@
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
-import { UNICHAIN_POOL_KEY } from "@/test/fixtures/unichain";
+import { UNICHAIN_POOL_KEY, UNICHAIN_TOKENS } from "@/test/fixtures/unichain";
 import { createPinnedUnichainClient } from "@/test/integration/pinnedClient";
 
 describe("getQuote (unichain rpc)", () => {
-  it("returns a quote for a simple swap", async () => {
+  it("returns a quote for a single-hop route", async () => {
     const client = createPinnedUnichainClient();
     const sdk = UniswapSDK.create(client, unichain.id);
     const amountIn = "1000000";
@@ -18,8 +18,8 @@ describe("getQuote (unichain rpc)", () => {
     vi.setSystemTime(blockTimestampMs);
 
     const quote = await sdk.getQuote({
-      poolKey: UNICHAIN_POOL_KEY,
-      zeroForOne: false,
+      currencyIn: UNICHAIN_TOKENS.USDC,
+      route: [{ poolKey: UNICHAIN_POOL_KEY }],
       amountIn,
     });
 

@@ -90,15 +90,22 @@ Represents a liquidity position. Key properties:
 
 ## Quote Types
 
-### `SwapExactInSingle`
+### `SwapRouteHop`
 
 ```ts
-interface SwapExactInSingle {
-  poolKey: PoolKey; // Pool to quote through
-  zeroForOne: boolean; // true = currency0 → currency1
-  amountIn: bigint | string; // Input amount (smallest unit)
-  amountOutMinimum?: bigint | string; // Min output (default: "0")
-  hookData?: Hex; // Custom hook data (default: "0x")
+interface SwapRouteHop {
+  poolKey: PoolKey;
+  hookData?: Hex;
+}
+```
+
+### `SwapExactIn`
+
+```ts
+interface SwapExactIn {
+  currencyIn: Address;
+  route: [SwapRouteHop, ...SwapRouteHop[]];
+  amountIn: bigint | string;
 }
 ```
 
@@ -119,10 +126,10 @@ interface QuoteResponse {
 
 ```ts
 interface BuildSwapCallDataArgs {
+  currencyIn: Address; // Input currency for the first hop
+  route: [{ pool: Pool; hookData?: Hex }, ...{ pool: Pool; hookData?: Hex }[]];
   amountIn: bigint; // Input amount (must be > 0)
   amountOutMinimum: bigint; // Min output after slippage
-  pool: Pool; // V4 SDK Pool instance
-  zeroForOne: boolean; // Swap direction
   recipient: Address; // Output recipient
   deadlineDuration?: number; // Seconds from now (default: 300)
   permit2Signature?: BatchPermitOptions; // Permit2 batch signature
@@ -300,9 +307,9 @@ interface UseMutationHookOptions {
 
 ```ts
 interface UseSwapParams {
-  poolKey: PoolKey;
+  currencyIn: Address;
+  route: [{ poolKey: PoolKey; hookData?: Hex }, ...{ poolKey: PoolKey; hookData?: Hex }[]];
   amountIn: bigint;
-  zeroForOne: boolean;
   recipient?: Address;
   slippageBps?: number;
   useNativeETH?: boolean;

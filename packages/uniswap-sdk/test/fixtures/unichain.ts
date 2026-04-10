@@ -35,3 +35,8 @@ export const UNICHAIN_WETH_POOL_KEY = {
 } as const;
 
 export const UNICHAIN_WETH_IS_CURRENCY0 = wethCurrency0.toLowerCase() === UNICHAIN_TOKENS.WETH.toLowerCase();
+
+export const UNICHAIN_ETH_TO_WETH_ROUTE = [
+  { poolKey: UNICHAIN_POOL_KEY },
+  { poolKey: UNICHAIN_WETH_POOL_KEY },
+] as const;

@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 
 import { sortTokens, type PoolKey } from "@zahastudio/uniswap-sdk";
 import { zeroAddress } from "viem";
@@ -52,6 +52,22 @@ export interface PoolPreset {
   zeroForOne: boolean;
 }
 
+export interface SwapRouteHop {
+  poolKey: PoolKey;
+  hookData?: Hex;
+}
+
+export interface SwapPreset {
+  /** Human-readable identifier (e.g. "eth-usdc") */
+  poolId: string;
+  /** Tab label shown in the swap demo. */
+  label: string;
+  /** Input currency for the default route direction. */
+  currencyIn: Address;
+  /** Ordered list of pools for the route. */
+  route: readonly [SwapRouteHop, ...SwapRouteHop[]];
+}
+
 function makePoolKey(
   tokenA: Address,
   tokenB: Address,
@@ -90,6 +106,57 @@ export const WETH_USDC_POOL: PoolPreset = {
 };
 
 export const POOL_PRESETS: PoolPreset[] = [ETH_USDC_POOL, USDC_USDT_POOL, WETH_USDC_POOL];
+
+export const SWAP_PRESETS: SwapPreset[] = [
+  {
+    poolId: "eth-usdc",
+    label: "ETH / USDC",
+    currencyIn: zeroAddress,
+    route: [{ poolKey: ETH_USDC_POOL.poolKey }],
+  },
+  {
+    poolId: "usdc-usdt",
+    label: "USDC / USDT",
+    currencyIn: USDC_ADDR,
+    route: [{ poolKey: USDC_USDT_POOL.poolKey }],
+  },
+  {
+    poolId: "eth-weth-route",
+    label: "ETH / WETH",
+    currencyIn: zeroAddress,
+    route: [{ poolKey: ETH_USDC_POOL.poolKey }, { poolKey: WETH_USDC_POOL.poolKey }],
+  },
+];
+
+export function resolveRouteOutputCurrency(currencyIn: Address, route: readonly [SwapRouteHop, ...SwapRouteHop[]]): Address {
+  let currentCurrency = currencyIn.toLowerCase();
+  let outputCurrency = currencyIn;
+
+  for (const { poolKey } of route) {
+    const currency0 = poolKey.currency0.toLowerCase();
+    const currency1 = poolKey.currency1.toLowerCase();
+
+    if (currentCurrency === currency0) {
+      outputCurrency = poolKey.currency1 as Address;
+      currentCurrency = poolKey.currency1.toLowerCase();
+      continue;
+    }
+
+    if (currentCurrency === currency1) {
+      outputCurrency = poolKey.currency0 as Address;
+      currentCurrency = poolKey.currency0.toLowerCase();
+      continue;
+    }
+
+    throw new Error(`Invalid route for currency ${currencyIn}`);
+  }
+
+  return outputCurrency;
+}
+
+export function reverseSwapRoute(route: readonly [SwapRouteHop, ...SwapRouteHop[]]): [SwapRouteHop, ...SwapRouteHop[]] {
+  return [...route].reverse() as [SwapRouteHop, ...SwapRouteHop[]];
+}
 
 // ---------------------------------------------------------------------------
 // Amount helpers

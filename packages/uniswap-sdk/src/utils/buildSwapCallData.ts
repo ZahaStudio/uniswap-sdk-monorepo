@@ -9,6 +9,7 @@ import { encodeFunctionData } from "viem";
 import type { UniswapSDKInstance } from "@/core/sdk";
 
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
+import { resolveSwapRoute } from "@/utils/swapRoute";
 
 /**
  * Parameters for building a V4 swap
@@ -16,15 +17,25 @@ import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 export interface BuildSwapCallDataArgs {
   amountIn: bigint;
   amountOutMinimum: bigint;
-  pool: Pool;
-  /** The direction of the swap, true for currency0 to currency1, false for currency1 to currency0 */
-  zeroForOne: boolean;
+  /** Input currency for the first hop in the route. */
+  currencyIn: Address;
+  /** Ordered list of pools to route through. A single-hop swap is a route with one entry. */
+  route: readonly [
+    {
+      pool: Pool;
+      hookData?: Hex;
+    },
+    ...{
+      pool: Pool;
+      hookData?: Hex;
+    }[],
+  ];
   recipient: Address;
   /** Deadline duration in seconds from now. Defaults to 300 (5 minutes). */
   deadlineDuration?: number;
   /** Optional Permit2 batch signature for token approval */
   permit2Signature?: BatchPermitOptions;
-  /** Custom actions to override default swap behavior. If not provided, uses default SWAP_EXACT_IN_SINGLE */
+  /** Custom actions to override default swap behavior. If not provided, uses default SWAP_EXACT_IN. */
   customActions?: {
     action: Actions;
     parameters: unknown[];
@@ -46,8 +57,8 @@ export interface BuildSwapCallDataArgs {
 export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
   const {
     amountIn,
-    pool,
-    zeroForOne,
+    currencyIn,
+    route,
     permit2Signature,
     recipient,
     amountOutMinimum,
@@ -66,6 +77,15 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
 
   const v4Planner = new V4Planner();
   const routePlanner = new RoutePlanner();
+  const routeWithPoolKeys = route.map(({ pool, hookData }) => ({ poolKey: pool.poolKey, hookData })) as [
+    { poolKey: (typeof route)[number]["pool"]["poolKey"]; hookData?: Hex },
+    ...{ poolKey: (typeof route)[number]["pool"]["poolKey"]; hookData?: Hex }[],
+  ];
+  const { path, outputCurrency } = resolveSwapRoute(currencyIn, routeWithPoolKeys);
+  const inputPool = route[0].pool;
+  const outputPool = route[route.length - 1]!.pool;
+  const inputCurrencyObject = getRouteCurrency(inputPool, currencyIn, 1);
+  const outputCurrencyObject = getRouteCurrency(outputPool, outputCurrency, route.length);
 
   // Determine if WRAP_ETH or UNWRAP_WETH is needed for WETH-denominated pools
   let wrapInput = false;
@@ -73,34 +93,33 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
 
   if (useNativeETH) {
     const wethAddress = instance.contracts.weth.toLowerCase();
-    const inputCurrency = (zeroForOne ? pool.poolKey.currency0 : pool.poolKey.currency1).toLowerCase();
-    const outputCurrency = (zeroForOne ? pool.poolKey.currency1 : pool.poolKey.currency0).toLowerCase();
+    const normalizedInputCurrency = currencyIn.toLowerCase();
+    const normalizedOutputCurrency = outputCurrency.toLowerCase();
 
-    if (inputCurrency === wethAddress) {
+    if (normalizedInputCurrency === wethAddress) {
       wrapInput = true;
-    } else if (outputCurrency === wethAddress) {
+    } else if (normalizedOutputCurrency === wethAddress) {
       unwrapOutput = true;
     }
   }
 
-  // Use custom actions if provided, otherwise use default SWAP_EXACT_IN_SINGLE
+  // Use custom actions if provided, otherwise use default SWAP_EXACT_IN.
   if (customActions && customActions.length > 0) {
     // Add custom actions to the planner
     for (const customAction of customActions) {
       v4Planner.addAction(customAction.action, customAction.parameters);
     }
   } else {
-    v4Planner.addAction(Actions.SWAP_EXACT_IN_SINGLE, [
+    v4Planner.addAction(Actions.SWAP_EXACT_IN, [
       {
-        poolKey: pool.poolKey,
-        zeroForOne,
+        currencyIn,
+        path,
         amountIn: amountIn.toString(),
         amountOutMinimum: amountOutMinimum.toString(),
-        hookData: "0x",
       },
     ]);
-    v4Planner.addSettle(zeroForOne ? pool.currency0 : pool.currency1, !wrapInput);
-    v4Planner.addTake(zeroForOne ? pool.currency1 : pool.currency0, unwrapOutput ? ROUTER_AS_RECIPIENT : recipient);
+    v4Planner.addSettle(inputCurrencyObject, !wrapInput);
+    v4Planner.addTake(outputCurrencyObject, unwrapOutput ? ROUTER_AS_RECIPIENT : recipient);
   }
 
   const deadline = await getDefaultDeadline(instance, deadlineDuration);
@@ -137,4 +156,16 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
     functionName: "execute",
     args: [routePlanner.commands as Hex, finalInputs, deadline],
   });
+}
+
+function getRouteCurrency(pool: Pool, address: Address, hopIndex: number) {
+  if (pool.poolKey.currency0.toLowerCase() === address.toLowerCase()) {
+    return pool.currency0;
+  }
+
+  if (pool.poolKey.currency1.toLowerCase() === address.toLowerCase()) {
+    return pool.currency1;
+  }
+
+  throw new Error(`Invalid swap route: hop ${hopIndex} does not include currency ${address.toLowerCase()}.`);
 }
