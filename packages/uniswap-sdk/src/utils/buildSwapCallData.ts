@@ -72,8 +72,9 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   const { path, outputCurrency } = resolveSwapRoute(currencyIn, routeWithPoolKeys);
   const inputPool = route[0].pool;
   const outputPool = route[route.length - 1]!.pool;
-  const inputCurrencyObject = getRouteCurrency(inputPool, currencyIn, 1);
-  const outputCurrencyObject = getRouteCurrency(outputPool, outputCurrency, route.length);
+  const inputCurrencyObject = getInputCurrencyFromFirstPool(inputPool, currencyIn);
+  const outputCurrencyObject =
+    outputPool.poolKey.currency0.toLowerCase() === outputCurrency.toLowerCase() ? outputPool.currency0 : outputPool.currency1;
 
   // Determine if WRAP_ETH or UNWRAP_WETH is needed for WETH-denominated pools
   let wrapInput = false;
@@ -146,7 +147,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   });
 }
 
-function getRouteCurrency(pool: Pool, address: Address, hopIndex: number) {
+function getInputCurrencyFromFirstPool(pool: Pool, address: Address) {
   if (pool.poolKey.currency0.toLowerCase() === address.toLowerCase()) {
     return pool.currency0;
   }
@@ -155,5 +156,5 @@ function getRouteCurrency(pool: Pool, address: Address, hopIndex: number) {
     return pool.currency1;
   }
 
-  throw new Error(`Invalid swap route: hop ${hopIndex} does not include currency ${address.toLowerCase()}.`);
+  throw new Error(`Invalid swap route: first hop does not include currency ${address.toLowerCase()}.`);
 }

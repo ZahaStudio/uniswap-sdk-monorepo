@@ -154,12 +154,11 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   const slippageBps = slippageBpsParam ?? sdk.defaultSlippageTolerance;
 
-  const inputToken = currencyIn;
-  const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
+  const isNativeInput = currencyIn.toLowerCase() === zeroAddress.toLowerCase();
 
   // When useNativeETH is set, check if the input side is the WETH token
   const isNativeEthInput = useNativeETH
-    ? inputToken.toLowerCase() === sdk.getContractAddress("weth").toLowerCase()
+    ? currencyIn.toLowerCase() === sdk.getContractAddress("weth").toLowerCase()
     : false;
 
   const quoteEnabled = enabled && amountIn > 0n;
@@ -169,7 +168,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const universalRouter = sdk.getContractAddress("universalRouter");
   const { query: inputTokenQuery } = useToken(
     {
-      tokenAddress: isNativeEthInput ? zeroAddress : inputToken,
+      tokenAddress: isNativeEthInput ? zeroAddress : currencyIn,
     },
     {
       enabled: swapEnabled,
@@ -215,7 +214,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     {
       tokens: [
         {
-          address: inputToken,
+          address: currencyIn,
           amount: amountIn,
         },
       ],
