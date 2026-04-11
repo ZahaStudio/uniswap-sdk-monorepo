@@ -33,27 +33,35 @@ pnpm install @zahastudio/uniswap-sdk viem
 ```ts
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
-import { UniswapSDK } from "@zahastudio/uniswap-sdk";
+import { sortTokens, UniswapSDK } from "@zahastudio/uniswap-sdk";
 
 const client = createPublicClient({ chain: mainnet, transport: http() });
 const sdk = UniswapSDK.create(client, mainnet.id);
 
+const WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+const USDC = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const [currency0, currency1] = sortTokens(WETH, USDC);
+
 // Fetch token metadata
 const [weth, usdc] = await sdk.getTokens({
-  addresses: ["0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"],
+  addresses: [WETH, USDC],
 });
 
 // Get a quote
 const quote = await sdk.getQuote({
-  poolKey: {
-    currency0: weth,
-    currency1: usdc,
-    fee: 3000,
-    tickSpacing: 60,
-    hooks: "0x0000000000000000000000000000000000000000",
-  },
+  currencyIn: WETH,
+  route: [
+    {
+      poolKey: {
+        currency0,
+        currency1,
+        fee: 3000,
+        tickSpacing: 60,
+        hooks: "0x0000000000000000000000000000000000000000",
+      },
+    },
+  ],
   amountIn: 1000000000000000000n, // 1 ETH
-  zeroForOne: true,
 });
 ```
 
@@ -88,6 +96,7 @@ Available hooks:
 | `useSwap()`                      | Full swap workflow (quote, approve, permit2, execute) |
 | `useCreatePosition()`            | Full position creation workflow                       |
 | `usePosition()`                  | Fetch position data by token ID                       |
+| `usePoolState()`                 | Fetch current pool state by pool key                  |
 | `usePositionIncreaseLiquidity()` | Add liquidity to an existing position                 |
 | `usePositionRemoveLiquidity()`   | Remove liquidity from a position                      |
 | `usePositionCollectFees()`       | Collect accrued fees                                  |
@@ -149,7 +158,7 @@ await sdk.getPosition(tokenId);                     // Full position with SDK in
 await sdk.getPositionInfo(tokenId);                 // Lightweight position metadata
 await sdk.getUncollectedFees(tokenId);              // Accrued fee amounts
 
-// Transaction calldata builders (no RPC calls)
+// Transaction calldata builders (do not send transactions)
 await sdk.buildSwapCallData(swapArgs);              // Universal Router swap calldata
 await sdk.buildAddLiquidityCallData(addArgs);       // Position Manager mint calldata
 await sdk.buildRemoveLiquidityCallData(removeArgs); // Position Manager burn calldata
@@ -158,6 +167,8 @@ await sdk.buildCollectFeesCallData(collectArgs);    // Position Manager collect 
 // Permit2
 await sdk.preparePermit2BatchData(batchArgs);       // Multi-token batch permit
 ```
+
+Some calldata builders fetch the latest block timestamp or position state internally to compute deadlines and position-specific params, but none of them broadcast a transaction.
 
 Contract addresses are resolved automatically via [hookmate](https://github.com/akshatmittal/hookmate) for supported chains. Pass a custom `V4Contracts` object to override.
 
@@ -242,7 +253,7 @@ pnpm changeset
 
 ## AI Agent Integration
 
-This SDK ships with comprehensive documentation designed for AI agents (Claude, Cursor, Amp, Copilot, etc.). The docs are included in the published npm packages under `docs/`.
+The core V4 SDK ships with comprehensive documentation designed for AI agents (Claude, Cursor, Amp, Copilot, etc.). Those docs are published under `docs/` in `@zahastudio/uniswap-sdk`.
 
 To give your AI agent direct access to the SDK documentation, add the following line to your project's `AGENTS.md` (or equivalent):
 
@@ -258,7 +269,7 @@ Or reference individual docs as needed:
 | `node_modules/@zahastudio/uniswap-sdk/docs/core-sdk.md`  | Core SDK class, all methods, type signatures   |
 | `node_modules/@zahastudio/uniswap-sdk/docs/react-sdk.md` | React provider, all hooks, step-based patterns |
 | `node_modules/@zahastudio/uniswap-sdk/docs/recipes.md`   | 10 complete copy-paste code examples           |
-| `node_modules/@zahastudio/uniswap-sdk/docs/types.md`     | Every exported type/interface                  |
+| `node_modules/@zahastudio/uniswap-sdk/docs/types.md`     | Core and React hook types used in these docs   |
 
 ## Contributors & Maintainers
 

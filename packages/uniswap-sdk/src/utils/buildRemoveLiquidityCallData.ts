@@ -41,15 +41,15 @@ export interface BuildRemoveLiquidityCallDataArgs {
  *
  * @example
  * ```typescript
- * const { calldata, value } = buildRemoveLiquidityCallData({
- *   position,
+ * const { calldata, value } = await buildRemoveLiquidityCallData({
+ *   tokenId: "12345",
  *   liquidityPercentage: 10_000, // 100%
- * });
+ * }, instance);
  *
  * const tx = await sendTransaction({
  *   to: PositionManager.address,
  *   data: calldata,
- *   value: value,
+ *   value: BigInt(value),
  * });
  * ```
  */

@@ -1,6 +1,6 @@
 # Community Uniswap SDK — AI Agent Reference
 
-> This documentation is optimized for AI agents building applications with the Community Uniswap SDK. It contains complete type signatures, decision trees, and copy-paste code patterns.
+> This documentation is optimized for AI agents building applications with the Community Uniswap SDK. It covers the current public V4 SDK APIs, decision trees, and copy-paste code patterns.
 
 ## Packages
 
@@ -12,16 +12,18 @@
 ## When to use which package
 
 - **Building a Node.js script, server, or non-React frontend?** → Use `@zahastudio/uniswap-sdk` (core)
-- **Building a React/Next.js app?** → Use `@zahastudio/uniswap-sdk-react` (it re-exports core types you need)
+- **Building a React/Next.js app?** → Use `@zahastudio/uniswap-sdk-react` alongside `@zahastudio/uniswap-sdk`
 
 ## Documentation Map
 
-| Document                      | Contents                                                           |
-| ----------------------------- | ------------------------------------------------------------------ |
-| [Core SDK](./core-sdk.md)     | `UniswapSDK` class, all methods, type signatures, standalone usage |
-| [React SDK](./react-sdk.md)   | Provider setup, all hooks, step-based lifecycle patterns           |
-| [Recipes](./recipes.md)       | Complete end-to-end code examples for common tasks                 |
-| [Types Reference](./types.md) | Every exported type/interface with field descriptions              |
+| Document                      | Contents                                                            |
+| ----------------------------- | ------------------------------------------------------------------- |
+| [Core SDK](./core-sdk.md)     | `UniswapSDK` class, all methods, type signatures, standalone usage  |
+| [React SDK](./react-sdk.md)   | Provider setup, all hooks, step-based lifecycle patterns            |
+| [Recipes](./recipes.md)       | Complete end-to-end code examples for common tasks                  |
+| [Types Reference](./types.md) | Core SDK types plus the React hook types used throughout these docs |
+
+These docs focus on the Uniswap V4 SDK packages. The experimental Trading SDK packages live in the same monorepo but are documented in the root `README.md` for now.
 
 ## Key Concepts
 
@@ -67,7 +69,9 @@ Chains are resolved via `hookmate`'s `getSupportedChains()`. Common chain IDs:
 uniswap-sdk-monorepo/
 ├── packages/
 │   ├── uniswap-sdk/          # Core SDK (src/core/, src/utils/, src/helpers/)
-│   └── uniswap-sdk-react/    # React hooks & provider
+│   ├── uniswap-sdk-react/    # React hooks & provider
+│   ├── trading-sdk/          # Experimental Trading API SDK
+│   └── trading-sdk-react/    # Experimental React hooks & provider
 ├── apps/
 │   └── example/              # Next.js demo app
 └── tooling/

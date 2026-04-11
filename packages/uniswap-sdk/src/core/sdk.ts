@@ -217,14 +217,14 @@ export class UniswapSDK {
   }
 
   /**
-   * Simulates a token swap using the V4 Quoter contract to get exact output amounts and gas estimates.
+   * Simulates a token swap using the V4 Quoter contract to get the exact output amount.
    *
    * This method uses client.simulateContract() to call V4Quoter.quoteExactInput() and simulate
    * the swap without executing it. It provides accurate pricing information for route-based
    * swaps without sending a transaction.
    *
    * @param args @type {SwapExactIn} - Swap parameters including input currency, route, and amount in
-   * @returns Promise<QuoteResponse> - Quote data with amount out, gas estimate, and timestamp
+   * @returns Promise<QuoteResponse> - Quote data with amount out and fetch timestamp
    * @throws Error if simulation fails or contract call reverts
    */
   public async getQuote(args: SwapExactIn): Promise<QuoteResponse> {
@@ -341,7 +341,7 @@ export class UniswapSDK {
    * block timestamp to compute one.
    *
    * @param args @type {BuildRemoveLiquidityCallDataArgs} - Parameters for liquidity removal
-   * @returns Promise - Calldata and value for the burn transaction
+   * @returns Promise<BuildCallDataResult> - Calldata and value for the burn transaction
    * @throws Error if position data cannot be fetched or removal parameters are incorrect
    */
   public async buildRemoveLiquidityCallData(args: BuildRemoveLiquidityCallDataArgs): Promise<BuildCallDataResult> {
@@ -358,7 +358,7 @@ export class UniswapSDK {
    * timestamp to compute one.
    *
    * @param args @type {BuildCollectFeesCallDataArgs} - Fee collection parameters
-   * @returns Promise - Calldata and value for the collect transaction
+   * @returns Promise<BuildCallDataResult> - Calldata and value for the collect transaction
    * @throws Error if position data cannot be fetched or collection parameters are incorrect
    */
   public async buildCollectFeesCallData(args: BuildCollectFeesCallDataArgs): Promise<BuildCallDataResult> {

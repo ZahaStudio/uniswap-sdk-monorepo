@@ -107,14 +107,14 @@ const swap = useSwap(
 
 **Params:** `UseSwapParams`
 
-| Field          | Type                     | Required | Description                                  |
-| -------------- | ------------------------ | -------- | -------------------------------------------- |
-| `currencyIn`   | `Address`                | Yes      | Input currency for the first hop             |
-| `route`        | `[UseSwapRouteHop, ...]` | Yes      | Ordered route; single-hop = array of 1       |
-| `amountIn`     | `bigint`                 | Yes      | Input amount (base units)                    |
-| `recipient`    | `Address`                | No       | Output recipient (default: connected wallet) |
-| `slippageBps`  | `number`                 | No       | Slippage in BPS (default: SDK default)       |
-| `useNativeETH` | `boolean`                | No       | Wrap/unwrap native ETH                       |
+| Field          | Type        | Required | Description                                  |
+| -------------- | ----------- | -------- | -------------------------------------------- |
+| `currencyIn`   | `Address`   | Yes      | Input currency for the first hop             |
+| `route`        | `SwapRoute` | Yes      | Ordered route; single-hop = array of 1       |
+| `amountIn`     | `bigint`    | Yes      | Input amount (base units)                    |
+| `recipient`    | `Address`   | No       | Output recipient (default: connected wallet) |
+| `slippageBps`  | `number`    | No       | Slippage in BPS (default: SDK default)       |
+| `useNativeETH` | `boolean`   | No       | Wrap/unwrap native ETH                       |
 
 **Returns:** `UseSwapReturn`
 
@@ -194,19 +194,19 @@ const create = useCreatePosition(
 
 **Params:** `UseCreatePositionParams`
 
-| Field       | Type      | Required     | Description                      |
-| ----------- | --------- | ------------ | -------------------------------- |
-| `poolKey`   | `PoolKey` | Yes          | Pool to add liquidity to         |
-| `amount0`   | `bigint`  | One required | Token0 amount (user-edited side) |
-| `amount1`   | `bigint`  | One required | Token1 amount (user-edited side) |
-| `tickLower` | `number`  | No           | Lower tick (default: full range) |
-| `tickUpper` | `number`  | No           | Upper tick (default: full range) |
+| Field       | Type      | Required      | Description                                            |
+| ----------- | --------- | ------------- | ------------------------------------------------------ |
+| `poolKey`   | `PoolKey` | Yes           | Pool to add liquidity to                               |
+| `amount0`   | `bigint`  | Conditionally | Token0 amount; pass one side to auto-compute the other |
+| `amount1`   | `bigint`  | Conditionally | Token1 amount; pass one side to auto-compute the other |
+| `tickLower` | `number`  | No            | Lower tick (default: full range)                       |
+| `tickUpper` | `number`  | No            | Upper tick (default: full range)                       |
 
 **Returns:** `UseCreatePositionReturn`
 
 | Field                  | Type                                         | Description                                                                  |
 | ---------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
-| `pool`                 | `UseQueryResult<Pool>`                       | Pool query (current price, liquidity)                                        |
+| `pool`                 | `UseQueryResult<UsePoolStateData>`           | Pool query where `data.pool` is the current pool state                       |
 | `position`             | `CalculatedPosition \| null`                 | Computed amounts: `{ amount0, amount1, formattedAmount0, formattedAmount1 }` |
 | `tickRange`            | `{ tickLower, tickUpper } \| null`           | Resolved tick range                                                          |
 | `steps.approvalToken0` | `UseTokenApprovalReturn`                     | ERC-20 approval for token0                                                   |
@@ -237,9 +237,37 @@ const txHash = await create.executeAll({
 Fetch position data by NFT token ID.
 
 ```tsx
-const position = usePosition({ tokenId: "12345" }, { chainId: 1 });
-// Returns UseQueryResult with GetPositionResponse data
+const { query } = usePosition({ tokenId: "12345" }, { chainId: 1 });
+// query.data includes the full position plus periphery.uncollectedFees
 ```
+
+**Returns:** `{ query }` where `query.data` is `UsePositionData`.
+
+`UsePositionData` extends `GetPositionResponse` and adds:
+
+```ts
+{
+  periphery: {
+    uncollectedFees: {
+      amount0: bigint;
+      amount1: bigint;
+    }
+  }
+}
+```
+
+---
+
+### `usePoolState(params, options?)`
+
+Fetch current pool state by pool key.
+
+```tsx
+const { query } = usePoolState({ poolKey }, { refetchInterval: 12000 });
+const pool = query.data?.pool;
+```
+
+**Returns:** `{ query }` where `query.data?.pool` is the current `Pool` instance.
 
 ---
 
@@ -252,6 +280,8 @@ const increase = usePositionIncreaseLiquidity({ tokenId: "12345" }, { amount0: p
 
 await increase.executeAll({ recipient: address });
 ```
+
+Pass `amount0` and/or `amount1` in the second `options` argument. The returned value follows the same step pipeline shape as `useCreatePosition`, but without the `pool`, `position`, and `tickRange` helpers.
 
 ---
 
@@ -267,6 +297,8 @@ console.log(hash);
 // Use remove.transaction.status / remove.transaction.receipt to track confirmation in UI.
 ```
 
+**Returns:** `{ execute, transaction }`
+
 ---
 
 ### `usePositionCollectFees(params, options?)`
@@ -279,6 +311,8 @@ const hash = await collect.execute({ recipient: address });
 console.log(hash);
 // Use collect.transaction.status / collect.transaction.receipt to track confirmation in UI.
 ```
+
+**Returns:** `{ execute, transaction }`
 
 ---
 

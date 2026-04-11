@@ -310,7 +310,7 @@ export function CreatePositionWidget() {
 
   return (
     <div>
-      <p>Pool price: {create.pool.data?.token0Price.toFixed(4)}</p>
+      <p>Pool price: {create.pool.data?.pool.token0Price.toFixed(4)}</p>
       <p>Token0: {create.position?.formattedAmount0}</p>
       <p>Token1: {create.position?.formattedAmount1}</p>
 

@@ -120,11 +120,11 @@ const quote = await sdk.getQuote({
 
 **Args:** `SwapExactIn`
 
-| Field        | Type                  | Required | Description                                 |
-| ------------ | --------------------- | -------- | ------------------------------------------- |
-| `currencyIn` | `Address`             | Yes      | Input currency for the first hop            |
-| `route`      | `[SwapRouteHop, ...]` | Yes      | Ordered swap route; single-hop = array of 1 |
-| `amountIn`   | `bigint \| string`    | Yes      | Input amount in smallest unit               |
+| Field        | Type               | Required | Description                                 |
+| ------------ | ------------------ | -------- | ------------------------------------------- |
+| `currencyIn` | `Address`          | Yes      | Input currency for the first hop            |
+| `route`      | `SwapRoute`        | Yes      | Ordered swap route; single-hop = array of 1 |
+| `amountIn`   | `bigint \| string` | Yes      | Input amount in smallest unit               |
 
 **Returns:** `Promise<QuoteResponse>` — `{ amountOut: bigint, timestamp: number }`
 
@@ -161,7 +161,7 @@ Lightweight position metadata without creating SDK instances. More efficient for
 
 ```ts
 const info = await sdk.getPositionInfo("12345");
-// Returns raw position data: poolKey, liquidity, tickLower, tickUpper, slot0, poolLiquidity
+// Returns lightweight position data: tokenId, poolKey, currency0/1, liquidity, tick range, currentTick, slot0, poolLiquidity, poolId
 ```
 
 ---
@@ -211,17 +211,17 @@ const calldata = await sdk.buildSwapCallData({
 
 **Args:** `BuildSwapCallDataArgs`
 
-| Field              | Type                          | Required | Description                            |
-| ------------------ | ----------------------------- | -------- | -------------------------------------- |
-| `currencyIn`       | `Address`                     | Yes      | Input currency for the first hop       |
-| `route`            | `[{ pool, hookData? }, ...]`  | Yes      | Ordered route; single-hop = array of 1 |
-| `amountIn`         | `bigint`                      | Yes      | Input amount (must be > 0)             |
-| `amountOutMinimum` | `bigint`                      | Yes      | Min output after slippage              |
-| `recipient`        | `Address`                     | Yes      | Output token recipient                 |
-| `permit2Signature` | `BatchPermitOptions`          | No       | Permit2 batch signature                |
-| `deadlineDuration` | `number`                      | No       | Seconds from now (default 300)         |
-| `useNativeETH`     | `boolean`                     | No       | Wrap/unwrap ETH for WETH route edges   |
-| `customActions`    | `Array<{action, parameters}>` | No       | Override default swap actions          |
+| Field              | Type                          | Required | Description                                       |
+| ------------------ | ----------------------------- | -------- | ------------------------------------------------- |
+| `currencyIn`       | `Address`                     | Yes      | Input currency for the first hop                  |
+| `route`            | `[{ pool, hookData? }, ...]`  | Yes      | Ordered route; single-hop = array of 1            |
+| `amountIn`         | `bigint`                      | Yes      | Input amount (must be > 0)                        |
+| `amountOutMinimum` | `bigint`                      | Yes      | Min output after slippage                         |
+| `recipient`        | `Address`                     | Yes      | Output token recipient                            |
+| `permit2Signature` | `BatchPermitOptions`          | No       | Permit2 batch signature                           |
+| `deadlineDuration` | `number`                      | No       | Seconds from now (default: SDK `defaultDeadline`) |
+| `useNativeETH`     | `boolean`                     | No       | Wrap/unwrap ETH for WETH route edges              |
+| `customActions`    | `Array<{action, parameters}>` | No       | Override default swap actions                     |
 
 **Returns:** `Promise<Hex>` — encoded `execute()` calldata for Universal Router.
 
@@ -246,17 +246,17 @@ const { calldata, value } = await sdk.buildAddLiquidityCallData({
 
 **Args:** `BuildAddLiquidityArgs`
 
-| Field                   | Type                 | Required     | Description                               |
-| ----------------------- | -------------------- | ------------ | ----------------------------------------- |
-| `pool`                  | `Pool`               | Yes          | V4 SDK Pool instance                      |
-| `amount0`               | `string`             | One required | Amount of currency0 (smallest unit)       |
-| `amount1`               | `string`             | One required | Amount of currency1 (smallest unit)       |
-| `recipient`             | `Address`            | Yes          | Position NFT recipient                    |
-| `tickLower`             | `number`             | No           | Lower tick (default: full range MIN_TICK) |
-| `tickUpper`             | `number`             | No           | Upper tick (default: full range MAX_TICK) |
-| `slippageTolerance`     | `number`             | No           | BPS (default: SDK default, 50)            |
-| `deadlineDuration`      | `number`             | No           | Seconds from now                          |
-| `permit2BatchSignature` | `BatchPermitOptions` | No           | Permit2 batch signature                   |
+| Field                   | Type                 | Required     | Description                                                |
+| ----------------------- | -------------------- | ------------ | ---------------------------------------------------------- |
+| `pool`                  | `Pool`               | Yes          | V4 SDK Pool instance                                       |
+| `amount0`               | `string`             | One required | Amount of currency0 (smallest unit)                        |
+| `amount1`               | `string`             | One required | Amount of currency1 (smallest unit)                        |
+| `recipient`             | `Address`            | Yes          | Position NFT recipient                                     |
+| `tickLower`             | `number`             | No           | Lower tick (default: nearest usable full-range lower tick) |
+| `tickUpper`             | `number`             | No           | Upper tick (default: nearest usable full-range upper tick) |
+| `slippageTolerance`     | `number`             | No           | BPS (default: SDK default, 50)                             |
+| `deadlineDuration`      | `number`             | No           | Seconds from now                                           |
+| `permit2BatchSignature` | `BatchPermitOptions` | No           | Permit2 batch signature                                    |
 
 **Rules:**
 
@@ -346,12 +346,12 @@ const permit2Signature = permitData.buildPermit2BatchDataWithSignature(signature
 
 **Args:** `PreparePermit2BatchDataArgs`
 
-| Field              | Type        | Required | Description                     |
-| ------------------ | ----------- | -------- | ------------------------------- |
-| `tokens`           | `Address[]` | Yes      | Token addresses to permit       |
-| `spender`          | `Address`   | Yes      | Contract that will spend tokens |
-| `owner`            | `Address`   | Yes      | User's wallet address           |
-| `deadlineDuration` | `number`    | No       | Seconds from now                |
+| Field              | Type        | Required | Description                                       |
+| ------------------ | ----------- | -------- | ------------------------------------------------- |
+| `tokens`           | `Address[]` | Yes      | Token addresses to permit                         |
+| `spender`          | `Address`   | Yes      | Contract that will spend tokens                   |
+| `owner`            | `Address`   | Yes      | User's wallet address                             |
+| `deadlineDuration` | `number`    | No       | Seconds from now (default: SDK `defaultDeadline`) |
 
 ---
 
@@ -378,13 +378,13 @@ import { percentFromBips } from "@zahastudio/uniswap-sdk";
 const slippage = percentFromBips(50); // Percent instance representing 0.5%
 ```
 
-### `CacheAdapter` Interface
+### `CacheAdapter`
 
 ```ts
-interface CacheAdapter {
+type CacheAdapter = {
   get<T>(key: string): T | undefined | Promise<T | undefined>;
   set<T>(key: string, value: T, ttlMs?: number): void | Promise<void>;
-}
+};
 ```
 
 Supply a custom cache (e.g., Redis) via `UniswapSDK.create(client, chainId, { cache: myAdapter })`.

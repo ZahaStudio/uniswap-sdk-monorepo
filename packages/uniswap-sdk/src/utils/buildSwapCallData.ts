@@ -22,7 +22,7 @@ export interface BuildSwapCallDataArgs {
   /** Ordered list of pools to route through. A single-hop swap is a route with one entry. */
   route: SwapRouteWithPools;
   recipient: Address;
-  /** Deadline duration in seconds from now. Defaults to 300 (5 minutes). */
+  /** Deadline duration in seconds from now. Defaults to the SDK instance's `defaultDeadline`. */
   deadlineDuration?: number;
   /** Optional Permit2 batch signature for token approval */
   permit2Signature?: BatchPermitOptions;

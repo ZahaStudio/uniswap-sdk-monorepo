@@ -1,6 +1,6 @@
 # Types Reference
 
-All types are exported from `@zahastudio/uniswap-sdk`. The React package re-exports what it needs.
+Core runtime types come from `@zahastudio/uniswap-sdk`. React hook-specific types come from `@zahastudio/uniswap-sdk-react`.
 
 ## Core SDK Types
 
@@ -99,12 +99,24 @@ interface SwapRouteHop {
 }
 ```
 
+### `SwapRoute`
+
+```ts
+type SwapRoute = readonly [SwapRouteHop, ...SwapRouteHop[]];
+```
+
+### `SwapRouteWithPools`
+
+```ts
+type SwapRouteWithPools = readonly [{ pool: Pool; hookData?: Hex }, ...{ pool: Pool; hookData?: Hex }[]];
+```
+
 ### `SwapExactIn`
 
 ```ts
 interface SwapExactIn {
   currencyIn: Address;
-  route: [SwapRouteHop, ...SwapRouteHop[]];
+  route: SwapRoute;
   amountIn: bigint | string;
 }
 ```
@@ -127,11 +139,11 @@ interface QuoteResponse {
 ```ts
 interface BuildSwapCallDataArgs {
   currencyIn: Address; // Input currency for the first hop
-  route: [{ pool: Pool; hookData?: Hex }, ...{ pool: Pool; hookData?: Hex }[]];
+  route: SwapRouteWithPools;
   amountIn: bigint; // Input amount (must be > 0)
   amountOutMinimum: bigint; // Min output after slippage
   recipient: Address; // Output recipient
-  deadlineDuration?: number; // Seconds from now (default: 300)
+  deadlineDuration?: number; // Seconds from now (default: SDK defaultDeadline)
   permit2Signature?: BatchPermitOptions; // Permit2 batch signature
   customActions?: Array<{
     // Override default swap actions
@@ -154,8 +166,8 @@ interface BuildAddLiquidityArgs {
   amount0?: string; // Token0 amount (smallest unit)
   amount1?: string; // Token1 amount (smallest unit)
   recipient: Address; // Position NFT recipient
-  tickLower?: number; // Default: full range MIN_TICK
-  tickUpper?: number; // Default: full range MAX_TICK
+  tickLower?: number; // Default: nearest usable full-range lower tick
+  tickUpper?: number; // Default: nearest usable full-range upper tick
   slippageTolerance?: number; // BPS (default: SDK default)
   deadlineDuration?: number; // Seconds from now
   permit2BatchSignature?: BatchPermitOptions; // Permit2 batch signature
@@ -214,11 +226,15 @@ interface GetPositionResponse {
 
 Lightweight position metadata (no SDK instances). Fields include:
 
+- `tokenId` — position NFT ID
 - `poolKey` — the pool key
+- `currency0` / `currency1` — resolved Currency instances for the pool pair
 - `liquidity` — position liquidity (bigint)
 - `tickLower` / `tickUpper` — tick range
+- `currentTick` — current pool tick
 - `slot0` — current pool slot0 data
 - `poolLiquidity` — current pool liquidity
+- `poolId` — computed pool identifier
 
 ### `GetUncollectedFeesResponse`
 
@@ -308,11 +324,29 @@ interface UseMutationHookOptions {
 ```ts
 interface UseSwapParams {
   currencyIn: Address;
-  route: [{ poolKey: PoolKey; hookData?: Hex }, ...{ poolKey: PoolKey; hookData?: Hex }[]];
+  route: SwapRoute;
   amountIn: bigint;
   recipient?: Address;
   slippageBps?: number;
   useNativeETH?: boolean;
+}
+```
+
+### `UsePoolStateData`
+
+```ts
+interface UsePoolStateData {
+  pool: Pool;
+}
+```
+
+### `UsePositionData`
+
+```ts
+interface UsePositionData extends GetPositionResponse {
+  periphery: {
+    uncollectedFees: GetUncollectedFeesResponse;
+  };
 }
 ```
 

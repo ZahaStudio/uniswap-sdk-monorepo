@@ -107,7 +107,7 @@ export interface UseSwapReturn {
  * `executeAll()` chains them sequentially for single-action UX.
  *
  * @param params - Operation parameters: currencyIn, route, amountIn, recipient, slippageBps
- * @param options - Configuration: enabled, refetchInterval, staleTime, chainId
+ * @param options - Configuration: enabled, refetchInterval, chainId
  * @returns Swap lifecycle steps, current step indicator, and executeAll action
  *
  * @example Basic usage with individual step control
