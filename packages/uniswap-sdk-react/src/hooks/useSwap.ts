@@ -153,12 +153,19 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   const slippageBps = slippageBpsParam ?? sdk.defaultSlippageTolerance;
 
-  const isNativeInput = currencyIn.toLowerCase() === zeroAddress.toLowerCase();
+  const wethAddress = sdk.getContractAddress("weth");
+  const firstHopPoolKey = route[0].poolKey;
+  const firstHopSupportsNativeInput =
+    firstHopPoolKey.currency0.toLowerCase() === zeroAddress.toLowerCase() ||
+    firstHopPoolKey.currency1.toLowerCase() === zeroAddress.toLowerCase();
+  const shouldTreatNativeInputAsWeth =
+    !!useNativeETH && currencyIn.toLowerCase() === zeroAddress.toLowerCase() && !firstHopSupportsNativeInput;
+  const resolvedCurrencyIn = shouldTreatNativeInputAsWeth ? wethAddress : currencyIn;
 
-  // When useNativeETH is set, check if the input side is the WETH token
-  const isNativeEthInput = useNativeETH
-    ? currencyIn.toLowerCase() === sdk.getContractAddress("weth").toLowerCase()
-    : false;
+  const isNativeInput = resolvedCurrencyIn.toLowerCase() === zeroAddress.toLowerCase();
+
+  // When useNativeETH is set, treat WETH-denominated input as native ETH for balance checks and permit handling.
+  const isNativeEthInput = !!useNativeETH && resolvedCurrencyIn.toLowerCase() === wethAddress.toLowerCase();
 
   const quoteEnabled = enabled && amountIn > 0n;
   const swapEnabled = quoteEnabled && !!connectedAddress;
@@ -167,7 +174,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   const universalRouter = sdk.getContractAddress("universalRouter");
   const { query: inputTokenQuery } = useToken(
     {
-      tokenAddress: isNativeEthInput ? zeroAddress : currencyIn,
+      tokenAddress: isNativeEthInput ? zeroAddress : resolvedCurrencyIn,
     },
     {
       enabled: swapEnabled,
@@ -176,7 +183,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   );
 
   const quoteQuery = useQuery({
-    queryKey: swapKeys.quote(currencyIn, route, amountIn, slippageBps, chainId),
+    queryKey: swapKeys.quote(resolvedCurrencyIn, route, amountIn, slippageBps, chainId),
     queryFn: async (): Promise<QuoteData> => {
       assertSdkInitialized(sdk);
 
@@ -185,7 +192,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       }
 
       const quoteParams: SwapExactIn = {
-        currencyIn,
+        currencyIn: resolvedCurrencyIn,
         route: mapRoute(route, ({ poolKey, hookData }) => ({
           poolKey: {
             currency0: poolKey.currency0 as Address,
@@ -213,7 +220,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     {
       tokens: [
         {
-          address: currencyIn,
+          address: resolvedCurrencyIn,
           amount: amountIn,
         },
       ],
@@ -252,7 +259,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       const pools = await Promise.all(route.map(({ poolKey }) => sdk.getPool(poolKey)));
 
       const calldata = await sdk.buildSwapCallData({
-        currencyIn,
+        currencyIn: resolvedCurrencyIn,
         route: mapRoute(route, (hop, index) => ({ pool: pools[index]!, hookData: hop.hookData })),
         amountIn,
         amountOutMinimum: quote.minAmountOut,
@@ -270,7 +277,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     [
       sdk,
       connectedAddress,
-      currencyIn,
+      resolvedCurrencyIn,
       quote,
       inputBalance,
       permit2.permit2,
