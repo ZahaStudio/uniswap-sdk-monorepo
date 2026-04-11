@@ -117,8 +117,8 @@ export interface BuildAddLiquidityCallDataResult extends BuildCallDataResult {}
  * ```typescript
  * const params = {
  *   pool: pool,
- *   amount0: parseUnits("100", 6), // 100 USDC
- *   amount1: parseEther("0.04"), // 0.04 WETH
+ *   amount0: parseUnits("100", 6).toString(), // 100 USDC
+ *   amount1: parseEther("0.04").toString(), // 0.04 WETH
  *   recipient: "0x...",
  *   ... // other optional params
  * };
@@ -129,7 +129,7 @@ export interface BuildAddLiquidityCallDataResult extends BuildCallDataResult {}
  * const tx = await sendTransaction({
  *   to: V4PositionManager.address,
  *   data: calldata,
- *   value,
+ *   value: BigInt(value),
  * });
  * ```
  */

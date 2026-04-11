@@ -49,25 +49,23 @@ export const swapKeys = {
   /** Base key for all swap queries */
   all: [PACKAGE_KEY, "useSwap"] as const,
 
-  /** Key for a swap quote by pool key, amount, direction, slippage, and chain */
-  quote: (
-    poolKey: { currency0: string; currency1: string; fee: number; tickSpacing: number; hooks: string },
-    amountIn: bigint,
-    zeroForOne: boolean,
-    slippageBps: number,
-    chainId?: number,
-  ) =>
+  /** Key for a swap quote by input currency, ordered route, amount, slippage, and chain. */
+  quote: (currencyIn: string, route: SwapRoute, amountIn: bigint, slippageBps: number, chainId?: number) =>
     [
       ...swapKeys.all,
       "quote",
-      poolKey.currency0,
-      poolKey.currency1,
-      poolKey.fee,
-      poolKey.tickSpacing,
-      poolKey.hooks,
+      currencyIn,
+      ...route.flatMap(({ poolKey, hookData }) => [
+        poolKey.currency0,
+        poolKey.currency1,
+        poolKey.fee,
+        poolKey.tickSpacing,
+        poolKey.hooks,
+        hookData ?? "0x",
+      ]),
       amountIn,
-      zeroForOne,
       slippageBps,
       chainId,
     ] as const,
 };
+import type { SwapRoute } from "@zahastudio/uniswap-sdk";

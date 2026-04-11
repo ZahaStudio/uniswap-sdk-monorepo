@@ -1,58 +1,50 @@
-import type { SwapExactInSingle as UniswapSwapExactInSingle } from "@uniswap/v4-sdk";
-import type { Address, Hex } from "viem";
+import type { Address } from "viem";
 
 import { v4 } from "hookmate/abi";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
+import { resolveSwapRoute, type SwapRoute } from "@/utils/swapRoute";
+
 /**
- * Extended SwapExactInSingle type that ensures alignment with Uniswap V4 SDK
- * while providing additional flexibility for our use case.
+ * Exact-input swap quote parameters for a single route.
  *
  *
  * @example
  * ```typescript
- * const swapParams: SwapExactInSingle = {
- *   poolKey: {
- *     currency0: "0x...",
- *     currency1: "0x...",
- *     fee: 500,
- *     tickSpacing: 10,
- *     hooks: "0x0000000000000000000000000000000000000000"
- *   },
- *   zeroForOne: true,
+ * const swapParams: SwapExactIn = {
+ *   currencyIn: "0x...",
+ *   route: [
+ *     {
+ *       poolKey: {
+ *         currency0: "0x...",
+ *         currency1: "0x...",
+ *         fee: 500,
+ *         tickSpacing: 10,
+ *         hooks: "0x0000000000000000000000000000000000000000"
+ *       },
+ *     },
+ *   ],
  *   amountIn: "1000000"
  * };
  * ```
  */
-export interface SwapExactInSingle {
+export interface SwapExactIn {
   /**
-   * Pool key with currency addresses, fee, tick spacing, and hooks.
+   * Input currency for the first hop in the route.
    */
-  poolKey: UniswapSwapExactInSingle["poolKey"];
+  currencyIn: Address;
 
   /**
-   * Direction of the swap. True if swapping from currency0 to currency1.
+   * Ordered list of pools to route through. A single-hop swap is a route with one entry.
    */
-  zeroForOne: UniswapSwapExactInSingle["zeroForOne"];
+  route: SwapRoute;
 
   /**
    * The amount of tokens being swapped, as string (numberish).
    * Accepts bigint.toString(), number, etc.
    */
-  amountIn: UniswapSwapExactInSingle["amountIn"];
-
-  /**
-   * Minimum amount out for slippage protection.
-   * Defaults to "0" if not provided.
-   */
-  amountOutMinimum?: UniswapSwapExactInSingle["amountOutMinimum"];
-
-  /**
-   * Additional data for the hooks.
-   * Defaults to "0x" if not provided.
-   */
-  hookData?: UniswapSwapExactInSingle["hookData"];
+  amountIn: bigint | string;
 }
 
 /**
@@ -86,36 +78,29 @@ export interface QuoteResponse {
  *
  * @param params - The parameters required for the quote, including pool and amount.
  * @param instance - UniswapSDKInstance for contract interaction
- * @returns A Promise that resolves to the quote result, including the amount out and gas estimate.
+ * @returns A Promise that resolves to the quote result, including the amount out and fetch timestamp.
  * @throws Will throw an error if:
  * - Simulation fails (e.g., insufficient liquidity, invalid parameters)
  * - Contract call reverts
  */
-export async function getQuote(params: SwapExactInSingle, instance: UniswapSDKInstance): Promise<QuoteResponse> {
+export async function getQuote(params: SwapExactIn, instance: UniswapSDKInstance): Promise<QuoteResponse> {
   const { client, contracts } = instance;
   const { quoter } = contracts;
 
   try {
-    // Build the parameters for quoteExactInputSingle
-    // Using SwapExactInSingle structure directly from Uniswap V4 SDK
+    const { path } = resolveSwapRoute(params.currencyIn, params.route);
+
     const quoteParams = {
-      poolKey: {
-        currency0: params.poolKey.currency0 as Address,
-        currency1: params.poolKey.currency1 as Address,
-        fee: params.poolKey.fee,
-        tickSpacing: params.poolKey.tickSpacing,
-        hooks: params.poolKey.hooks as Address,
-      },
-      zeroForOne: params.zeroForOne,
+      exactCurrency: params.currencyIn,
+      path,
       exactAmount: BigInt(params.amountIn),
-      hookData: (params.hookData || "0x") as Hex,
     };
 
     // Simulate the quote to estimate the amount out
     const simulation = await client.simulateContract({
       address: quoter,
       abi: v4.QuoterArtifact.abi,
-      functionName: "quoteExactInputSingle",
+      functionName: "quoteExactInput",
       args: [quoteParams],
     });
 

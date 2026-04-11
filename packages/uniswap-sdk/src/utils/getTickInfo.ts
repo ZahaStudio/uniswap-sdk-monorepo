@@ -1,4 +1,4 @@
-import type { SwapExactInSingle as UniswapSwapExactInSingle } from "@uniswap/v4-sdk";
+import type { PoolKey } from "@uniswap/v4-sdk";
 import type { Address, Hex } from "viem";
 
 import { Pool } from "@uniswap/v4-sdk";
@@ -9,7 +9,7 @@ import type { UniswapSDKInstance } from "@/core/sdk";
 import { getTokens } from "@/utils/getTokens";
 
 export interface GetTickInfoArgs {
-  poolKey: UniswapSwapExactInSingle["poolKey"];
+  poolKey: PoolKey;
   tick: number;
 }
 

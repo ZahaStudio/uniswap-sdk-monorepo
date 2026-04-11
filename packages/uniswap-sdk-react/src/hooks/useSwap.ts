@@ -7,9 +7,10 @@ import type { Address, Hex } from "viem";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   calculateMinimumOutput,
-  type PoolKey,
+  mapRoute,
   type QuoteResponse,
-  type SwapExactInSingle,
+  type SwapExactIn,
+  type SwapRoute,
 } from "@zahastudio/uniswap-sdk";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
@@ -21,7 +22,6 @@ import type { UseHookOptions } from "@/types/hooks";
 import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { useToken } from "@/hooks/primitives/useToken";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
-import { usePoolState } from "@/hooks/usePoolState";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions";
 import { swapKeys } from "@/utils/queryKeys";
@@ -30,12 +30,12 @@ import { swapKeys } from "@/utils/queryKeys";
  * Operation parameters for the useSwap hook.
  */
 export interface UseSwapParams {
-  /** V4 pool key identifying the pool to swap through */
-  poolKey: PoolKey;
+  /** Input currency for the first hop in the route. */
+  currencyIn: Address;
+  /** Ordered route to swap through. A single-hop swap is a route with one entry. */
+  route: SwapRoute;
   /** Amount of input tokens in base units */
   amountIn: bigint;
-  /** Swap direction: true = currency0→currency1, false = currency1→currency0 */
-  zeroForOne: boolean;
   /** Recipient address for the output tokens (defaults to connected wallet) */
   recipient?: Address;
   /** Slippage tolerance in basis points (default: 50 = 0.5%) */
@@ -106,14 +106,14 @@ export interface UseSwapReturn {
  * Each step exposes its own state and action function, and a unified
  * `executeAll()` chains them sequentially for single-action UX.
  *
- * @param params - Operation parameters: poolKey, amountIn, zeroForOne, recipient, slippageBps
- * @param options - Configuration: enabled, refetchInterval, staleTime, chainId
+ * @param params - Operation parameters: currencyIn, route, amountIn, recipient, slippageBps
+ * @param options - Configuration: enabled, refetchInterval, chainId
  * @returns Swap lifecycle steps, current step indicator, and executeAll action
  *
  * @example Basic usage with individual step control
  * ```tsx
  * const swap = useSwap(
- *   { poolKey, amountIn: 1000000n, zeroForOne: true },
+ *   { currencyIn, route, amountIn: 1000000n },
  *   { refetchInterval: 12000 },
  * );
  *
@@ -130,7 +130,7 @@ export interface UseSwapReturn {
  *
  * @example One-click swap with executeAll
  * ```tsx
- * const swap = useSwap({ poolKey, amountIn: 1000000n, zeroForOne: true });
+ * const swap = useSwap({ currencyIn, route, amountIn: 1000000n });
  *
  * // Single call handles approve → sign → swap
  * const txHash = await swap.executeAll();
@@ -138,9 +138,9 @@ export interface UseSwapReturn {
  */
 export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): UseSwapReturn {
   const {
-    poolKey,
+    currencyIn,
+    route,
     amountIn,
-    zeroForOne,
     recipient: recipientOverride,
     slippageBps: slippageBpsParam,
     useNativeETH,
@@ -153,31 +153,28 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   const slippageBps = slippageBpsParam ?? sdk.defaultSlippageTolerance;
 
-  const inputToken = (zeroForOne ? poolKey.currency0 : poolKey.currency1) as Address;
-  const isNativeInput = inputToken.toLowerCase() === zeroAddress.toLowerCase();
+  const wethAddress = sdk.getContractAddress("weth");
+  const firstHopPoolKey = route[0].poolKey;
+  const firstHopSupportsNativeInput =
+    firstHopPoolKey.currency0.toLowerCase() === zeroAddress.toLowerCase() ||
+    firstHopPoolKey.currency1.toLowerCase() === zeroAddress.toLowerCase();
+  const shouldTreatNativeInputAsWeth =
+    !!useNativeETH && currencyIn.toLowerCase() === zeroAddress.toLowerCase() && !firstHopSupportsNativeInput;
+  const resolvedCurrencyIn = shouldTreatNativeInputAsWeth ? wethAddress : currencyIn;
 
-  // When useNativeETH is set, check if the input side is the WETH token
-  const isNativeEthInput = useNativeETH
-    ? inputToken.toLowerCase() === sdk.getContractAddress("weth").toLowerCase()
-    : false;
+  const isNativeInput = resolvedCurrencyIn.toLowerCase() === zeroAddress.toLowerCase();
+
+  // When useNativeETH is set, treat WETH-denominated input as native ETH for balance checks and permit handling.
+  const isNativeEthInput = !!useNativeETH && resolvedCurrencyIn.toLowerCase() === wethAddress.toLowerCase();
 
   const quoteEnabled = enabled && amountIn > 0n;
   const swapEnabled = quoteEnabled && !!connectedAddress;
   const requiresPermit2 = !isNativeInput && !isNativeEthInput;
 
-  const { query: poolQuery } = usePoolState(
-    { poolKey },
-    {
-      enabled: quoteEnabled,
-      refetchInterval,
-      chainId,
-    },
-  );
-
   const universalRouter = sdk.getContractAddress("universalRouter");
   const { query: inputTokenQuery } = useToken(
     {
-      tokenAddress: isNativeEthInput ? zeroAddress : inputToken,
+      tokenAddress: isNativeEthInput ? zeroAddress : resolvedCurrencyIn,
     },
     {
       enabled: swapEnabled,
@@ -186,7 +183,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   );
 
   const quoteQuery = useQuery({
-    queryKey: swapKeys.quote(poolKey, amountIn, zeroForOne, slippageBps, chainId),
+    queryKey: swapKeys.quote(resolvedCurrencyIn, route, amountIn, slippageBps, chainId),
     queryFn: async (): Promise<QuoteData> => {
       assertSdkInitialized(sdk);
 
@@ -194,15 +191,18 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         throw new Error("Input amount must be greater than zero");
       }
 
-      const quoteParams: SwapExactInSingle = {
-        poolKey: {
-          currency0: poolKey.currency0 as Address,
-          currency1: poolKey.currency1 as Address,
-          fee: poolKey.fee,
-          tickSpacing: poolKey.tickSpacing,
-          hooks: poolKey.hooks as Address,
-        },
-        zeroForOne,
+      const quoteParams: SwapExactIn = {
+        currencyIn: resolvedCurrencyIn,
+        route: mapRoute(route, ({ poolKey, hookData }) => ({
+          poolKey: {
+            currency0: poolKey.currency0 as Address,
+            currency1: poolKey.currency1 as Address,
+            fee: poolKey.fee,
+            tickSpacing: poolKey.tickSpacing,
+            hooks: poolKey.hooks as Address,
+          },
+          hookData,
+        })),
         amountIn: amountIn.toString(),
       };
 
@@ -220,7 +220,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     {
       tokens: [
         {
-          address: inputToken,
+          address: resolvedCurrencyIn,
           amount: amountIn,
         },
       ],
@@ -234,7 +234,6 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   const swapTransaction = useTransaction({ chainId });
   const quote = quoteQuery.data;
-  const pool = poolQuery.data?.pool;
   const inputBalance = inputTokenQuery.data?.balance?.raw;
 
   const swapExecute = useCallback(
@@ -257,15 +256,13 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
       const permit2Signature = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
 
-      if (!pool) {
-        throw new Error("Pool state not available");
-      }
+      const pools = await Promise.all(route.map(({ poolKey }) => sdk.getPool(poolKey)));
 
       const calldata = await sdk.buildSwapCallData({
-        pool,
+        currencyIn: resolvedCurrencyIn,
+        route: mapRoute(route, (hop, index) => ({ pool: pools[index]!, hookData: hop.hookData })),
         amountIn,
         amountOutMinimum: quote.minAmountOut,
-        zeroForOne,
         recipient: recipient ?? connectedAddress,
         permit2Signature,
         useNativeETH,
@@ -280,12 +277,12 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     [
       sdk,
       connectedAddress,
+      resolvedCurrencyIn,
       quote,
       inputBalance,
       permit2.permit2,
-      pool,
+      route,
       amountIn,
-      zeroForOne,
       recipient,
       swapTransaction,
       universalRouter,

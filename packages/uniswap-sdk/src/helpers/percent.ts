@@ -26,7 +26,7 @@ export function assertBasisPoints(value: number, label: string): void {
  *
  * @example
  * ```ts
- * const slippage = slippageToPercent(50); // 0.5%
+ * const slippage = percentFromBips(50); // 0.5%
  * ```
  */
 export function percentFromBips(bps: number): Percent {

@@ -10,7 +10,9 @@
       "outputs": ["coverage/**"],
       "dependsOn": []
     },
-    "typecheck": {},
+    "typecheck": {
+      "cache": false
+    },
     "dev": {
       "cache": false,
       "persistent": true

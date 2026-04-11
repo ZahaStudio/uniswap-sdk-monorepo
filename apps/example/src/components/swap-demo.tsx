@@ -2,100 +2,127 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
-import { usePoolState, useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uniswap-sdk-react";
-import { zeroAddress, type Address } from "viem";
+import { useQuery } from "@tanstack/react-query";
+import { useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uniswap-sdk-react";
+import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
 import { ConnectWalletButton } from "@/components/connect-wallet-button";
 import { DetailRow } from "@/components/detail-row";
-import { PoolTab } from "@/components/pool-tab";
 import { RefreshButton } from "@/components/refresh-button";
 import { StepIndicator } from "@/components/step-indicator";
 import { SwapDetails } from "@/components/swap-details";
 import { TokenInput } from "@/components/token-input";
 import { TransactionStatus } from "@/components/transaction-status";
-import { POOL_PRESETS, type PoolPreset, buildTokenInfo, parseTokenAmount, formatTokenAmount } from "@/lib/tokens";
-import { cn, shouldShowExecutionError, placeholderToken } from "@/lib/utils";
+import {
+  SWAP_PRESETS,
+  type SwapPreset,
+  buildTokenInfo,
+  formatTokenAmount,
+  parseTokenAmount,
+  resolveRouteOutputCurrency,
+  reverseSwapRoute,
+} from "@/lib/tokens";
+import { cn, placeholderToken, shouldShowExecutionError } from "@/lib/utils";
 
 const QUOTE_REFRESH_INTERVAL = 30_000;
+const SWAP_CHAIN_ID = 1;
 
 export function SwapDemo() {
   const { isConnected } = useAccount();
-  const { sdk } = useUniswapSDK({ chainId: 1 });
+  const { sdk } = useUniswapSDK({ chainId: SWAP_CHAIN_ID });
 
-  const [selectedPreset, setSelectedPreset] = useState<PoolPreset>(POOL_PRESETS[0]!);
-  const [zeroForOne, setZeroForOne] = useState(selectedPreset.zeroForOne);
+  const [selectedPreset, setSelectedPreset] = useState<SwapPreset>(SWAP_PRESETS[0]!);
+  const [isReversed, setIsReversed] = useState(false);
   const [amountInput, setAmountInput] = useState("");
   const [useNativeETH, setUseNativeETH] = useState(false);
 
-  const handlePresetChange = useCallback((preset: PoolPreset) => {
+  const defaultOutputCurrency = useMemo(
+    () => resolveRouteOutputCurrency(selectedPreset.currencyIn, selectedPreset.route),
+    [selectedPreset],
+  );
+  const activeCurrencyIn = isReversed ? defaultOutputCurrency : selectedPreset.currencyIn;
+  const activeRoute = useMemo(
+    () => (isReversed ? reverseSwapRoute(selectedPreset.route) : selectedPreset.route),
+    [isReversed, selectedPreset.route],
+  );
+  const activeCurrencyOut = useMemo(
+    () => resolveRouteOutputCurrency(activeCurrencyIn, activeRoute),
+    [activeCurrencyIn, activeRoute],
+  );
+
+  const handlePresetChange = useCallback((preset: SwapPreset) => {
     setSelectedPreset(preset);
-    setZeroForOne(preset.zeroForOne);
+    setIsReversed(false);
     setAmountInput("");
   }, []);
 
   const handleFlipDirection = useCallback(() => {
-    setZeroForOne((prev) => !prev);
+    setIsReversed((prev) => !prev);
     setAmountInput("");
   }, []);
 
-  const { poolKey } = selectedPreset;
+  const wethAddress = sdk.getContractAddress("weth").toLowerCase();
+  const displayCurrencyIn =
+    useNativeETH && activeCurrencyIn.toLowerCase() === wethAddress ? zeroAddress : activeCurrencyIn;
+  const displayCurrencyOut =
+    useNativeETH && activeCurrencyOut.toLowerCase() === wethAddress ? zeroAddress : activeCurrencyOut;
 
-  // Fetch on-chain token metadata for both currencies
-  const { query: currency0Query } = useToken(
-    { tokenAddress: poolKey.currency0 as Address },
-    { enabled: true, chainId: 1 },
+  const { query: inputTokenDisplayQuery } = useToken(
+    { tokenAddress: displayCurrencyIn },
+    { enabled: true, chainId: SWAP_CHAIN_ID },
   );
-  const { query: currency1Query } = useToken(
-    { tokenAddress: poolKey.currency1 as Address },
-    { enabled: true, chainId: 1 },
-  );
-  const { query: poolQuery } = usePoolState(
-    { poolKey },
-    { enabled: true, chainId: 1, refetchInterval: QUOTE_REFRESH_INTERVAL },
+  const { query: outputTokenDisplayQuery } = useToken(
+    { tokenAddress: displayCurrencyOut },
+    { enabled: true, chainId: SWAP_CHAIN_ID },
   );
 
-  const currency0Token = currency0Query.data
+  const tokenIn = inputTokenDisplayQuery.data
     ? buildTokenInfo(
-        currency0Query.data.token.address,
-        currency0Query.data.token.symbol,
-        currency0Query.data.token.name,
-        currency0Query.data.token.decimals,
+        inputTokenDisplayQuery.data.token.address,
+        inputTokenDisplayQuery.data.token.symbol,
+        inputTokenDisplayQuery.data.token.name,
+        inputTokenDisplayQuery.data.token.decimals,
       )
-    : placeholderToken(poolKey.currency0 as Address);
+    : placeholderToken(displayCurrencyIn);
 
-  const currency1Token = currency1Query.data
+  const tokenOut = outputTokenDisplayQuery.data
     ? buildTokenInfo(
-        currency1Query.data.token.address,
-        currency1Query.data.token.symbol,
-        currency1Query.data.token.name,
-        currency1Query.data.token.decimals,
+        outputTokenDisplayQuery.data.token.address,
+        outputTokenDisplayQuery.data.token.symbol,
+        outputTokenDisplayQuery.data.token.name,
+        outputTokenDisplayQuery.data.token.decimals,
       )
-    : placeholderToken(poolKey.currency1 as Address);
-
-  const tokenIn = zeroForOne ? currency0Token : currency1Token;
-  const tokenOut = zeroForOne ? currency1Token : currency0Token;
-  const pool = poolQuery.data?.pool;
+    : placeholderToken(displayCurrencyOut);
 
   const amountInRaw = useMemo(() => parseTokenAmount(amountInput, tokenIn.decimals), [amountInput, tokenIn.decimals]);
+  const isNativeInput = displayCurrencyIn.toLowerCase() === zeroAddress.toLowerCase();
 
-  const isNativeInput =
-    (useNativeETH && tokenIn.address.toLowerCase() === sdk.getContractAddress("weth").toLowerCase()) ||
-    tokenIn.address.toLowerCase() === zeroAddress.toLowerCase();
-
-  // Fetch balance for the input token
   const { query: tokenInQuery } = useToken(
-    { tokenAddress: isNativeInput ? zeroAddress : tokenIn.address },
-    { enabled: isConnected, chainId: 1, refetchInterval: 15_000 },
+    { tokenAddress: displayCurrencyIn },
+    { enabled: isConnected, chainId: SWAP_CHAIN_ID, refetchInterval: 15_000 },
   );
+
+  const routePoolsQuery = useQuery({
+    queryKey: ["swap-demo-route-pools", selectedPreset.poolId, isReversed],
+    queryFn: () => Promise.all(activeRoute.map(({ poolKey }) => sdk.getPool(poolKey))),
+    enabled: true,
+    refetchInterval: QUOTE_REFRESH_INTERVAL,
+  });
 
   const handleMaxClick = useCallback(() => {
     if (tokenInQuery.data?.balance) setAmountInput(tokenInQuery.data.balance.formatted);
   }, [tokenInQuery.data?.balance]);
 
   const swap = useSwap(
-    { poolKey, amountIn: amountInRaw, zeroForOne, slippageBps: 50, useNativeETH: useNativeETH || undefined },
-    { enabled: amountInRaw > 0n, refetchInterval: QUOTE_REFRESH_INTERVAL, chainId: 1 },
+    {
+      currencyIn: activeCurrencyIn,
+      route: activeRoute,
+      amountIn: amountInRaw,
+      slippageBps: 50,
+      useNativeETH: useNativeETH || undefined,
+    },
+    { enabled: amountInRaw > 0n, refetchInterval: QUOTE_REFRESH_INTERVAL, chainId: SWAP_CHAIN_ID },
   );
 
   const { steps, currentStep, executeAll, reset } = swap;
@@ -103,13 +130,13 @@ export function SwapDemo() {
   const quoteLoading = steps.quote.isLoading;
   const quoteError = steps.quote.error;
   const isFetchingQuote = steps.quote.isFetching;
+  const routePools = routePoolsQuery.data;
 
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
   const hasInsufficientBalance =
     amountInRaw > 0n && tokenInQuery.data?.balance !== undefined && amountInRaw > tokenInQuery.data.balance.raw;
 
-  // Countdown timer for quote auto-refresh
   const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(QUOTE_REFRESH_INTERVAL / 1000);
   const lastRefreshRef = useRef(Date.now());
 
@@ -141,12 +168,13 @@ export function SwapDemo() {
   const handleRefreshAll = useCallback(() => {
     steps.quote.refetch();
     tokenInQuery.refetch();
-    poolQuery.refetch();
+    routePoolsQuery.refetch();
     resetRefreshTimer();
-  }, [steps.quote, tokenInQuery, poolQuery, resetRefreshTimer]);
+  }, [steps.quote, tokenInQuery, routePoolsQuery, resetRefreshTimer]);
 
   const outputDisplay = quoteData ? formatTokenAmount(quoteData.amountOut, tokenOut.decimals) : undefined;
   const minOutputDisplay = quoteData ? formatTokenAmount(quoteData.minAmountOut, tokenOut.decimals) : undefined;
+  const routeLabel = `${activeRoute.length} hop${activeRoute.length === 1 ? "" : "s"} via ${selectedPreset.label}`;
 
   const [executing, setExecuting] = useState(false);
   const [txError, setTxError] = useState<string | null>(null);
@@ -201,17 +229,15 @@ export function SwapDemo() {
     setExecuting(false);
     tokenInQuery.refetch();
     steps.quote.refetch();
-    poolQuery.refetch();
+    routePoolsQuery.refetch();
     resetRefreshTimer();
-  }, [reset, steps.quote, tokenInQuery, poolQuery, resetRefreshTimer]);
+  }, [reset, steps.quote, tokenInQuery, routePoolsQuery, resetRefreshTimer]);
 
   const insufficientBalanceError = hasInsufficientBalance ? `Insufficient ${tokenIn.symbol} balance` : null;
 
   return (
     <div className="flex w-full items-start justify-center gap-6">
-      {/* Left panel: Lifecycle + Settings */}
       <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
-        {/* Settings panel */}
         <div className="rounded-xl border border-border-muted bg-surface p-4">
           <div className="mb-3 text-xs font-medium text-text-muted">Settings</div>
           <label className="flex cursor-pointer items-center gap-2.5">
@@ -223,12 +249,11 @@ export function SwapDemo() {
             />
             <div>
               <div className="text-xs font-medium text-text-secondary">Use native ETH</div>
-              <div className="text-[11px] text-text-muted">Wrap/unwrap ETH for WETH pools</div>
+              <div className="text-[11px] text-text-muted">Wrap/unwrap ETH for WETH route edges</div>
             </div>
           </label>
         </div>
 
-        {/* Lifecycle panel */}
         {isConnected && quoteData ? (
           <>
             <StepIndicator
@@ -261,67 +286,87 @@ export function SwapDemo() {
         )}
       </div>
 
-      {/* Main content */}
       <div className="w-full max-w-120 min-w-120 space-y-4">
-        {/* Pool selector tabs */}
         <div className="flex gap-2">
-          {POOL_PRESETS.map((preset) => (
-            <PoolTab
+          {SWAP_PRESETS.map((preset) => (
+            <button
               key={preset.poolId}
-              preset={preset}
-              isSelected={selectedPreset.poolId === preset.poolId}
               onClick={() => handlePresetChange(preset)}
-            />
+              className={cn(
+                "flex-1 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all",
+                selectedPreset.poolId === preset.poolId
+                  ? "border-accent/30 bg-accent-muted text-accent"
+                  : "border-border-muted bg-surface text-text-secondary hover:border-border hover:bg-surface-hover",
+              )}
+            >
+              {preset.label}
+            </button>
           ))}
         </div>
 
-        {/* Pool info */}
-        {pool && (
+        {routePools && (
           <div className="rounded-2xl border border-border-muted bg-surface p-4">
             <div className="mb-2 flex items-center justify-between">
-              <span className="text-xs font-medium text-text-muted">Pool Info</span>
+              <span className="text-xs font-medium text-text-muted">Route Info</span>
               <RefreshButton
                 onClick={handleRefreshAll}
                 disabled={executing || isSwapConfirmed}
-                spinning={isFetchingQuote || poolQuery.isFetching}
+                spinning={isFetchingQuote || routePoolsQuery.isFetching}
               />
             </div>
-            <div className="space-y-1.5 rounded-xl bg-surface-raised p-3">
+            <div className="space-y-3 rounded-xl bg-surface-raised p-3">
               <DetailRow
-                label="Fee tier"
-                value={`${pool.fee / 10000}%`}
+                label="Route"
+                value={routeLabel}
               />
               <DetailRow
-                label="Tick spacing"
-                value={pool.tickSpacing.toString()}
+                label="Input"
+                value={tokenIn.symbol}
               />
               <DetailRow
-                label="Current tick"
-                value={pool.tickCurrent.toString()}
+                label="Output"
+                value={tokenOut.symbol}
               />
-              <DetailRow
-                label="Current price"
-                value={`${pool.token0Price.toSignificant(6)} ${currency1Token.symbol} per ${currency0Token.symbol}`}
-              />
-              <DetailRow
-                label="Liquidity"
-                value={pool.liquidity.toString()}
-              />
+              {routePools.map((pool, index) => (
+                <div
+                  key={`${pool.poolId}-${index}`}
+                  className="rounded-lg border border-border-muted/60 bg-surface px-3 py-2"
+                >
+                  <div className="mb-2 text-xs font-medium text-text-secondary">Hop {index + 1}</div>
+                  <div className="space-y-1.5">
+                    <DetailRow
+                      label="Fee tier"
+                      value={`${pool.fee / 10000}%`}
+                    />
+                    <DetailRow
+                      label="Tick spacing"
+                      value={pool.tickSpacing.toString()}
+                    />
+                    <DetailRow
+                      label="Current tick"
+                      value={pool.tickCurrent.toString()}
+                    />
+                    <DetailRow
+                      label="Liquidity"
+                      value={pool.liquidity.toString()}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {poolQuery.isLoading && (
+        {routePoolsQuery.isLoading && (
           <div className="flex items-center justify-center rounded-2xl border border-border-muted bg-surface p-6">
-            <div className="animate-pulse text-sm text-text-secondary">Loading pool...</div>
+            <div className="animate-pulse text-sm text-text-secondary">Loading route...</div>
           </div>
         )}
 
-        {poolQuery.error && (
-          <div className="rounded-xl bg-error-muted p-3 text-xs text-error">{poolQuery.error.message}</div>
+        {routePoolsQuery.error && (
+          <div className="rounded-xl bg-error-muted p-3 text-xs text-error">{routePoolsQuery.error.message}</div>
         )}
 
-        {/* Swap card */}
         <div className="rounded-2xl border border-border-muted bg-surface p-4">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs font-medium text-text-muted">Swap</span>
@@ -332,7 +377,6 @@ export function SwapDemo() {
             />
           </div>
 
-          {/* Input */}
           <TokenInput
             label="You pay"
             token={tokenIn}
@@ -344,7 +388,6 @@ export function SwapDemo() {
             onMaxClick={handleMaxClick}
           />
 
-          {/* Flip direction button */}
           <div className="relative my-1 flex items-center justify-center">
             <div className="absolute inset-x-0 top-1/2 h-px bg-border-muted" />
             <button
@@ -370,7 +413,6 @@ export function SwapDemo() {
             </button>
           </div>
 
-          {/* Output */}
           <TokenInput
             label="You receive"
             token={tokenOut}
@@ -379,7 +421,6 @@ export function SwapDemo() {
             loading={quoteLoading}
           />
 
-          {/* Quote refresh countdown */}
           {quoteData && !isSwapConfirmed && (
             <div className="mt-3 flex items-center justify-between">
               <span className="text-text-tertiary text-xs">Quote refreshes in {secondsUntilRefresh}s</span>
@@ -414,23 +455,21 @@ export function SwapDemo() {
             </div>
           )}
 
-          {/* Swap details */}
           {quoteData && (
             <SwapDetails
               minOutput={minOutputDisplay!}
               outputSymbol={tokenOut.symbol}
               slippageBps={50}
+              routeLabel={routeLabel}
             />
           )}
 
-          {/* Error display */}
           {(quoteError || txError || insufficientBalanceError) && (
             <div className="mt-3 rounded-lg bg-error-muted p-3 text-xs text-error">
               {insufficientBalanceError ?? quoteError?.message ?? txError}
             </div>
           )}
 
-          {/* Action button */}
           <div className="mt-4">
             {!isConnected ? (
               <ConnectWalletButton />

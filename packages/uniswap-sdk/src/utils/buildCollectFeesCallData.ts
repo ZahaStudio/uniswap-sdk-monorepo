@@ -48,7 +48,7 @@ export interface BuildCollectFeesCallDataArgs {
  * const tx = await sendTransaction({
  *   to: PositionManager.address,
  *   data: calldata,
- *   value,
+ *   value: BigInt(value),
  * })
  * ```
  */

@@ -4,6 +4,12 @@
       "path": "apps/example",
     },
     {
+      "path": "packages/trading-sdk",
+    },
+    {
+      "path": "packages/trading-sdk-react",
+    },
+    {
       "path": "packages/uniswap-sdk",
     },
     {

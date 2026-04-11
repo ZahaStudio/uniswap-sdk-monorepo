@@ -9,9 +9,10 @@ interface SwapDetailsProps {
   minOutput: string;
   outputSymbol: string;
   slippageBps: number;
+  routeLabel: string;
 }
 
-export function SwapDetails({ minOutput, outputSymbol, slippageBps }: SwapDetailsProps) {
+export function SwapDetails({ minOutput, outputSymbol, slippageBps, routeLabel }: SwapDetailsProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -55,7 +56,7 @@ export function SwapDetails({ minOutput, outputSymbol, slippageBps }: SwapDetail
           />
           <DetailRow
             label="Route"
-            value="V4 single-hop"
+            value={routeLabel}
           />
         </div>
       )}
