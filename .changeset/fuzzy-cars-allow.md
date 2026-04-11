@@ -1,6 +1,6 @@
 ---
-"@zahastudio/uniswap-sdk": major
-"@zahastudio/uniswap-sdk-react": major
+"@zahastudio/uniswap-sdk": minor
+"@zahastudio/uniswap-sdk-react": minor
 ---
 
 Replace the single-hop swap API with a route-based exact-input API across the core SDK and React hooks.
