@@ -2,18 +2,34 @@
 
 import { useState } from "react";
 
+import { TradeType } from "@zahastudio/uniswap-sdk";
+
 import { DetailRow } from "@/components/detail-row";
 import { cn } from "@/lib/utils";
 
 interface SwapDetailsProps {
-  minOutput: string;
+  tradeType: typeof TradeType.ExactInput | typeof TradeType.ExactOutput;
+  inputSymbol: string;
   outputSymbol: string;
   slippageBps: number;
   routeLabel: string;
+  minOutput?: string;
+  maxInput?: string;
 }
 
-export function SwapDetails({ minOutput, outputSymbol, slippageBps, routeLabel }: SwapDetailsProps) {
+export function SwapDetails({
+  tradeType,
+  inputSymbol,
+  outputSymbol,
+  slippageBps,
+  routeLabel,
+  minOutput,
+  maxInput,
+}: SwapDetailsProps) {
   const [expanded, setExpanded] = useState(false);
+  const primaryLabel = tradeType === TradeType.ExactOutput ? "Max. sold" : "Min. received";
+  const primaryValue =
+    tradeType === TradeType.ExactOutput ? `${maxInput ?? "0"} ${inputSymbol}` : `${minOutput ?? "0"} ${outputSymbol}`;
 
   return (
     <div className="mt-3">
@@ -22,10 +38,7 @@ export function SwapDetails({ minOutput, outputSymbol, slippageBps, routeLabel }
         className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs text-text-secondary transition-colors hover:bg-surface-raised"
       >
         <span>
-          Min. received:{" "}
-          <span className="font-medium text-text">
-            {minOutput} {outputSymbol}
-          </span>
+          {primaryLabel}: <span className="font-medium text-text">{primaryValue}</span>
         </span>
         <svg
           width="12"
@@ -51,8 +64,8 @@ export function SwapDetails({ minOutput, outputSymbol, slippageBps, routeLabel }
             value={`${(slippageBps / 100).toFixed(2)}%`}
           />
           <DetailRow
-            label="Min. received"
-            value={`${minOutput} ${outputSymbol}`}
+            label={primaryLabel}
+            value={primaryValue}
           />
           <DetailRow
             label="Route"

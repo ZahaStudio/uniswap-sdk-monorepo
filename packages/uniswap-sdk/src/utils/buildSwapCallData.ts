@@ -4,21 +4,24 @@ import type { Address, Hex } from "viem";
 import { CommandType, ROUTER_AS_RECIPIENT, RoutePlanner } from "@uniswap/universal-router-sdk";
 import { Actions, V4Planner } from "@uniswap/v4-sdk";
 import { utility } from "hookmate/abi";
-import { encodeFunctionData } from "viem";
+import { encodeFunctionData, zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+import type { ExactInputTradeType, ExactOutputTradeType } from "@/types/tradeType";
+import { TradeType } from "@/types/tradeType";
 
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
-import { mapRoute, resolveSwapRoute, type SwapRouteWithPools } from "@/utils/swapRoute";
+import {
+  mapRoute,
+  resolveSwapRouteExactInput,
+  resolveSwapRouteExactOutput,
+  type SwapRouteWithPools,
+} from "@/utils/swapRoute";
 
 /**
  * Parameters for building a V4 swap
  */
-export interface BuildSwapCallDataArgs {
-  amountIn: bigint;
-  amountOutMinimum: bigint;
-  /** Input currency for the first hop in the route. */
-  currencyIn: Address;
+interface BuildSwapCallDataCommonArgs {
   /** Ordered list of pools to route through. A single-hop swap is a route with one entry. */
   route: SwapRouteWithPools;
   recipient: Address;
@@ -35,6 +38,34 @@ export interface BuildSwapCallDataArgs {
   useNativeETH?: boolean;
 }
 
+export interface BuildSwapExactInArgs extends BuildSwapCallDataCommonArgs {
+  tradeType: ExactInputTradeType;
+  amountIn: bigint;
+  amountOutMinimum: bigint;
+  /** Input currency for the first hop in the route. */
+  currencyIn: Address;
+  currencyOut?: never;
+  amountOut?: never;
+  amountInMaximum?: never;
+}
+
+export interface BuildSwapExactOutArgs extends BuildSwapCallDataCommonArgs {
+  tradeType: ExactOutputTradeType;
+  amountOut: bigint;
+  amountInMaximum: bigint;
+  /** Output currency for the final hop in the route. */
+  currencyOut: Address;
+  currencyIn?: never;
+  amountIn?: never;
+  amountOutMinimum?: never;
+}
+
+export type BuildSwapCallDataArgs = BuildSwapExactInArgs | BuildSwapExactOutArgs;
+
+function isExactOutputSwap(params: BuildSwapCallDataArgs): params is BuildSwapExactOutArgs {
+  return params.tradeType === TradeType.ExactOutput;
+}
+
 /**
  * Builds calldata for a Uniswap V4 swap
  *
@@ -45,38 +76,52 @@ export interface BuildSwapCallDataArgs {
  * @param instance - UniswapSDKInstance for block timestamp access
  * @returns encoded calldata
  */
+export async function buildSwapCallData(params: BuildSwapExactInArgs, instance: UniswapSDKInstance): Promise<Hex>;
+export async function buildSwapCallData(params: BuildSwapExactOutArgs, instance: UniswapSDKInstance): Promise<Hex>;
 export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
-  const {
-    amountIn,
-    currencyIn,
-    route,
-    permit2Signature,
-    recipient,
-    amountOutMinimum,
-    customActions,
-    deadlineDuration,
-    useNativeETH,
-  } = params;
-
-  if (amountIn <= 0n) {
-    throw new Error(`Invalid amountIn: ${amountIn}. Must be a positive value.`);
-  }
-
-  if (amountOutMinimum < 0n) {
-    throw new Error(`Invalid amountOutMinimum: ${amountOutMinimum}. Must be non-negative.`);
-  }
+  const { route, permit2Signature, recipient, customActions, deadlineDuration, useNativeETH } = params;
+  const exactOutput = isExactOutputSwap(params);
 
   const v4Planner = new V4Planner();
   const routePlanner = new RoutePlanner();
   const routeWithPoolKeys = mapRoute(route, ({ pool, hookData }) => ({ poolKey: pool.poolKey, hookData }));
-  const { path, outputCurrency } = resolveSwapRoute(currencyIn, routeWithPoolKeys);
   const inputPool = route[0].pool;
   const outputPool = route[route.length - 1]!.pool;
-  const inputCurrencyObject = getInputCurrencyFromFirstPool(inputPool, currencyIn);
-  const outputCurrencyObject =
-    outputPool.poolKey.currency0.toLowerCase() === outputCurrency.toLowerCase()
-      ? outputPool.currency0
-      : outputPool.currency1;
+
+  let inputCurrency: Address;
+  let outputCurrency: Address;
+  let inputAmountForWrap: bigint;
+
+  if (exactOutput) {
+    if (params.amountOut <= 0n) {
+      throw new Error(`Invalid amountOut: ${params.amountOut}. Must be a positive value.`);
+    }
+
+    if (params.amountInMaximum <= 0n) {
+      throw new Error(`Invalid amountInMaximum: ${params.amountInMaximum}. Must be a positive value.`);
+    }
+
+    const resolvedRoute = resolveSwapRouteExactOutput(params.currencyOut, routeWithPoolKeys);
+    inputCurrency = resolvedRoute.inputCurrency;
+    outputCurrency = params.currencyOut;
+    inputAmountForWrap = params.amountInMaximum;
+  } else {
+    if (params.amountIn <= 0n) {
+      throw new Error(`Invalid amountIn: ${params.amountIn}. Must be a positive value.`);
+    }
+
+    if (params.amountOutMinimum < 0n) {
+      throw new Error(`Invalid amountOutMinimum: ${params.amountOutMinimum}. Must be non-negative.`);
+    }
+
+    const resolvedRoute = resolveSwapRouteExactInput(params.currencyIn, routeWithPoolKeys);
+    inputCurrency = params.currencyIn;
+    outputCurrency = resolvedRoute.outputCurrency;
+    inputAmountForWrap = params.amountIn;
+  }
+
+  const inputCurrencyObject = getCurrencyFromPool(inputPool, inputCurrency);
+  const outputCurrencyObject = getCurrencyFromPool(outputPool, outputCurrency);
 
   // Determine if WRAP_ETH or UNWRAP_WETH is needed for WETH-denominated pools
   let wrapInput = false;
@@ -84,7 +129,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
 
   if (useNativeETH) {
     const wethAddress = instance.contracts.weth.toLowerCase();
-    const normalizedInputCurrency = currencyIn.toLowerCase();
+    const normalizedInputCurrency = inputCurrency.toLowerCase();
     const normalizedOutputCurrency = outputCurrency.toLowerCase();
 
     if (normalizedInputCurrency === wethAddress) {
@@ -103,14 +148,28 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
       v4Planner.addAction(customAction.action, customAction.parameters);
     }
   } else {
-    v4Planner.addAction(Actions.SWAP_EXACT_IN, [
-      {
-        currencyIn,
-        path,
-        amountIn: amountIn.toString(),
-        amountOutMinimum: amountOutMinimum.toString(),
-      },
-    ]);
+    if (exactOutput) {
+      const { path } = resolveSwapRouteExactOutput(params.currencyOut, routeWithPoolKeys);
+      v4Planner.addAction(Actions.SWAP_EXACT_OUT, [
+        {
+          currencyOut: params.currencyOut,
+          path,
+          amountOut: params.amountOut.toString(),
+          amountInMaximum: params.amountInMaximum.toString(),
+        },
+      ]);
+    } else {
+      const { path } = resolveSwapRouteExactInput(params.currencyIn, routeWithPoolKeys);
+      v4Planner.addAction(Actions.SWAP_EXACT_IN, [
+        {
+          currencyIn: params.currencyIn,
+          path,
+          amountIn: params.amountIn.toString(),
+          amountOutMinimum: params.amountOutMinimum.toString(),
+        },
+      ]);
+    }
+
     v4Planner.addSettle(inputCurrencyObject, !wrapInput);
     v4Planner.addTake(outputCurrencyObject, unwrapOutput ? ROUTER_AS_RECIPIENT : recipient);
   }
@@ -130,7 +189,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   }
 
   if (wrapInput) {
-    routePlanner.addCommand(CommandType.WRAP_ETH, [ROUTER_AS_RECIPIENT, amountIn.toString()]);
+    routePlanner.addCommand(CommandType.WRAP_ETH, [ROUTER_AS_RECIPIENT, inputAmountForWrap.toString()]);
     finalInputs.push(routePlanner.inputs.at(-1) as Hex);
   }
 
@@ -138,7 +197,20 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   finalInputs.push(encodedActions as Hex);
 
   if (unwrapOutput) {
-    routePlanner.addCommand(CommandType.UNWRAP_WETH, [recipient, amountOutMinimum.toString()]);
+    routePlanner.addCommand(CommandType.UNWRAP_WETH, [
+      recipient,
+      exactOutput ? params.amountOut.toString() : params.amountOutMinimum.toString(),
+    ]);
+    finalInputs.push(routePlanner.inputs.at(-1) as Hex);
+  }
+
+  if (exactOutput && wrapInput && !unwrapOutput) {
+    routePlanner.addCommand(CommandType.UNWRAP_WETH, [recipient, "0"]);
+    finalInputs.push(routePlanner.inputs.at(-1) as Hex);
+  }
+
+  if (exactOutput && inputCurrency.toLowerCase() === zeroAddress.toLowerCase()) {
+    routePlanner.addCommand(CommandType.SWEEP, [zeroAddress, recipient, "0"]);
     finalInputs.push(routePlanner.inputs.at(-1) as Hex);
   }
 
@@ -151,7 +223,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   });
 }
 
-function getInputCurrencyFromFirstPool(pool: Pool, address: Address) {
+function getCurrencyFromPool(pool: Pool, address: Address) {
   if (pool.poolKey.currency0.toLowerCase() === address.toLowerCase()) {
     return pool.currency0;
   }

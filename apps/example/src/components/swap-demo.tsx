@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 import { useQuery } from "@tanstack/react-query";
+import { TradeType } from "@zahastudio/uniswap-sdk";
 import { useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uniswap-sdk-react";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
@@ -32,6 +33,9 @@ export function SwapDemo() {
   const { isConnected } = useAccount();
   const { sdk } = useUniswapSDK({ chainId: SWAP_CHAIN_ID });
 
+  const [tradeType, setTradeType] = useState<typeof TradeType.ExactInput | typeof TradeType.ExactOutput>(
+    TradeType.ExactInput,
+  );
   const [selectedPreset, setSelectedPreset] = useState<SwapPreset>(SWAP_PRESETS[0]!);
   const [isReversed, setIsReversed] = useState(false);
   const [amountInput, setAmountInput] = useState("");
@@ -95,7 +99,10 @@ export function SwapDemo() {
       )
     : placeholderToken(displayCurrencyOut);
 
-  const amountInRaw = useMemo(() => parseTokenAmount(amountInput, tokenIn.decimals), [amountInput, tokenIn.decimals]);
+  const exactAmountRaw = useMemo(
+    () => parseTokenAmount(amountInput, tradeType === TradeType.ExactOutput ? tokenOut.decimals : tokenIn.decimals),
+    [amountInput, tokenIn.decimals, tokenOut.decimals, tradeType],
+  );
   const isNativeInput = displayCurrencyIn.toLowerCase() === zeroAddress.toLowerCase();
 
   const { query: tokenInQuery } = useToken(
@@ -111,19 +118,38 @@ export function SwapDemo() {
   });
 
   const handleMaxClick = useCallback(() => {
-    if (tokenInQuery.data?.balance) setAmountInput(tokenInQuery.data.balance.formatted);
-  }, [tokenInQuery.data?.balance]);
+    if (tradeType === TradeType.ExactInput && tokenInQuery.data?.balance) {
+      setAmountInput(tokenInQuery.data.balance.formatted);
+    }
+  }, [tokenInQuery.data?.balance, tradeType]);
 
-  const swap = useSwap(
-    {
-      currencyIn: activeCurrencyIn,
-      route: activeRoute,
-      amountIn: amountInRaw,
-      slippageBps: 50,
-      useNativeETH: useNativeETH || undefined,
-    },
-    { enabled: amountInRaw > 0n, refetchInterval: QUOTE_REFRESH_INTERVAL, chainId: SWAP_CHAIN_ID },
+  const swapParams = useMemo(
+    () =>
+      tradeType === TradeType.ExactOutput
+        ? {
+            tradeType: TradeType.ExactOutput,
+            currencyOut: activeCurrencyOut,
+            route: activeRoute,
+            amountOut: exactAmountRaw,
+            slippageBps: 50,
+            useNativeETH: useNativeETH,
+          }
+        : {
+            tradeType: TradeType.ExactInput,
+            currencyIn: activeCurrencyIn,
+            route: activeRoute,
+            amountIn: exactAmountRaw,
+            slippageBps: 50,
+            useNativeETH: useNativeETH,
+          },
+    [activeCurrencyIn, activeCurrencyOut, activeRoute, exactAmountRaw, tradeType, useNativeETH],
   );
+
+  const swap = useSwap(swapParams, {
+    enabled: exactAmountRaw > 0n,
+    refetchInterval: QUOTE_REFRESH_INTERVAL,
+    chainId: SWAP_CHAIN_ID,
+  });
 
   const { steps, currentStep, executeAll, reset } = swap;
   const quoteData = steps.quote.data;
@@ -134,8 +160,12 @@ export function SwapDemo() {
 
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
+  const maxSpendAmount =
+    tradeType === TradeType.ExactOutput && quoteData?.tradeType === TradeType.ExactOutput
+      ? quoteData.maxAmountIn
+      : exactAmountRaw;
   const hasInsufficientBalance =
-    amountInRaw > 0n && tokenInQuery.data?.balance !== undefined && amountInRaw > tokenInQuery.data.balance.raw;
+    maxSpendAmount > 0n && tokenInQuery.data?.balance !== undefined && maxSpendAmount > tokenInQuery.data.balance.raw;
 
   const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(QUOTE_REFRESH_INTERVAL / 1000);
   const lastRefreshRef = useRef(Date.now());
@@ -172,8 +202,26 @@ export function SwapDemo() {
     resetRefreshTimer();
   }, [steps.quote, tokenInQuery, routePoolsQuery, resetRefreshTimer]);
 
-  const outputDisplay = quoteData ? formatTokenAmount(quoteData.amountOut, tokenOut.decimals) : undefined;
-  const minOutputDisplay = quoteData ? formatTokenAmount(quoteData.minAmountOut, tokenOut.decimals) : undefined;
+  const outputDisplay =
+    tradeType === TradeType.ExactOutput
+      ? amountInput
+      : quoteData
+        ? formatTokenAmount(quoteData.amountOut, tokenOut.decimals)
+        : undefined;
+  const inputDisplay =
+    tradeType === TradeType.ExactOutput
+      ? quoteData
+        ? formatTokenAmount(quoteData.amountIn, tokenIn.decimals)
+        : ""
+      : amountInput;
+  const minOutputDisplay =
+    quoteData?.tradeType === TradeType.ExactInput
+      ? formatTokenAmount(quoteData.minAmountOut, tokenOut.decimals)
+      : undefined;
+  const maxInputDisplay =
+    quoteData?.tradeType === TradeType.ExactOutput
+      ? formatTokenAmount(quoteData.maxAmountIn, tokenIn.decimals)
+      : undefined;
   const routeLabel = `${activeRoute.length} hop${activeRoute.length === 1 ? "" : "s"} via ${selectedPreset.label}`;
 
   const [executing, setExecuting] = useState(false);
@@ -234,6 +282,14 @@ export function SwapDemo() {
   }, [reset, steps.quote, tokenInQuery, routePoolsQuery, resetRefreshTimer]);
 
   const insufficientBalanceError = hasInsufficientBalance ? `Insufficient ${tokenIn.symbol} balance` : null;
+
+  const handleTradeTypeChange = useCallback(
+    (nextTradeType: typeof TradeType.ExactInput | typeof TradeType.ExactOutput) => {
+      setTradeType(nextTradeType);
+      setAmountInput("");
+    },
+    [],
+  );
 
   return (
     <div className="flex w-full items-start justify-center gap-6">
@@ -377,15 +433,44 @@ export function SwapDemo() {
             />
           </div>
 
+          <div className="mb-3 flex gap-2">
+            <button
+              onClick={() => handleTradeTypeChange(TradeType.ExactInput)}
+              disabled={executing || isSwapConfirmed}
+              className={cn(
+                "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                tradeType === TradeType.ExactInput
+                  ? "border-accent/30 bg-accent-muted text-accent"
+                  : "border-border-muted bg-surface-raised text-text-secondary hover:border-border hover:bg-surface-hover",
+              )}
+            >
+              Exact input
+            </button>
+            <button
+              onClick={() => handleTradeTypeChange(TradeType.ExactOutput)}
+              disabled={executing || isSwapConfirmed}
+              className={cn(
+                "flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                tradeType === TradeType.ExactOutput
+                  ? "border-accent/30 bg-accent-muted text-accent"
+                  : "border-border-muted bg-surface-raised text-text-secondary hover:border-border hover:bg-surface-hover",
+              )}
+            >
+              Exact output
+            </button>
+          </div>
+
           <TokenInput
             label="You pay"
             token={tokenIn}
-            value={amountInput}
-            onChange={setAmountInput}
+            value={inputDisplay}
+            onChange={tradeType === TradeType.ExactInput ? setAmountInput : undefined}
+            readOnly={tradeType === TradeType.ExactOutput}
             disabled={executing || isSwapConfirmed}
+            loading={tradeType === TradeType.ExactOutput && quoteLoading}
             balance={tokenInQuery.data?.balance?.formatted}
             balanceLoading={tokenInQuery.isLoading}
-            onMaxClick={handleMaxClick}
+            onMaxClick={tradeType === TradeType.ExactInput ? handleMaxClick : undefined}
           />
 
           <div className="relative my-1 flex items-center justify-center">
@@ -417,8 +502,9 @@ export function SwapDemo() {
             label="You receive"
             token={tokenOut}
             value={outputDisplay ?? ""}
-            readOnly
-            loading={quoteLoading}
+            onChange={tradeType === TradeType.ExactOutput ? setAmountInput : undefined}
+            readOnly={tradeType === TradeType.ExactInput}
+            loading={tradeType === TradeType.ExactInput && quoteLoading}
           />
 
           {quoteData && !isSwapConfirmed && (
@@ -457,10 +543,13 @@ export function SwapDemo() {
 
           {quoteData && (
             <SwapDetails
-              minOutput={minOutputDisplay!}
+              tradeType={tradeType}
+              inputSymbol={tokenIn.symbol}
               outputSymbol={tokenOut.symbol}
               slippageBps={50}
               routeLabel={routeLabel}
+              minOutput={minOutputDisplay}
+              maxInput={maxInputDisplay}
             />
           )}
 
@@ -498,7 +587,11 @@ export function SwapDemo() {
                     "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-accent",
                   )}
                 >
-                  {executing ? getStepActionLabel(currentStep) + "..." : !quoteData ? "Enter an amount" : "Swap"}
+                  {executing
+                    ? getStepActionLabel(currentStep) + "..."
+                    : !quoteData
+                      ? `Enter a ${tradeType === TradeType.ExactOutput ? "receive" : "pay"} amount`
+                      : "Swap"}
                 </button>
 
                 {quoteData && !executing && (currentStep === "approval" || currentStep === "permit2") && (

@@ -11,6 +11,7 @@ import {
 } from "@/test/fixtures/unichain";
 import { TEST_RECIPIENT } from "@/test/integration/constants";
 import { createPinnedUnichainClient } from "@/test/integration/pinnedClient";
+import { TradeType } from "@/types/tradeType";
 import { mapRoute } from "@/utils/swapRoute";
 
 describe("buildSwapCallData (unichain rpc)", () => {
@@ -22,10 +23,40 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
     const calldata = await sdk.buildSwapCallData({
+      tradeType: TradeType.ExactInput,
       currencyIn: UNICHAIN_TOKENS.USDC,
       route: [{ pool }],
       amountIn: 1_000_000n,
       amountOutMinimum: 0n,
+      recipient: TEST_RECIPIENT,
+    });
+
+    const decoded = decodeFunctionData({
+      abi: utility.UniversalRouterArtifact.abi,
+      data: calldata,
+    });
+
+    expect(decoded.functionName).toBe("execute");
+
+    const [commands, , deadline] = decoded.args as [Hex, Hex[], bigint];
+    expect(commands).toBe("0x10");
+    expect(deadline).toBe(expectedDeadline);
+    expect(calldata).toMatch(/^0x[0-9a-f]+$/);
+  });
+
+  it("builds universal router calldata for a single-hop exact-output route", async () => {
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
+    const block = await client.getBlock();
+    const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
+    const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
+
+    const calldata = await sdk.buildSwapCallData({
+      tradeType: TradeType.ExactOutput,
+      currencyOut: UNICHAIN_TOKENS.ETH,
+      route: [{ pool }],
+      amountOut: 518374739793346n,
+      amountInMaximum: 1_005_000n,
       recipient: TEST_RECIPIENT,
     });
 
@@ -50,6 +81,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const pools = await Promise.all(UNICHAIN_ETH_TO_WETH_ROUTE.map(({ poolKey }) => sdk.getPool(poolKey)));
 
     const calldata = await sdk.buildSwapCallData({
+      tradeType: TradeType.ExactInput,
       currencyIn: UNICHAIN_TOKENS.ETH,
       route: mapRoute(UNICHAIN_ETH_TO_WETH_ROUTE, (_, index) => ({ pool: pools[index]! })),
       amountIn: 1_000_000n,
@@ -78,6 +110,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
     const calldata = await sdk.buildSwapCallData({
+      tradeType: TradeType.ExactInput,
       currencyIn: UNICHAIN_TOKENS.WETH,
       route: [{ pool }],
       amountIn: 1_000_000n,
@@ -108,6 +141,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
     const calldata = await sdk.buildSwapCallData({
+      tradeType: TradeType.ExactInput,
       currencyIn: UNICHAIN_TOKENS.USDC,
       route: [{ pool }],
       amountIn: 1_000_000n,
@@ -138,10 +172,42 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
     const calldata = await sdk.buildSwapCallData({
+      tradeType: TradeType.ExactInput,
       currencyIn: UNICHAIN_TOKENS.WETH,
       route: [{ pool }, { pool }],
       amountIn: 1_000_000n,
       amountOutMinimum: 0n,
+      recipient: TEST_RECIPIENT,
+      useNativeETH: true,
+    });
+
+    const decoded = decodeFunctionData({
+      abi: utility.UniversalRouterArtifact.abi,
+      data: calldata,
+    });
+
+    expect(decoded.functionName).toBe("execute");
+
+    const [commands, inputs, deadline] = decoded.args as [Hex, Hex[], bigint];
+    expect(commands).toBe("0x0b100c");
+    expect(inputs).toHaveLength(3);
+    expect(deadline).toBe(expectedDeadline);
+    expect(calldata).toMatch(/^0x[0-9a-f]+$/);
+  });
+
+  it("refunds wrapped native input for exact-output swaps", async () => {
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
+    const block = await client.getBlock();
+    const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
+    const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
+
+    const calldata = await sdk.buildSwapCallData({
+      tradeType: TradeType.ExactOutput,
+      currencyOut: UNICHAIN_TOKENS.USDC,
+      route: [{ pool }],
+      amountOut: 1_000_000n,
+      amountInMaximum: 10_000_000_000_000_000n,
       recipient: TEST_RECIPIENT,
       useNativeETH: true,
     });

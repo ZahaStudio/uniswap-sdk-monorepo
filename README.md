@@ -33,7 +33,7 @@ pnpm install @zahastudio/uniswap-sdk viem
 ```ts
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
-import { sortTokens, UniswapSDK } from "@zahastudio/uniswap-sdk";
+import { TradeType, sortTokens, UniswapSDK } from "@zahastudio/uniswap-sdk";
 
 const client = createPublicClient({ chain: mainnet, transport: http() });
 const sdk = UniswapSDK.create(client, mainnet.id);
@@ -49,6 +49,7 @@ const [weth, usdc] = await sdk.getTokens({
 
 // Get a quote
 const quote = await sdk.getQuote({
+  tradeType: TradeType.ExactInput,
   currencyIn: WETH,
   route: [
     {
@@ -150,7 +151,7 @@ const sdk = UniswapSDK.create(client, chainId, options?);
 // Pool & token queries
 await sdk.getPool(poolArgs);                        // Fetch pool state
 await sdk.getTokens({ addresses });                 // Fetch token metadata
-await sdk.getQuote(swapArgs);                       // Simulate a swap
+await sdk.getQuote(swapArgs);                       // Simulate exact-input or exact-output swaps
 await sdk.getTickInfo(tickArgs);                    // Query tick data
 
 // Position queries
@@ -159,7 +160,7 @@ await sdk.getPositionInfo(tokenId);                 // Lightweight position meta
 await sdk.getUncollectedFees(tokenId);              // Accrued fee amounts
 
 // Transaction calldata builders (do not send transactions)
-await sdk.buildSwapCallData(swapArgs);              // Universal Router swap calldata
+await sdk.buildSwapCallData(swapArgs);              // Universal Router swap calldata (exact in/out)
 await sdk.buildAddLiquidityCallData(addArgs);       // Position Manager mint calldata
 await sdk.buildRemoveLiquidityCallData(removeArgs); // Position Manager burn calldata
 await sdk.buildCollectFeesCallData(collectArgs);    // Position Manager collect calldata

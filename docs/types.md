@@ -115,9 +115,21 @@ type SwapRouteWithPools = readonly [{ pool: Pool; hookData?: Hex }, ...{ pool: P
 
 ```ts
 interface SwapExactIn {
+  tradeType: typeof TradeType.ExactInput;
   currencyIn: Address;
   route: SwapRoute;
   amountIn: bigint | string;
+}
+```
+
+### `SwapExactOut`
+
+```ts
+interface SwapExactOut {
+  tradeType: typeof TradeType.ExactOutput;
+  currencyOut: Address;
+  route: SwapRoute;
+  amountOut: bigint | string;
 }
 ```
 
@@ -125,6 +137,8 @@ interface SwapExactIn {
 
 ```ts
 interface QuoteResponse {
+  tradeType: TradeType;
+  amountIn: bigint; // Estimated or requested input amount
   amountOut: bigint; // Estimated output amount
   timestamp: number; // Unix timestamp (ms) when quote was fetched
 }
@@ -138,10 +152,14 @@ interface QuoteResponse {
 
 ```ts
 interface BuildSwapCallDataArgs {
-  currencyIn: Address; // Input currency for the first hop
+  tradeType: typeof TradeType.ExactInput | typeof TradeType.ExactOutput;
+  currencyIn?: Address; // Exact in only
+  currencyOut?: Address; // Exact out only
   route: SwapRouteWithPools;
-  amountIn: bigint; // Input amount (must be > 0)
-  amountOutMinimum: bigint; // Min output after slippage
+  amountIn?: bigint; // Exact in only
+  amountOut?: bigint; // Exact out only
+  amountOutMinimum?: bigint; // Exact in only
+  amountInMaximum?: bigint; // Exact out only
   recipient: Address; // Output recipient
   deadlineDuration?: number; // Seconds from now (default: SDK defaultDeadline)
   permit2Signature?: BatchPermitOptions; // Permit2 batch signature
@@ -322,14 +340,25 @@ interface UseMutationHookOptions {
 ### `UseSwapParams`
 
 ```ts
-interface UseSwapParams {
-  currencyIn: Address;
-  route: SwapRoute;
-  amountIn: bigint;
-  recipient?: Address;
-  slippageBps?: number;
-  useNativeETH?: boolean;
-}
+type UseSwapParams =
+  | {
+      tradeType: typeof TradeType.ExactInput;
+      currencyIn: Address;
+      route: SwapRoute;
+      amountIn: bigint;
+      recipient?: Address;
+      slippageBps?: number;
+      useNativeETH?: boolean;
+    }
+  | {
+      tradeType: typeof TradeType.ExactOutput;
+      currencyOut: Address;
+      route: SwapRoute;
+      amountOut: bigint;
+      recipient?: Address;
+      slippageBps?: number;
+      useNativeETH?: boolean;
+    };
 ```
 
 ### `UsePoolStateData`
@@ -382,9 +411,20 @@ type AddLiquidityStep = "approval0" | "approval1" | "permit2" | "execute" | "com
 ### `QuoteData` (extends QuoteResponse)
 
 ```ts
-interface QuoteData extends QuoteResponse {
-  minAmountOut: bigint; // After slippage adjustment
-}
+type QuoteData =
+  | (QuoteResponse & { tradeType: typeof TradeType.ExactInput; minAmountOut: bigint })
+  | (QuoteResponse & { tradeType: typeof TradeType.ExactOutput; maxAmountIn: bigint });
+```
+
+### `TradeType`
+
+```ts
+const TradeType = {
+  ExactInput: 0,
+  ExactOutput: 1,
+} as const;
+
+type TradeType = (typeof TradeType)[keyof typeof TradeType];
 ```
 
 ### `CalculatedPosition`

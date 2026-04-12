@@ -94,6 +94,7 @@ Full swap lifecycle: quote → approve → permit2 sign → execute.
 ```tsx
 const swap = useSwap(
   {
+    tradeType: TradeType.ExactInput,
     currencyIn: WETH,
     route: [{ poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: ZERO_ADDRESS } }],
     amountIn: parseEther("1"),
@@ -103,15 +104,25 @@ const swap = useSwap(
   },
   { refetchInterval: 12000 }, // optional
 );
+
+const exactOutSwap = useSwap({
+  tradeType: TradeType.ExactOutput,
+  currencyOut: USDC,
+  route,
+  amountOut: 1_000_000n,
+});
 ```
 
 **Params:** `UseSwapParams`
 
 | Field          | Type        | Required | Description                                  |
 | -------------- | ----------- | -------- | -------------------------------------------- |
-| `currencyIn`   | `Address`   | Yes      | Input currency for the first hop             |
+| `tradeType`    | `TradeType` | Yes      | `TradeType.ExactInput` or `TradeType.ExactOutput` |
+| `currencyIn`   | `Address`   | Exact in | Input currency for the first hop             |
+| `currencyOut`  | `Address`   | Exact out| Output currency for the final hop            |
 | `route`        | `SwapRoute` | Yes      | Ordered route; single-hop = array of 1       |
-| `amountIn`     | `bigint`    | Yes      | Input amount (base units)                    |
+| `amountIn`     | `bigint`    | Exact in | Input amount (base units)                    |
+| `amountOut`    | `bigint`    | Exact out| Output amount (base units)                   |
 | `recipient`    | `Address`   | No       | Output recipient (default: connected wallet) |
 | `slippageBps`  | `number`    | No       | Slippage in BPS (default: SDK default)       |
 | `useNativeETH` | `boolean`   | No       | Wrap/unwrap native ETH                       |
@@ -120,7 +131,7 @@ const swap = useSwap(
 
 | Field            | Type                                                          | Description                                             |
 | ---------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
-| `steps.quote`    | `UseQueryResult<QuoteData>`                                   | Auto-fetching quote with `amountOut` and `minAmountOut` |
+| `steps.quote`    | `UseQueryResult<QuoteData>`                                   | Auto-fetching quote with `amountIn`, `amountOut`, and mode-specific slippage field |
 | `steps.approval` | `UseTokenApprovalReturn`                                      | ERC-20 → Permit2 approval                               |
 | `steps.permit2`  | `UsePermit2SignStep`                                          | Off-chain Permit2 signature                             |
 | `steps.swap`     | `UseSwapExecuteStep`                                          | Swap transaction execution                              |
@@ -141,6 +152,9 @@ const txHash = await swap.executeAll();
 ```tsx
 // 1. Wait for quote
 const quote = swap.steps.quote.data;
+
+// exact input -> quote.minAmountOut
+// exact output -> quote.maxAmountIn
 
 // 2. Approve if needed
 if (swap.steps.approval.isRequired) {
@@ -172,6 +186,7 @@ switch (swap.currentStep) {
 ```
 
 **Native ETH skips approval + permit2 steps automatically.**
+In exact-output mode, approvals, Permit2, and tx value are all based on `quote.maxAmountIn`.
 
 ---
 

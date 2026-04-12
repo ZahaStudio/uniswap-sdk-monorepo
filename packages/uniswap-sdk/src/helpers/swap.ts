@@ -23,3 +23,18 @@ export function calculateMinimumOutput(expectedOutput: bigint, slippageBps: numb
 
   return (expectedOutput * numerator) / denominator;
 }
+
+/**
+ * Calculates the maximum input amount after applying slippage tolerance using native BigInt.
+ *
+ * @param expectedInput - The expected input amount (e.g., in smallest unit)
+ * @param slippageBps - Slippage in basis points (BPS)
+ * @returns Maximum amount after slippage is applied.
+ */
+export function calculateMaximumInput(expectedInput: bigint, slippageBps: number): bigint {
+  assertBasisPoints(slippageBps, "slippageBps");
+  const numerator = BigInt(BIPS_BASE + slippageBps);
+  const denominator = BigInt(BIPS_BASE);
+
+  return (expectedInput * numerator) / denominator;
+}

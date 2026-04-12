@@ -1,8 +1,8 @@
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-
 import { getQuote } from "@/utils/getQuote";
+import { TradeType } from "@/types/tradeType";
 
 describe("getQuote", () => {
   it("quotes a multi-hop exact-input route through quoteExactInput", async () => {
@@ -21,6 +21,7 @@ describe("getQuote", () => {
 
     const quote = await getQuote(
       {
+        tradeType: TradeType.ExactInput,
         currencyIn: "0x0000000000000000000000000000000000000001",
         route: [
           {
@@ -48,6 +49,8 @@ describe("getQuote", () => {
     );
 
     expect(quote).toEqual({
+      tradeType: TradeType.ExactInput,
+      amountIn: 1000n,
       amountOut: 12345n,
       timestamp: Date.now(),
     });
@@ -69,6 +72,87 @@ describe("getQuote", () => {
               },
               {
                 intermediateCurrency: "0x0000000000000000000000000000000000000003",
+                fee: 3000,
+                tickSpacing: 60,
+                hooks: zeroAddress,
+                hookData: "0x",
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    vi.useRealTimers();
+  });
+
+  it("quotes a multi-hop exact-output route through quoteExactOutput", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-10T00:00:00.000Z"));
+
+    const simulateContract = vi.fn().mockResolvedValue({ result: [2000n, 987n] });
+    const instance = {
+      client: {
+        simulateContract,
+      },
+      contracts: {
+        quoter: "0x0000000000000000000000000000000000000009",
+      },
+    } as unknown as UniswapSDKInstance;
+
+    const quote = await getQuote(
+      {
+        tradeType: TradeType.ExactOutput,
+        currencyOut: "0x0000000000000000000000000000000000000003",
+        route: [
+          {
+            poolKey: {
+              currency0: "0x0000000000000000000000000000000000000001",
+              currency1: "0x0000000000000000000000000000000000000002",
+              fee: 500,
+              tickSpacing: 10,
+              hooks: zeroAddress,
+            },
+          },
+          {
+            poolKey: {
+              currency0: "0x0000000000000000000000000000000000000002",
+              currency1: "0x0000000000000000000000000000000000000003",
+              fee: 3000,
+              tickSpacing: 60,
+              hooks: zeroAddress,
+            },
+          },
+        ],
+        amountOut: "12345",
+      },
+      instance,
+    );
+
+    expect(quote).toEqual({
+      tradeType: TradeType.ExactOutput,
+      amountIn: 2000n,
+      amountOut: 12345n,
+      timestamp: Date.now(),
+    });
+    expect(simulateContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: instance.contracts.quoter,
+        functionName: "quoteExactOutput",
+        args: [
+          {
+            exactCurrency: "0x0000000000000000000000000000000000000003",
+            exactAmount: 12345n,
+            path: [
+              {
+                intermediateCurrency: "0x0000000000000000000000000000000000000001",
+                fee: 500,
+                tickSpacing: 10,
+                hooks: zeroAddress,
+                hookData: "0x",
+              },
+              {
+                intermediateCurrency: "0x0000000000000000000000000000000000000002",
                 fee: 3000,
                 tickSpacing: 60,
                 hooks: zeroAddress,

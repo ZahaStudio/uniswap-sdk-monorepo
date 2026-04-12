@@ -100,7 +100,8 @@ const pool = await sdk.getPool({
 Simulates a swap via V4 Quoter contract. No transaction is sent.
 
 ```ts
-const quote = await sdk.getQuote({
+const exactInQuote = await sdk.getQuote({
+  tradeType: TradeType.ExactInput,
   currencyIn: "0x...",
   route: [
     {
@@ -115,18 +116,28 @@ const quote = await sdk.getQuote({
   ],
   amountIn: 1000000000000000000n, // 1 ETH as bigint or string
 });
-// Returns: { amountOut: bigint, timestamp: number }
+
+const exactOutQuote = await sdk.getQuote({
+  tradeType: TradeType.ExactOutput,
+  currencyOut: "0x...",
+  route,
+  amountOut: 950000000000000000n,
+});
+// Returns: { tradeType, amountIn, amountOut, timestamp }
 ```
 
-**Args:** `SwapExactIn`
+**Args:** `SwapExactIn | SwapExactOut`
 
 | Field        | Type               | Required | Description                                 |
 | ------------ | ------------------ | -------- | ------------------------------------------- |
-| `currencyIn` | `Address`          | Yes      | Input currency for the first hop            |
+| `tradeType`  | `TradeType`        | Yes      | `TradeType.ExactInput` or `TradeType.ExactOutput` |
+| `currencyIn` | `Address`          | Exact in | Input currency for the first hop            |
+| `currencyOut`| `Address`          | Exact out| Output currency for the final hop           |
 | `route`      | `SwapRoute`        | Yes      | Ordered swap route; single-hop = array of 1 |
-| `amountIn`   | `bigint \| string` | Yes      | Input amount in smallest unit               |
+| `amountIn`   | `bigint \| string` | Exact in | Input amount in smallest unit               |
+| `amountOut`  | `bigint \| string` | Exact out| Output amount in smallest unit              |
 
-**Returns:** `Promise<QuoteResponse>` — `{ amountOut: bigint, timestamp: number }`
+**Returns:** `Promise<QuoteResponse>` — `{ tradeType, amountIn, amountOut, timestamp }`
 
 ---
 
@@ -197,6 +208,7 @@ Builds Universal Router calldata for a swap.
 
 ```ts
 const calldata = await sdk.buildSwapCallData({
+  tradeType: TradeType.ExactInput,
   currencyIn: "0x...",
   route: [{ pool }], // Pool instance(s) from getPool
   amountIn: 1000000000000000000n,
@@ -207,16 +219,29 @@ const calldata = await sdk.buildSwapCallData({
   deadlineDuration: 300, // optional: seconds
 });
 // Returns: Hex (encoded calldata)
+
+const exactOutCalldata = await sdk.buildSwapCallData({
+  tradeType: TradeType.ExactOutput,
+  currencyOut: "0x...",
+  route: [{ pool }],
+  amountOut: 950000000000000000n,
+  amountInMaximum: 1010000000000000000n,
+  recipient: "0xYourAddress",
+});
 ```
 
 **Args:** `BuildSwapCallDataArgs`
 
 | Field              | Type                          | Required | Description                                       |
 | ------------------ | ----------------------------- | -------- | ------------------------------------------------- |
-| `currencyIn`       | `Address`                     | Yes      | Input currency for the first hop                  |
+| `tradeType`        | `TradeType`                   | Yes      | `TradeType.ExactInput` or `TradeType.ExactOutput` |
+| `currencyIn`       | `Address`                     | Exact in | Input currency for the first hop                  |
+| `currencyOut`      | `Address`                     | Exact out| Output currency for the final hop                 |
 | `route`            | `[{ pool, hookData? }, ...]`  | Yes      | Ordered route; single-hop = array of 1            |
-| `amountIn`         | `bigint`                      | Yes      | Input amount (must be > 0)                        |
-| `amountOutMinimum` | `bigint`                      | Yes      | Min output after slippage                         |
+| `amountIn`         | `bigint`                      | Exact in | Input amount (must be > 0)                        |
+| `amountOut`        | `bigint`                      | Exact out| Output amount (must be > 0)                       |
+| `amountOutMinimum` | `bigint`                      | Exact in | Min output after slippage                         |
+| `amountInMaximum`  | `bigint`                      | Exact out| Max input after slippage                          |
 | `recipient`        | `Address`                     | Yes      | Output token recipient                            |
 | `permit2Signature` | `BatchPermitOptions`          | No       | Permit2 batch signature                           |
 | `deadlineDuration` | `number`                      | No       | Seconds from now (default: SDK `defaultDeadline`) |

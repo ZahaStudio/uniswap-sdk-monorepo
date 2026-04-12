@@ -22,6 +22,7 @@ const poolKey = {
 };
 
 const quote = await sdk.getQuote({
+  tradeType: TradeType.ExactInput,
   currencyIn: WETH,
   route: [{ poolKey }],
   amountIn: 1000000000000000000n, // 1 WETH
@@ -65,6 +66,7 @@ const amountIn = parseEther("1");
 
 // Step 1: Get quote
 const quote = await sdk.getQuote({
+  tradeType: TradeType.ExactInput,
   currencyIn: WETH,
   route: [{ poolKey }],
   amountIn,
@@ -93,6 +95,7 @@ const permit2Signature = permitData.buildPermit2BatchDataWithSignature(signature
 // Step 3: Get pool and build calldata
 const pool = await sdk.getPool(poolKey);
 const calldata = await sdk.buildSwapCallData({
+  tradeType: TradeType.ExactInput,
   currencyIn: WETH,
   route: [{ pool }],
   amountIn,
@@ -121,6 +124,7 @@ When swapping native ETH, skip Permit2 and send `value` with the transaction.
 ```ts
 // For a pool with WETH as one of the currencies
 const calldata = await sdk.buildSwapCallData({
+  tradeType: TradeType.ExactInput,
   currencyIn: WETH,
   route: [{ pool }],
   amountIn: parseEther("1"),
@@ -243,6 +247,7 @@ export function SwapWidget() {
 
   const swap = useSwap(
     {
+      tradeType: TradeType.ExactInput,
       currencyIn: WETH,
       route: [
         {
