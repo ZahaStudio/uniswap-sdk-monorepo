@@ -28,6 +28,11 @@ export interface ResolvedSwapRoute {
   outputCurrency: Address;
 }
 
+export interface ResolvedExactOutputSwapRoute {
+  path: [RoutePathKey, ...RoutePathKey[]];
+  inputCurrency: Address;
+}
+
 export function mapRoute<TRoute extends readonly [unknown, ...unknown[]], TOutput>(
   route: TRoute,
   map: (hop: TRoute[number], index: number) => TOutput,
@@ -43,6 +48,10 @@ export function mapRoute<TRoute extends readonly [unknown, ...unknown[]], TOutpu
 }
 
 export function resolveSwapRoute(currencyIn: Address, route: SwapRoute): ResolvedSwapRoute {
+  return resolveSwapRouteExactInput(currencyIn, route);
+}
+
+export function resolveSwapRouteExactInput(currencyIn: Address, route: SwapRoute): ResolvedSwapRoute {
   let currentCurrency = currencyIn.toLowerCase();
   const path = mapRoute(route, ({ poolKey, hookData }, hopIndex) => {
     const currency0 = poolKey.currency0.toLowerCase();
@@ -71,5 +80,49 @@ export function resolveSwapRoute(currencyIn: Address, route: SwapRoute): Resolve
   return {
     path,
     outputCurrency: path[path.length - 1]!.intermediateCurrency,
+  };
+}
+
+export function resolveSwapRouteExactOutput(currencyOut: Address, route: SwapRoute): ResolvedExactOutputSwapRoute {
+  let currentCurrency = currencyOut.toLowerCase();
+  const reversedPath: RoutePathKey[] = [];
+
+  for (let reverseHopIndex = route.length - 1; reverseHopIndex >= 0; reverseHopIndex -= 1) {
+    const { poolKey, hookData } = route[reverseHopIndex]!;
+    const currency0 = poolKey.currency0.toLowerCase();
+    const currency1 = poolKey.currency1.toLowerCase();
+
+    let previousCurrency: Address;
+    if (currentCurrency === currency0) {
+      previousCurrency = poolKey.currency1 as Address;
+    } else if (currentCurrency === currency1) {
+      previousCurrency = poolKey.currency0 as Address;
+    } else {
+      throw new Error(
+        `Invalid swap route: reverse hop ${route.length - reverseHopIndex} does not connect to currency ${currentCurrency}.`,
+      );
+    }
+
+    reversedPath.push({
+      intermediateCurrency: previousCurrency,
+      fee: poolKey.fee,
+      tickSpacing: poolKey.tickSpacing,
+      hooks: poolKey.hooks as Address,
+      hookData: hookData ?? "0x",
+    });
+
+    currentCurrency = previousCurrency.toLowerCase();
+  }
+
+  const path = reversedPath.reverse();
+  const [firstHop, ...remainingHops] = path;
+
+  if (firstHop === undefined) {
+    throw new Error("Invalid swap route: route must contain at least one hop.");
+  }
+
+  return {
+    path: [firstHop, ...remainingHops],
+    inputCurrency: currentCurrency as Address,
   };
 }

@@ -111,22 +111,39 @@ type SwapRoute = readonly [SwapRouteHop, ...SwapRouteHop[]];
 type SwapRouteWithPools = readonly [{ pool: Pool; hookData?: Hex }, ...{ pool: Pool; hookData?: Hex }[]];
 ```
 
-### `SwapExactIn`
+### `SwapQuoteParams`
 
 ```ts
-interface SwapExactIn {
-  currencyIn: Address;
-  route: SwapRoute;
-  amountIn: bigint | string;
-}
+type SwapQuoteParams =
+  | {
+      route: SwapRoute;
+      exactInput: {
+        currency: Address;
+        amount: bigint | string;
+      };
+      useNativeToken?: boolean;
+    }
+  | {
+      route: SwapRoute;
+      exactOutput: {
+        currency: Address;
+        amount: bigint | string;
+      };
+      useNativeToken?: boolean;
+    };
 ```
 
 ### `QuoteResponse`
 
 ```ts
 interface QuoteResponse {
+  amountIn: bigint; // Estimated or requested input amount
   amountOut: bigint; // Estimated output amount
   timestamp: number; // Unix timestamp (ms) when quote was fetched
+  meta: {
+    resolvedCurrencyIn: Address;
+    resolvedCurrencyOut: Address;
+  };
 }
 ```
 
@@ -137,21 +154,39 @@ interface QuoteResponse {
 ### `BuildSwapCallDataArgs`
 
 ```ts
-interface BuildSwapCallDataArgs {
-  currencyIn: Address; // Input currency for the first hop
-  route: SwapRouteWithPools;
-  amountIn: bigint; // Input amount (must be > 0)
-  amountOutMinimum: bigint; // Min output after slippage
-  recipient: Address; // Output recipient
-  deadlineDuration?: number; // Seconds from now (default: SDK defaultDeadline)
-  permit2Signature?: BatchPermitOptions; // Permit2 batch signature
-  customActions?: Array<{
-    // Override default swap actions
-    action: Actions;
-    parameters: unknown[];
-  }>;
-  useNativeETH?: boolean; // Wrap/unwrap ETH for WETH pools
-}
+type BuildSwapCallDataArgs =
+  | {
+      route: SwapRouteWithPools;
+      recipient: Address;
+      exactInput: {
+        currency: Address;
+        amount: bigint;
+      };
+      minAmountOut: bigint;
+      deadlineDuration?: number;
+      permit2Signature?: BatchPermitOptions;
+      customActions?: Array<{
+        action: Actions;
+        parameters: unknown[];
+      }>;
+      useNativeToken?: boolean;
+    }
+  | {
+      route: SwapRouteWithPools;
+      recipient: Address;
+      exactOutput: {
+        currency: Address;
+        amount: bigint;
+      };
+      maxAmountIn: bigint;
+      deadlineDuration?: number;
+      permit2Signature?: BatchPermitOptions;
+      customActions?: Array<{
+        action: Actions;
+        parameters: unknown[];
+      }>;
+      useNativeToken?: boolean;
+    };
 ```
 
 ---
@@ -322,14 +357,27 @@ interface UseMutationHookOptions {
 ### `UseSwapParams`
 
 ```ts
-interface UseSwapParams {
-  currencyIn: Address;
-  route: SwapRoute;
-  amountIn: bigint;
-  recipient?: Address;
-  slippageBps?: number;
-  useNativeETH?: boolean;
-}
+type UseSwapParams =
+  | {
+      route: SwapRoute;
+      exactInput: {
+        currency: Address;
+        amount: bigint;
+      };
+      recipient?: Address;
+      slippageBps?: number;
+      useNativeToken?: boolean;
+    }
+  | {
+      route: SwapRoute;
+      exactOutput: {
+        currency: Address;
+        amount: bigint;
+      };
+      recipient?: Address;
+      slippageBps?: number;
+      useNativeToken?: boolean;
+    };
 ```
 
 ### `UsePoolStateData`
@@ -382,9 +430,7 @@ type AddLiquidityStep = "approval0" | "approval1" | "permit2" | "execute" | "com
 ### `QuoteData` (extends QuoteResponse)
 
 ```ts
-interface QuoteData extends QuoteResponse {
-  minAmountOut: bigint; // After slippage adjustment
-}
+type QuoteData = (QuoteResponse & { minAmountOut: bigint }) | (QuoteResponse & { maxAmountIn: bigint });
 ```
 
 ### `CalculatedPosition`

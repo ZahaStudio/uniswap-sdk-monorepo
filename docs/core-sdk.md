@@ -100,8 +100,7 @@ const pool = await sdk.getPool({
 Simulates a swap via V4 Quoter contract. No transaction is sent.
 
 ```ts
-const quote = await sdk.getQuote({
-  currencyIn: "0x...",
+const exactInQuote = await sdk.getQuote({
   route: [
     {
       poolKey: {
@@ -113,20 +112,32 @@ const quote = await sdk.getQuote({
       },
     },
   ],
-  amountIn: 1000000000000000000n, // 1 ETH as bigint or string
+  exactInput: {
+    currency: "0x...",
+    amount: 1000000000000000000n, // bigint or string
+  },
 });
-// Returns: { amountOut: bigint, timestamp: number }
+
+const exactOutQuote = await sdk.getQuote({
+  route,
+  exactOutput: {
+    currency: "0x...",
+    amount: 950000000000000000n,
+  },
+});
+// Returns: { amountIn, amountOut, timestamp, meta }
 ```
 
-**Args:** `SwapExactIn`
+**Args:** `SwapQuoteParams`
 
-| Field        | Type               | Required | Description                                 |
-| ------------ | ------------------ | -------- | ------------------------------------------- |
-| `currencyIn` | `Address`          | Yes      | Input currency for the first hop            |
-| `route`      | `SwapRoute`        | Yes      | Ordered swap route; single-hop = array of 1 |
-| `amountIn`   | `bigint \| string` | Yes      | Input amount in smallest unit               |
+| Field            | Type                   | Required  | Description                                            |
+| ---------------- | ---------------------- | --------- | ------------------------------------------------------ |
+| `route`          | `SwapRoute`            | Yes       | Ordered swap route; single-hop = array of 1            |
+| `exactInput`     | `{ currency, amount }` | Exact in  | Exact input currency and amount                        |
+| `exactOutput`    | `{ currency, amount }` | Exact out | Exact output currency and amount                       |
+| `useNativeToken` | `boolean`              | No        | Resolve WETH route edges as the native token in `meta` |
 
-**Returns:** `Promise<QuoteResponse>` — `{ amountOut: bigint, timestamp: number }`
+**Returns:** `Promise<QuoteResponse>` — `{ amountIn, amountOut, timestamp, meta }`
 
 ---
 
@@ -197,31 +208,44 @@ Builds Universal Router calldata for a swap.
 
 ```ts
 const calldata = await sdk.buildSwapCallData({
-  currencyIn: "0x...",
   route: [{ pool }], // Pool instance(s) from getPool
-  amountIn: 1000000000000000000n,
-  amountOutMinimum: 950000000000000000n,
+  exactInput: {
+    currency: "0x...",
+    amount: 1000000000000000000n,
+  },
+  minAmountOut: 950000000000000000n,
   recipient: "0xYourAddress",
   permit2Signature, // optional: from preparePermit2BatchData
-  useNativeETH: false,
+  useNativeToken: false,
   deadlineDuration: 300, // optional: seconds
 });
 // Returns: Hex (encoded calldata)
+
+const exactOutCalldata = await sdk.buildSwapCallData({
+  route: [{ pool }],
+  exactOutput: {
+    currency: "0x...",
+    amount: 950000000000000000n,
+  },
+  maxAmountIn: 1010000000000000000n,
+  recipient: "0xYourAddress",
+});
 ```
 
 **Args:** `BuildSwapCallDataArgs`
 
-| Field              | Type                          | Required | Description                                       |
-| ------------------ | ----------------------------- | -------- | ------------------------------------------------- |
-| `currencyIn`       | `Address`                     | Yes      | Input currency for the first hop                  |
-| `route`            | `[{ pool, hookData? }, ...]`  | Yes      | Ordered route; single-hop = array of 1            |
-| `amountIn`         | `bigint`                      | Yes      | Input amount (must be > 0)                        |
-| `amountOutMinimum` | `bigint`                      | Yes      | Min output after slippage                         |
-| `recipient`        | `Address`                     | Yes      | Output token recipient                            |
-| `permit2Signature` | `BatchPermitOptions`          | No       | Permit2 batch signature                           |
-| `deadlineDuration` | `number`                      | No       | Seconds from now (default: SDK `defaultDeadline`) |
-| `useNativeETH`     | `boolean`                     | No       | Wrap/unwrap ETH for WETH route edges              |
-| `customActions`    | `Array<{action, parameters}>` | No       | Override default swap actions                     |
+| Field              | Type                          | Required  | Description                                       |
+| ------------------ | ----------------------------- | --------- | ------------------------------------------------- |
+| `route`            | `[{ pool, hookData? }, ...]`  | Yes       | Ordered route; single-hop = array of 1            |
+| `exactInput`       | `{ currency, amount }`        | Exact in  | Input currency and exact amount                   |
+| `exactOutput`      | `{ currency, amount }`        | Exact out | Output currency and exact amount                  |
+| `minAmountOut`     | `bigint`                      | Exact in  | Min output after slippage                         |
+| `maxAmountIn`      | `bigint`                      | Exact out | Max input after slippage                          |
+| `recipient`        | `Address`                     | Yes       | Output token recipient                            |
+| `permit2Signature` | `BatchPermitOptions`          | No        | Permit2 batch signature                           |
+| `deadlineDuration` | `number`                      | No        | Seconds from now (default: SDK `defaultDeadline`) |
+| `useNativeToken`   | `boolean`                     | No        | Wrap/unwrap the native token for WETH route edges |
+| `customActions`    | `Array<{action, parameters}>` | No        | Override default swap actions                     |
 
 **Returns:** `Promise<Hex>` — encoded `execute()` calldata for Universal Router.
 

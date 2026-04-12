@@ -6,10 +6,13 @@ import type { Address, Hex } from "viem";
 
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
+  calculateMaximumInput,
   calculateMinimumOutput,
   mapRoute,
   type QuoteResponse,
-  type SwapExactIn,
+  resolveSwapCurrencyMeta,
+  type SwapMeta,
+  type SwapQuoteParams,
   type SwapRoute,
 } from "@zahastudio/uniswap-sdk";
 import { zeroAddress } from "viem";
@@ -26,155 +29,172 @@ import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions";
 import { swapKeys } from "@/utils/queryKeys";
 
-/**
- * Operation parameters for the useSwap hook.
- */
-export interface UseSwapParams {
-  /** Input currency for the first hop in the route. */
-  currencyIn: Address;
-  /** Ordered route to swap through. A single-hop swap is a route with one entry. */
+interface UseSwapCommonParams {
   route: SwapRoute;
-  /** Amount of input tokens in base units */
-  amountIn: bigint;
-  /** Recipient address for the output tokens (defaults to connected wallet) */
   recipient?: Address;
-  /** Slippage tolerance in basis points (default: 50 = 0.5%) */
   slippageBps?: number;
-  /** When true, wraps/unwraps native ETH for WETH-denominated pools */
-  useNativeETH?: boolean;
+  useNativeToken?: boolean;
 }
 
-/**
- * Extended quote data with slippage-adjusted minimum output.
- */
-export interface QuoteData extends QuoteResponse {
-  /** Minimum output after applying slippage tolerance */
+interface UseSwapExactInputParams extends UseSwapCommonParams {
+  exactInput: {
+    currency: Address;
+    amount: bigint;
+  };
+  exactOutput?: never;
+}
+
+interface UseSwapExactOutputParams extends UseSwapCommonParams {
+  exactOutput: {
+    currency: Address;
+    amount: bigint;
+  };
+  exactInput?: never;
+}
+
+export type UseSwapParams = UseSwapExactInputParams | UseSwapExactOutputParams;
+
+type SwapMode = "exactInput" | "exactOutput";
+
+export interface ExactInputQuoteData extends QuoteResponse {
   minAmountOut: bigint;
 }
 
-/**
- * Swap execution step state.
- */
+export interface ExactOutputQuoteData extends QuoteResponse {
+  maxAmountIn: bigint;
+}
+
+export type QuoteData = ExactInputQuoteData | ExactOutputQuoteData;
+type QuoteDataByMode<TMode extends SwapMode> = TMode extends "exactOutput" ? ExactOutputQuoteData : ExactInputQuoteData;
+
 export interface UseSwapExecuteStep {
-  /** Full transaction lifecycle from useTransaction */
   transaction: UseTransactionReturn;
-  /** Build calldata and send the swap transaction. Returns tx hash. */
   execute: () => Promise<Hex>;
 }
 
-/**
- * All swap lifecycle steps.
- */
-export interface UseSwapSteps {
-  /** Auto-fetching quote query with slippage-adjusted minAmountOut */
-  quote: UseQueryResult<QuoteData, Error>;
-  /** ERC-20 → Permit2 approval step */
+export interface UseSwapSteps<TMode extends SwapMode = "exactInput"> {
+  quote: UseQueryResult<QuoteDataByMode<TMode>, Error>;
   approval: UseTokenApprovalReturn;
-  /** Off-chain Permit2 signature step */
   permit2: UsePermit2SignStep;
-  /** Swap transaction execution step */
   swap: UseSwapExecuteStep;
 }
 
-/**
- * Current step in the swap lifecycle.
- * Represents the first incomplete required step.
- */
 export type SwapStep = "quote" | "approval" | "permit2" | "swap" | "completed";
 
-/**
- * Return type for the useSwap hook.
- */
-export interface UseSwapReturn {
-  /** All swap lifecycle steps with individual state and actions */
-  steps: UseSwapSteps;
-  /** The first incomplete required step */
+export interface UseSwapReturn<TMode extends SwapMode = "exactInput"> {
+  steps: UseSwapSteps<TMode>;
+  meta: SwapMeta;
   currentStep: SwapStep;
-  /** Execute all remaining required steps sequentially. Returns swap tx hash. */
   executeAll: () => Promise<Hex>;
-  /** Reset all mutation state (approval, permit2, swap). Quote query persists. */
   reset: () => void;
 }
 
-/**
- * Hook to manage the full Uniswap V4 swap lifecycle.
- *
- * Orchestrates quoting, ERC-20 approval (to Permit2), off-chain Permit2
- * signing, and swap transaction execution. Automatically detects which
- * steps are required (e.g. native ETH skips approval and permit2).
- *
- * Each step exposes its own state and action function, and a unified
- * `executeAll()` chains them sequentially for single-action UX.
- *
- * @param params - Operation parameters: currencyIn, route, amountIn, recipient, slippageBps
- * @param options - Configuration: enabled, refetchInterval, chainId
- * @returns Swap lifecycle steps, current step indicator, and executeAll action
- *
- * @example Basic usage with individual step control
- * ```tsx
- * const swap = useSwap(
- *   { currencyIn, route, amountIn: 1000000n },
- *   { refetchInterval: 12000 },
- * );
- *
- * // Show quote (steps.quote is a UseQueryResult)
- * const { data: quote } = swap.steps.quote;
- *
- * // Step through the flow
- * if (swap.steps.approval.isRequired) {
- *   await swap.steps.approval.approve();
- * }
- * await swap.steps.permit2.sign();
- * const txHash = await swap.steps.swap.execute();
- * ```
- *
- * @example One-click swap with executeAll
- * ```tsx
- * const swap = useSwap({ currencyIn, route, amountIn: 1000000n });
- *
- * // Single call handles approve → sign → swap
- * const txHash = await swap.executeAll();
- * ```
- */
-export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): UseSwapReturn {
-  const {
-    currencyIn,
-    route,
-    amountIn,
-    recipient: recipientOverride,
-    slippageBps: slippageBpsParam,
-    useNativeETH,
-  } = params;
+function isExactOutputParams(params: UseSwapParams): params is UseSwapExactOutputParams {
+  return "exactOutput" in params;
+}
+
+function isExactOutputQuoteData(quote: QuoteData): quote is ExactOutputQuoteData {
+  return "maxAmountIn" in quote;
+}
+
+function isExactInputQuoteData(quote: QuoteData): quote is ExactInputQuoteData {
+  return "minAmountOut" in quote;
+}
+
+export function useSwap(params: UseSwapExactInputParams, options?: UseHookOptions): UseSwapReturn<"exactInput">;
+export function useSwap(params: UseSwapExactOutputParams, options?: UseHookOptions): UseSwapReturn<"exactOutput">;
+export function useSwap(params: UseSwapParams, options?: UseHookOptions): UseSwapReturn<"exactInput" | "exactOutput">;
+export function useSwap(
+  params: UseSwapParams,
+  options: UseHookOptions = {},
+): UseSwapReturn<"exactInput" | "exactOutput"> {
+  const { route, recipient: recipientOverride, slippageBps: slippageBpsParam, useNativeToken } = params;
   const { enabled = true, refetchInterval = false, chainId: chainIdOverride } = options;
 
   const { sdk, chainId } = useUniswapSDK({ chainId: chainIdOverride });
   const { address: connectedAddress } = useAccount();
   const recipient = recipientOverride ?? connectedAddress;
-
+  const exactOutput = isExactOutputParams(params);
+  const mode: SwapMode = exactOutput ? "exactOutput" : "exactInput";
+  const exactAmount = exactOutput ? params.exactOutput.amount : params.exactInput.amount;
+  const exactCurrency = exactOutput ? params.exactOutput.currency : params.exactInput.currency;
   const slippageBps = slippageBpsParam ?? sdk.defaultSlippageTolerance;
 
   const wethAddress = sdk.getContractAddress("weth");
-  const firstHopPoolKey = route[0].poolKey;
-  const firstHopSupportsNativeInput =
-    firstHopPoolKey.currency0.toLowerCase() === zeroAddress.toLowerCase() ||
-    firstHopPoolKey.currency1.toLowerCase() === zeroAddress.toLowerCase();
-  const shouldTreatNativeInputAsWeth =
-    !!useNativeETH && currencyIn.toLowerCase() === zeroAddress.toLowerCase() && !firstHopSupportsNativeInput;
-  const resolvedCurrencyIn = shouldTreatNativeInputAsWeth ? wethAddress : currencyIn;
+  const mappedRoute = mapRoute(route, ({ poolKey, hookData }) => ({
+    poolKey: {
+      currency0: poolKey.currency0 as Address,
+      currency1: poolKey.currency1 as Address,
+      fee: poolKey.fee,
+      tickSpacing: poolKey.tickSpacing,
+      hooks: poolKey.hooks as Address,
+    },
+    hookData,
+  }));
+  const currencyMeta = resolveSwapCurrencyMeta({ ...params, wethAddress });
+  const meta: SwapMeta = {
+    resolvedCurrencyIn: currencyMeta.resolvedCurrencyIn,
+    resolvedCurrencyOut: currencyMeta.resolvedCurrencyOut,
+  };
 
-  const isNativeInput = resolvedCurrencyIn.toLowerCase() === zeroAddress.toLowerCase();
-
-  // When useNativeETH is set, treat WETH-denominated input as native ETH for balance checks and permit handling.
-  const isNativeEthInput = !!useNativeETH && resolvedCurrencyIn.toLowerCase() === wethAddress.toLowerCase();
-
-  const quoteEnabled = enabled && amountIn > 0n;
+  const quoteEnabled = enabled && exactAmount > 0n;
   const swapEnabled = quoteEnabled && !!connectedAddress;
-  const requiresPermit2 = !isNativeInput && !isNativeEthInput;
-
   const universalRouter = sdk.getContractAddress("universalRouter");
+
+  const quoteQuery = useQuery({
+    queryKey: swapKeys.quote(mode, exactCurrency, route, exactAmount, slippageBps, !!useNativeToken, chainId),
+    queryFn: async (): Promise<QuoteData> => {
+      assertSdkInitialized(sdk);
+
+      if (exactAmount === 0n) {
+        throw new Error(`${exactOutput ? "Output" : "Input"} amount must be greater than zero`);
+      }
+
+      const quoteParams: SwapQuoteParams = exactOutput
+        ? {
+            route: mappedRoute,
+            exactOutput: {
+              currency: params.exactOutput.currency,
+              amount: params.exactOutput.amount.toString(),
+            },
+            useNativeToken,
+          }
+        : {
+            route: mappedRoute,
+            exactInput: {
+              currency: params.exactInput.currency,
+              amount: params.exactInput.amount.toString(),
+            },
+            useNativeToken,
+          };
+
+      const quote = await sdk.getQuote(quoteParams);
+
+      if (exactOutput) {
+        return {
+          ...quote,
+          maxAmountIn: calculateMaximumInput(quote.amountIn, slippageBps),
+        };
+      }
+
+      return {
+        ...quote,
+        minAmountOut: calculateMinimumOutput(quote.amountOut, slippageBps),
+      };
+    },
+    enabled: quoteEnabled,
+    queryKeyHashFn: hashFn,
+    refetchInterval,
+  });
+
+  const quote = quoteQuery.data;
+  const inputCurrencyForSteps = meta.resolvedCurrencyIn;
+  const isNativeInput = inputCurrencyForSteps.toLowerCase() === zeroAddress.toLowerCase();
+  const requiresPermit2 = !isNativeInput;
+
   const { query: inputTokenQuery } = useToken(
     {
-      tokenAddress: isNativeEthInput ? zeroAddress : resolvedCurrencyIn,
+      tokenAddress: inputCurrencyForSteps,
     },
     {
       enabled: swapEnabled,
@@ -182,46 +202,18 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     },
   );
 
-  const quoteQuery = useQuery({
-    queryKey: swapKeys.quote(resolvedCurrencyIn, route, amountIn, slippageBps, chainId),
-    queryFn: async (): Promise<QuoteData> => {
-      assertSdkInitialized(sdk);
-
-      if (amountIn == 0n) {
-        throw new Error("Input amount must be greater than zero");
-      }
-
-      const quoteParams: SwapExactIn = {
-        currencyIn: resolvedCurrencyIn,
-        route: mapRoute(route, ({ poolKey, hookData }) => ({
-          poolKey: {
-            currency0: poolKey.currency0 as Address,
-            currency1: poolKey.currency1 as Address,
-            fee: poolKey.fee,
-            tickSpacing: poolKey.tickSpacing,
-            hooks: poolKey.hooks as Address,
-          },
-          hookData,
-        })),
-        amountIn: amountIn.toString(),
-      };
-
-      const quote = await sdk.getQuote(quoteParams);
-      const minAmountOut = calculateMinimumOutput(quote.amountOut, slippageBps);
-
-      return { ...quote, minAmountOut };
-    },
-    enabled: quoteEnabled && amountIn !== 0n,
-    queryKeyHashFn: hashFn,
-    refetchInterval,
-  });
+  const permit2Amount = exactOutput
+    ? quote && isExactOutputQuoteData(quote)
+      ? quote.maxAmountIn
+      : 0n
+    : params.exactInput.amount;
 
   const permit2 = usePermit2(
     {
       tokens: [
         {
-          address: resolvedCurrencyIn,
-          amount: amountIn,
+          address: inputCurrencyForSteps,
+          amount: permit2Amount,
         },
       ],
       spender: universalRouter,
@@ -233,7 +225,6 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
   );
 
   const swapTransaction = useTransaction({ chainId });
-  const quote = quoteQuery.data;
   const inputBalance = inputTokenQuery.data?.balance?.raw;
 
   const swapExecute = useCallback(
@@ -245,7 +236,17 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         throw new Error("Quote not available");
       }
 
-      if (inputBalance !== undefined && amountIn > inputBalance) {
+      if (exactOutput && !isExactOutputQuoteData(quote)) {
+        throw new Error("Exact-output quote not available");
+      }
+
+      if (!exactOutput && !isExactInputQuoteData(quote)) {
+        throw new Error("Exact-input quote not available");
+      }
+
+      const maxSpendAmount = exactOutput ? (quote as ExactOutputQuoteData).maxAmountIn : params.exactInput.amount;
+
+      if (inputBalance !== undefined && maxSpendAmount > inputBalance) {
         throw new Error("Insufficient balance for swap amount");
       }
 
@@ -255,40 +256,61 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
       }
 
       const permit2Signature = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
-
       const pools = await Promise.all(route.map(({ poolKey }) => sdk.getPool(poolKey)));
+      const resolvedRoute = mapRoute(route, (hop, index) => ({ pool: pools[index]!, hookData: hop.hookData }));
 
-      const calldata = await sdk.buildSwapCallData({
-        currencyIn: resolvedCurrencyIn,
-        route: mapRoute(route, (hop, index) => ({ pool: pools[index]!, hookData: hop.hookData })),
-        amountIn,
-        amountOutMinimum: quote.minAmountOut,
-        recipient: recipient ?? connectedAddress,
-        permit2Signature,
-        useNativeETH,
-      });
+      const calldata = exactOutput
+        ? await (() => {
+            const exactOutputQuote = quote as ExactOutputQuoteData;
+
+            return sdk.buildSwapCallData({
+              route: resolvedRoute,
+              exactOutput: {
+                currency: params.exactOutput.currency,
+                amount: exactOutputQuote.amountOut,
+              },
+              maxAmountIn: exactOutputQuote.maxAmountIn,
+              recipient: recipient ?? connectedAddress,
+              permit2Signature,
+              useNativeToken,
+            });
+          })()
+        : await (() => {
+            const exactInputQuote = quote as ExactInputQuoteData;
+
+            return sdk.buildSwapCallData({
+              route: resolvedRoute,
+              exactInput: {
+                currency: params.exactInput.currency,
+                amount: params.exactInput.amount,
+              },
+              minAmountOut: exactInputQuote.minAmountOut,
+              recipient: recipient ?? connectedAddress,
+              permit2Signature,
+              useNativeToken,
+            });
+          })();
 
       return swapTransaction.sendTransaction({
         to: universalRouter,
         data: calldata,
-        value: isNativeInput || isNativeEthInput ? amountIn : 0n,
+        value: isNativeInput ? maxSpendAmount : 0n,
       });
     },
     [
-      sdk,
       connectedAddress,
-      resolvedCurrencyIn,
-      quote,
+      exactOutput,
       inputBalance,
+      isNativeInput,
+      params,
       permit2.permit2,
-      route,
-      amountIn,
+      quote,
       recipient,
+      route,
+      sdk,
       swapTransaction,
       universalRouter,
-      isNativeInput,
-      isNativeEthInput,
-      useNativeETH,
+      useNativeToken,
     ],
   );
 
@@ -309,6 +331,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
     if (swapTransaction.status !== "confirmed") {
       return "swap";
     }
+
     return "completed";
   })();
 
@@ -324,7 +347,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
 
   return {
     steps: {
-      quote: quoteQuery,
+      quote: quoteQuery as UseQueryResult<QuoteDataByMode<"exactInput" | "exactOutput">, Error>,
       approval: permit2.approvals[0],
       permit2: permit2.permit2,
       swap: {
@@ -332,6 +355,7 @@ export function useSwap(params: UseSwapParams, options: UseHookOptions = {}): Us
         execute: () => swapExecute(),
       },
     },
+    meta,
     currentStep,
     executeAll,
     reset,
