@@ -6,8 +6,6 @@ import { type Address, type Chain, type Hex, type PublicClient } from "viem";
 
 import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
 import { assertBasisPoints } from "@/helpers/percent";
-import type { ExactInputTradeType, ExactOutputTradeType } from "@/types/tradeType";
-import { TradeType } from "@/types/tradeType";
 import {
   buildAddLiquidityCallData,
   type BuildAddLiquidityArgs,
@@ -19,17 +17,12 @@ import {
   buildRemoveLiquidityCallData,
   type BuildRemoveLiquidityCallDataArgs,
 } from "@/utils/buildRemoveLiquidityCallData";
-import {
-  buildSwapCallData,
-  type BuildSwapCallDataArgs,
-  type BuildSwapExactInArgs,
-  type BuildSwapExactOutArgs,
-} from "@/utils/buildSwapCallData";
+import { buildSwapCallData, type BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import { getChainById } from "@/utils/chains";
 import { getPool } from "@/utils/getPool";
 import { getPosition, type GetPositionResponse } from "@/utils/getPosition";
 import { getPositionInfo, type GetPositionInfoResponse } from "@/utils/getPositionInfo";
-import { getQuote, type QuoteResponse, type SwapExactIn, type SwapExactOut } from "@/utils/getQuote";
+import { getQuote, type QuoteResponse, type SwapQuoteParams } from "@/utils/getQuote";
 import { getTickInfo, type GetTickInfoArgs, type TickInfoResponse } from "@/utils/getTickInfo";
 import { getTokens, type GetTokensResult } from "@/utils/getTokens";
 import { getUncollectedFees, type GetUncollectedFeesResponse } from "@/utils/getUncollectedFees";
@@ -230,17 +223,11 @@ export class UniswapSDK {
    * the swap without executing it. It provides accurate pricing information for route-based
    * swaps without sending a transaction.
    *
-   * @param args @type {SwapExactIn} - Swap parameters including input currency, route, and amount in
+   * @param args - Swap parameters including route and exact input or output amount
    * @returns Promise<QuoteResponse> - Quote data with amount out and fetch timestamp
    * @throws Error if simulation fails or contract call reverts
-  */
-  public async getQuote(args: SwapExactIn): Promise<QuoteResponse<ExactInputTradeType>>;
-  public async getQuote(args: SwapExactOut): Promise<QuoteResponse<ExactOutputTradeType>>;
-  public async getQuote(args: SwapExactIn | SwapExactOut): Promise<QuoteResponse> {
-    if (args.tradeType === TradeType.ExactOutput) {
-      return getQuote(args, this.instance);
-    }
-
+   */
+  public async getQuote(args: SwapQuoteParams): Promise<QuoteResponse> {
     return getQuote(args, this.instance);
   }
 
@@ -324,14 +311,8 @@ export class UniswapSDK {
    * @param args @type {BuildSwapCallDataArgs} - Swap configuration including pool, amounts, and recipient
    * @returns Promise<Hex> - Encoded Universal Router calldata ready for transaction execution
    * @throws Error if swap parameters are invalid or calldata generation fails
-  */
-  public async buildSwapCallData(args: BuildSwapExactInArgs): Promise<Hex>;
-  public async buildSwapCallData(args: BuildSwapExactOutArgs): Promise<Hex>;
+   */
   public async buildSwapCallData(args: BuildSwapCallDataArgs): Promise<Hex> {
-    if (args.tradeType === TradeType.ExactOutput) {
-      return buildSwapCallData(args, this.instance);
-    }
-
     return buildSwapCallData(args, this.instance);
   }
 

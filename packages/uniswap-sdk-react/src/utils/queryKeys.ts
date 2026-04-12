@@ -1,4 +1,4 @@
-import { TradeType, type SwapRoute } from "@zahastudio/uniswap-sdk";
+import type { SwapRoute } from "@zahastudio/uniswap-sdk";
 
 /**
  * Package key used as prefix for all query keys to ensure uniqueness.
@@ -51,19 +51,20 @@ export const swapKeys = {
   /** Base key for all swap queries */
   all: [PACKAGE_KEY, "useSwap"] as const,
 
-  /** Key for a swap quote by trade type, exact-side currency, ordered route, amount, slippage, and chain. */
+  /** Key for a swap quote by mode, exact-side currency, ordered route, amount, native toggle, slippage, and chain. */
   quote: (
-    tradeType: typeof TradeType.ExactInput | typeof TradeType.ExactOutput,
+    mode: "exactInput" | "exactOutput",
     exactCurrency: string,
     route: SwapRoute,
     exactAmount: bigint,
     slippageBps: number,
+    useNativeToken: boolean,
     chainId?: number,
   ) =>
     [
       ...swapKeys.all,
       "quote",
-      tradeType,
+      mode,
       exactCurrency,
       ...route.flatMap(({ poolKey, hookData }) => [
         poolKey.currency0,
@@ -75,6 +76,7 @@ export const swapKeys = {
       ]),
       exactAmount,
       slippageBps,
+      useNativeToken,
       chainId,
     ] as const,
 };

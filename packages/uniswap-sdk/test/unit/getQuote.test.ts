@@ -1,8 +1,8 @@
 import { zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
+
 import { getQuote } from "@/utils/getQuote";
-import { TradeType } from "@/types/tradeType";
 
 describe("getQuote", () => {
   it("quotes a multi-hop exact-input route through quoteExactInput", async () => {
@@ -16,13 +16,12 @@ describe("getQuote", () => {
       },
       contracts: {
         quoter: "0x0000000000000000000000000000000000000009",
+        weth: "0x0000000000000000000000000000000000000004",
       },
     } as unknown as UniswapSDKInstance;
 
     const quote = await getQuote(
       {
-        tradeType: TradeType.ExactInput,
-        currencyIn: "0x0000000000000000000000000000000000000001",
         route: [
           {
             poolKey: {
@@ -43,16 +42,22 @@ describe("getQuote", () => {
             },
           },
         ],
-        amountIn: "1000",
+        exactInput: {
+          currency: "0x0000000000000000000000000000000000000001",
+          amount: "1000",
+        },
       },
       instance,
     );
 
     expect(quote).toEqual({
-      tradeType: TradeType.ExactInput,
       amountIn: 1000n,
       amountOut: 12345n,
       timestamp: Date.now(),
+      meta: {
+        resolvedCurrencyIn: "0x0000000000000000000000000000000000000001",
+        resolvedCurrencyOut: "0x0000000000000000000000000000000000000003",
+      },
     });
     expect(simulateContract).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -97,13 +102,12 @@ describe("getQuote", () => {
       },
       contracts: {
         quoter: "0x0000000000000000000000000000000000000009",
+        weth: "0x0000000000000000000000000000000000000004",
       },
     } as unknown as UniswapSDKInstance;
 
     const quote = await getQuote(
       {
-        tradeType: TradeType.ExactOutput,
-        currencyOut: "0x0000000000000000000000000000000000000003",
         route: [
           {
             poolKey: {
@@ -124,16 +128,22 @@ describe("getQuote", () => {
             },
           },
         ],
-        amountOut: "12345",
+        exactOutput: {
+          currency: "0x0000000000000000000000000000000000000003",
+          amount: "12345",
+        },
       },
       instance,
     );
 
     expect(quote).toEqual({
-      tradeType: TradeType.ExactOutput,
       amountIn: 2000n,
       amountOut: 12345n,
       timestamp: Date.now(),
+      meta: {
+        resolvedCurrencyIn: "0x0000000000000000000000000000000000000001",
+        resolvedCurrencyOut: "0x0000000000000000000000000000000000000003",
+      },
     });
     expect(simulateContract).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -165,5 +175,46 @@ describe("getQuote", () => {
     );
 
     vi.useRealTimers();
+  });
+
+  it("resolves native token metadata when useNativeToken is enabled on WETH route edges", async () => {
+    const simulateContract = vi.fn().mockResolvedValue({ result: [2000n, 987n] });
+    const weth = "0x0000000000000000000000000000000000000004";
+    const instance = {
+      client: {
+        simulateContract,
+      },
+      contracts: {
+        quoter: "0x0000000000000000000000000000000000000009",
+        weth,
+      },
+    } as unknown as UniswapSDKInstance;
+
+    const quote = await getQuote(
+      {
+        route: [
+          {
+            poolKey: {
+              currency0: "0x0000000000000000000000000000000000000001",
+              currency1: weth,
+              fee: 3000,
+              tickSpacing: 60,
+              hooks: zeroAddress,
+            },
+          },
+        ],
+        exactOutput: {
+          currency: weth,
+          amount: "12345",
+        },
+        useNativeToken: true,
+      },
+      instance,
+    );
+
+    expect(quote.meta).toEqual({
+      resolvedCurrencyIn: "0x0000000000000000000000000000000000000001",
+      resolvedCurrencyOut: zeroAddress,
+    });
   });
 });

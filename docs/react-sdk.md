@@ -94,50 +94,50 @@ Full swap lifecycle: quote → approve → permit2 sign → execute.
 ```tsx
 const swap = useSwap(
   {
-    tradeType: TradeType.ExactInput,
-    currencyIn: WETH,
     route: [{ poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: ZERO_ADDRESS } }],
-    amountIn: parseEther("1"),
+    exactInput: {
+      currency: WETH,
+      amount: parseEther("1"),
+    },
     slippageBps: 50, // optional, default from SDK
     recipient: address, // optional, defaults to connected wallet
-    useNativeETH: false, // optional, wrap/unwrap ETH
+    useNativeToken: false, // optional, resolve WETH route edges as the native token
   },
   { refetchInterval: 12000 }, // optional
 );
 
 const exactOutSwap = useSwap({
-  tradeType: TradeType.ExactOutput,
-  currencyOut: USDC,
   route,
-  amountOut: 1_000_000n,
+  exactOutput: {
+    currency: USDC,
+    amount: 1_000_000n,
+  },
 });
 ```
 
 **Params:** `UseSwapParams`
 
-| Field          | Type        | Required | Description                                  |
-| -------------- | ----------- | -------- | -------------------------------------------- |
-| `tradeType`    | `TradeType` | Yes      | `TradeType.ExactInput` or `TradeType.ExactOutput` |
-| `currencyIn`   | `Address`   | Exact in | Input currency for the first hop             |
-| `currencyOut`  | `Address`   | Exact out| Output currency for the final hop            |
-| `route`        | `SwapRoute` | Yes      | Ordered route; single-hop = array of 1       |
-| `amountIn`     | `bigint`    | Exact in | Input amount (base units)                    |
-| `amountOut`    | `bigint`    | Exact out| Output amount (base units)                   |
-| `recipient`    | `Address`   | No       | Output recipient (default: connected wallet) |
-| `slippageBps`  | `number`    | No       | Slippage in BPS (default: SDK default)       |
-| `useNativeETH` | `boolean`   | No       | Wrap/unwrap native ETH                       |
+| Field            | Type                   | Required  | Description                                  |
+| ---------------- | ---------------------- | --------- | -------------------------------------------- |
+| `route`          | `SwapRoute`            | Yes       | Ordered route; single-hop = array of 1       |
+| `exactInput`     | `{ currency, amount }` | Exact in  | Input currency and exact amount              |
+| `exactOutput`    | `{ currency, amount }` | Exact out | Output currency and exact amount             |
+| `recipient`      | `Address`              | No        | Output recipient (default: connected wallet) |
+| `slippageBps`    | `number`               | No        | Slippage in BPS (default: SDK default)       |
+| `useNativeToken` | `boolean`              | No        | Resolve WETH route edges as the native token |
 
 **Returns:** `UseSwapReturn`
 
-| Field            | Type                                                          | Description                                             |
-| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------- |
-| `steps.quote`    | `UseQueryResult<QuoteData>`                                   | Auto-fetching quote with `amountIn`, `amountOut`, and mode-specific slippage field |
-| `steps.approval` | `UseTokenApprovalReturn`                                      | ERC-20 → Permit2 approval                               |
-| `steps.permit2`  | `UsePermit2SignStep`                                          | Off-chain Permit2 signature                             |
-| `steps.swap`     | `UseSwapExecuteStep`                                          | Swap transaction execution                              |
-| `currentStep`    | `"quote" \| "approval" \| "permit2" \| "swap" \| "completed"` | First incomplete step                                   |
-| `executeAll`     | `() => Promise<Hex>`                                          | Run all remaining steps sequentially                    |
-| `reset`          | `() => void`                                                  | Reset mutation state (quote persists)                   |
+| Field            | Type                                                          | Description                                                                                |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `steps.quote`    | `UseQueryResult<QuoteData>`                                   | Auto-fetching quote with `amountIn`, `amountOut`, `meta`, and mode-specific slippage field |
+| `steps.approval` | `UseTokenApprovalReturn`                                      | ERC-20 → Permit2 approval                                                                  |
+| `steps.permit2`  | `UsePermit2SignStep`                                          | Off-chain Permit2 signature                                                                |
+| `steps.swap`     | `UseSwapExecuteStep`                                          | Swap transaction execution                                                                 |
+| `meta`           | `SwapMeta`                                                    | Resolved input/output currencies after `useNativeToken`                                    |
+| `currentStep`    | `"quote" \| "approval" \| "permit2" \| "swap" \| "completed"` | First incomplete step                                                                      |
+| `executeAll`     | `() => Promise<Hex>`                                          | Run all remaining steps sequentially                                                       |
+| `reset`          | `() => void`                                                  | Reset mutation state (quote persists)                                                      |
 
 #### Usage Patterns
 

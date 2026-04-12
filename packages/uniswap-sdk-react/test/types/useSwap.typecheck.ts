@@ -1,40 +1,45 @@
+import type { SwapRoute } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
 
-import { TradeType, type SwapRoute } from "@zahastudio/uniswap-sdk";
-
-import { useSwap, type UseSwapExactInParams, type UseSwapExactOutParams } from "@/hooks/useSwap";
+import { useSwap, type UseSwapParams } from "@/hooks/useSwap";
 
 type Expect<T extends true> = T;
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
 type HasKey<T, K extends PropertyKey> = K extends keyof T ? true : false;
 
 declare const address: Address;
 declare const route: SwapRoute;
 
-const exactInputSwap = useSwap({
-  tradeType: TradeType.ExactInput,
-  currencyIn: address,
+const exactInputParams: UseSwapParams = {
   route,
-  amountIn: 1n,
-});
+  exactInput: {
+    currency: address,
+    amount: 1n,
+  },
+};
 
-const exactOutputSwap = useSwap({
-  tradeType: TradeType.ExactOutput,
-  currencyOut: address,
+const exactOutputParams: UseSwapParams = {
   route,
-  amountOut: 1n,
-});
+  exactOutput: {
+    currency: address,
+    amount: 1n,
+  },
+};
 
-type ExactInputQuote = NonNullable<(typeof exactInputSwap.steps.quote.data)>;
-type ExactOutputQuote = NonNullable<(typeof exactOutputSwap.steps.quote.data)>;
+const exactInputSwap = useSwap(exactInputParams);
+const exactOutputSwap = useSwap(exactOutputParams);
 
-type _UseSwapExactInTradeType = Expect<Equal<UseSwapExactInParams["tradeType"], typeof TradeType.ExactInput>>;
-type _UseSwapExactInRejectsAmountOut = Expect<Equal<UseSwapExactInParams["amountOut"], never | undefined>>;
+type ExactInputQuote = NonNullable<typeof exactInputSwap.steps.quote.data>;
+type ExactOutputQuote = NonNullable<typeof exactOutputSwap.steps.quote.data>;
 
-type _UseSwapExactOutTradeType = Expect<Equal<UseSwapExactOutParams["tradeType"], typeof TradeType.ExactOutput>>;
-type _UseSwapExactOutRejectsCurrencyIn = Expect<Equal<UseSwapExactOutParams["currencyIn"], never | undefined>>;
-type _UseSwapExactOutRejectsAmountIn = Expect<Equal<UseSwapExactOutParams["amountIn"], never | undefined>>;
+type _UseSwapParamsRoute = Expect<Equal<UseSwapParams["route"], SwapRoute>>;
+type _UseSwapExactInputAmount = Expect<Equal<NonNullable<typeof exactInputParams.exactInput>["amount"], bigint>>;
+type _UseSwapExactOutputCurrency = Expect<
+  Equal<NonNullable<typeof exactOutputParams.exactOutput>["currency"], Address>
+>;
+
+type _UseSwapHasMeta = Expect<Equal<HasKey<typeof exactInputSwap, "meta">, true>>;
+type _UseSwapMetaResolvedIn = Expect<Equal<(typeof exactInputSwap.meta)["resolvedCurrencyIn"], Address>>;
 
 type _ExactInputQuoteHasMin = Expect<Equal<ExactInputQuote["minAmountOut"], bigint>>;
 type _ExactInputQuoteHasNoMax = Expect<Equal<HasKey<ExactInputQuote, "maxAmountIn">, false>>;

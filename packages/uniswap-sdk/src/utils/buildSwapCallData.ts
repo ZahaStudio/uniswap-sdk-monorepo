@@ -7,16 +7,10 @@ import { utility } from "hookmate/abi";
 import { encodeFunctionData, zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
-import type { ExactInputTradeType, ExactOutputTradeType } from "@/types/tradeType";
-import { TradeType } from "@/types/tradeType";
 
+import { resolveSwapCurrencyMeta, routeWithPoolsToSwapRoute } from "@/internal/swap";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
-import {
-  mapRoute,
-  resolveSwapRouteExactInput,
-  resolveSwapRouteExactOutput,
-  type SwapRouteWithPools,
-} from "@/utils/swapRoute";
+import { resolveSwapRouteExactInput, resolveSwapRouteExactOutput, type SwapRouteWithPools } from "@/utils/swapRoute";
 
 /**
  * Parameters for building a V4 swap
@@ -29,143 +23,120 @@ interface BuildSwapCallDataCommonArgs {
   deadlineDuration?: number;
   /** Optional Permit2 batch signature for token approval */
   permit2Signature?: BatchPermitOptions;
-  /** Custom actions to override default swap behavior. If not provided, uses default SWAP_EXACT_IN. */
+  /** Custom actions to override default swap behavior. */
   customActions?: {
     action: Actions;
     parameters: unknown[];
   }[];
-  /** When true, wraps/unwraps native ETH for WETH-denominated pools. The caller must send msg.value for input. */
-  useNativeETH?: boolean;
+  /** When true, wraps/unwraps the native token for WETH-denominated pools. */
+  useNativeToken?: boolean;
 }
 
-export interface BuildSwapExactInArgs extends BuildSwapCallDataCommonArgs {
-  tradeType: ExactInputTradeType;
-  amountIn: bigint;
-  amountOutMinimum: bigint;
-  /** Input currency for the first hop in the route. */
-  currencyIn: Address;
-  currencyOut?: never;
-  amountOut?: never;
-  amountInMaximum?: never;
+interface BuildSwapCallDataExactInputArgs extends BuildSwapCallDataCommonArgs {
+  exactInput: {
+    /** Input currency for the first hop in the route. */
+    currency: Address;
+    amount: bigint;
+  };
+  minAmountOut: bigint;
+  exactOutput?: never;
+  maxAmountIn?: never;
 }
 
-export interface BuildSwapExactOutArgs extends BuildSwapCallDataCommonArgs {
-  tradeType: ExactOutputTradeType;
-  amountOut: bigint;
-  amountInMaximum: bigint;
-  /** Output currency for the final hop in the route. */
-  currencyOut: Address;
-  currencyIn?: never;
-  amountIn?: never;
-  amountOutMinimum?: never;
+interface BuildSwapCallDataExactOutputArgs extends BuildSwapCallDataCommonArgs {
+  exactOutput: {
+    /** Output currency for the final hop in the route. */
+    currency: Address;
+    amount: bigint;
+  };
+  maxAmountIn: bigint;
+  exactInput?: never;
+  minAmountOut?: never;
 }
 
-export type BuildSwapCallDataArgs = BuildSwapExactInArgs | BuildSwapExactOutArgs;
+export type BuildSwapCallDataArgs = BuildSwapCallDataExactInputArgs | BuildSwapCallDataExactOutputArgs;
 
-function isExactOutputSwap(params: BuildSwapCallDataArgs): params is BuildSwapExactOutArgs {
-  return params.tradeType === TradeType.ExactOutput;
+function isExactOutputSwap(params: BuildSwapCallDataArgs): params is BuildSwapCallDataExactOutputArgs {
+  return "exactOutput" in params;
 }
 
 /**
- * Builds calldata for a Uniswap V4 swap
- *
- * This function creates the necessary calldata to execute a token swap through
- * Uniswap V4's Universal Router.
- *
- * @param params - Swap configuration parameters
- * @param instance - UniswapSDKInstance for block timestamp access
- * @returns encoded calldata
+ * Builds calldata for a Uniswap V4 swap.
  */
-export async function buildSwapCallData(params: BuildSwapExactInArgs, instance: UniswapSDKInstance): Promise<Hex>;
-export async function buildSwapCallData(params: BuildSwapExactOutArgs, instance: UniswapSDKInstance): Promise<Hex>;
 export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
-  const { route, permit2Signature, recipient, customActions, deadlineDuration, useNativeETH } = params;
+  const { route, permit2Signature, recipient, customActions, deadlineDuration, useNativeToken } = params;
   const exactOutput = isExactOutputSwap(params);
 
   const v4Planner = new V4Planner();
   const routePlanner = new RoutePlanner();
-  const routeWithPoolKeys = mapRoute(route, ({ pool, hookData }) => ({ poolKey: pool.poolKey, hookData }));
+  const routeWithPoolKeys = routeWithPoolsToSwapRoute(route);
   const inputPool = route[0].pool;
   const outputPool = route[route.length - 1]!.pool;
+  const meta = resolveSwapCurrencyMeta({ ...params, route: routeWithPoolKeys, wethAddress: instance.contracts.weth });
 
-  let inputCurrency: Address;
-  let outputCurrency: Address;
-  let inputAmountForWrap: bigint;
+  const inputCurrency = meta.requestedCurrencyIn;
+  const outputCurrency = meta.requestedCurrencyOut;
+  const inputAmountForWrap = exactOutput ? params.maxAmountIn : params.exactInput.amount;
 
   if (exactOutput) {
-    if (params.amountOut <= 0n) {
-      throw new Error(`Invalid amountOut: ${params.amountOut}. Must be a positive value.`);
+    if (params.exactOutput.amount <= 0n) {
+      throw new Error(`Invalid exactOutput.amount: ${params.exactOutput.amount}. Must be a positive value.`);
     }
 
-    if (params.amountInMaximum <= 0n) {
-      throw new Error(`Invalid amountInMaximum: ${params.amountInMaximum}. Must be a positive value.`);
+    if (params.maxAmountIn <= 0n) {
+      throw new Error(`Invalid maxAmountIn: ${params.maxAmountIn}. Must be a positive value.`);
     }
-
-    const resolvedRoute = resolveSwapRouteExactOutput(params.currencyOut, routeWithPoolKeys);
-    inputCurrency = resolvedRoute.inputCurrency;
-    outputCurrency = params.currencyOut;
-    inputAmountForWrap = params.amountInMaximum;
   } else {
-    if (params.amountIn <= 0n) {
-      throw new Error(`Invalid amountIn: ${params.amountIn}. Must be a positive value.`);
+    if (params.exactInput.amount <= 0n) {
+      throw new Error(`Invalid exactInput.amount: ${params.exactInput.amount}. Must be a positive value.`);
     }
 
-    if (params.amountOutMinimum < 0n) {
-      throw new Error(`Invalid amountOutMinimum: ${params.amountOutMinimum}. Must be non-negative.`);
+    if (params.minAmountOut < 0n) {
+      throw new Error(`Invalid minAmountOut: ${params.minAmountOut}. Must be non-negative.`);
     }
-
-    const resolvedRoute = resolveSwapRouteExactInput(params.currencyIn, routeWithPoolKeys);
-    inputCurrency = params.currencyIn;
-    outputCurrency = resolvedRoute.outputCurrency;
-    inputAmountForWrap = params.amountIn;
   }
 
   const inputCurrencyObject = getCurrencyFromPool(inputPool, inputCurrency);
   const outputCurrencyObject = getCurrencyFromPool(outputPool, outputCurrency);
 
-  // Determine if WRAP_ETH or UNWRAP_WETH is needed for WETH-denominated pools
   let wrapInput = false;
   let unwrapOutput = false;
 
-  if (useNativeETH) {
+  if (useNativeToken) {
     const wethAddress = instance.contracts.weth.toLowerCase();
-    const normalizedInputCurrency = inputCurrency.toLowerCase();
-    const normalizedOutputCurrency = outputCurrency.toLowerCase();
 
-    if (normalizedInputCurrency === wethAddress) {
+    if (inputCurrency.toLowerCase() === wethAddress) {
       wrapInput = true;
     }
 
-    if (normalizedOutputCurrency === wethAddress) {
+    if (outputCurrency.toLowerCase() === wethAddress) {
       unwrapOutput = true;
     }
   }
 
-  // Use custom actions if provided, otherwise use default SWAP_EXACT_IN.
   if (customActions && customActions.length > 0) {
-    // Add custom actions to the planner
     for (const customAction of customActions) {
       v4Planner.addAction(customAction.action, customAction.parameters);
     }
   } else {
     if (exactOutput) {
-      const { path } = resolveSwapRouteExactOutput(params.currencyOut, routeWithPoolKeys);
+      const { path } = resolveSwapRouteExactOutput(outputCurrency, routeWithPoolKeys);
       v4Planner.addAction(Actions.SWAP_EXACT_OUT, [
         {
-          currencyOut: params.currencyOut,
+          currencyOut: outputCurrency,
           path,
-          amountOut: params.amountOut.toString(),
-          amountInMaximum: params.amountInMaximum.toString(),
+          amountOut: params.exactOutput.amount.toString(),
+          amountInMaximum: params.maxAmountIn.toString(),
         },
       ]);
     } else {
-      const { path } = resolveSwapRouteExactInput(params.currencyIn, routeWithPoolKeys);
+      const { path } = resolveSwapRouteExactInput(inputCurrency, routeWithPoolKeys);
       v4Planner.addAction(Actions.SWAP_EXACT_IN, [
         {
-          currencyIn: params.currencyIn,
+          currencyIn: inputCurrency,
           path,
-          amountIn: params.amountIn.toString(),
-          amountOutMinimum: params.amountOutMinimum.toString(),
+          amountIn: params.exactInput.amount.toString(),
+          amountOutMinimum: params.minAmountOut.toString(),
         },
       ]);
     }
@@ -176,8 +147,6 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
 
   const deadline = await getDefaultDeadline(instance, deadlineDuration);
   const encodedActions = v4Planner.finalize();
-
-  // Build commands and inputs in execution order
   const finalInputs: Hex[] = [];
 
   if (permit2Signature) {
@@ -199,7 +168,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   if (unwrapOutput) {
     routePlanner.addCommand(CommandType.UNWRAP_WETH, [
       recipient,
-      exactOutput ? params.amountOut.toString() : params.amountOutMinimum.toString(),
+      exactOutput ? params.exactOutput.amount.toString() : params.minAmountOut.toString(),
     ]);
     finalInputs.push(routePlanner.inputs.at(-1) as Hex);
   }
@@ -214,8 +183,6 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
     finalInputs.push(routePlanner.inputs.at(-1) as Hex);
   }
 
-  // Encode final calldata
-  // Note: The deadline is for the execution deadline, while permit2 signatures have their own separate deadlines within the permit data structure.
   return encodeFunctionData({
     abi: utility.UniversalRouterArtifact.abi,
     functionName: "execute",

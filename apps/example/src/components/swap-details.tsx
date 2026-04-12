@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 
-import { TradeType } from "@zahastudio/uniswap-sdk";
-
 import { DetailRow } from "@/components/detail-row";
 import { cn } from "@/lib/utils";
 
 interface SwapDetailsProps {
-  tradeType: typeof TradeType.ExactInput | typeof TradeType.ExactOutput;
+  tradeType: "exactInput" | "exactOutput";
   inputSymbol: string;
   outputSymbol: string;
   slippageBps: number;
@@ -27,9 +25,9 @@ export function SwapDetails({
   maxInput,
 }: SwapDetailsProps) {
   const [expanded, setExpanded] = useState(false);
-  const primaryLabel = tradeType === TradeType.ExactOutput ? "Max. sold" : "Min. received";
+  const primaryLabel = tradeType === "exactOutput" ? "Max. sold" : "Min. received";
   const primaryValue =
-    tradeType === TradeType.ExactOutput ? `${maxInput ?? "0"} ${inputSymbol}` : `${minOutput ?? "0"} ${outputSymbol}`;
+    tradeType === "exactOutput" ? `${maxInput ?? "0"} ${inputSymbol}` : `${minOutput ?? "0"} ${outputSymbol}`;
 
   return (
     <div className="mt-3">

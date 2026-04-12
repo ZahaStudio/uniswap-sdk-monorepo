@@ -33,7 +33,7 @@ pnpm install @zahastudio/uniswap-sdk viem
 ```ts
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
-import { TradeType, sortTokens, UniswapSDK } from "@zahastudio/uniswap-sdk";
+import { sortTokens, UniswapSDK } from "@zahastudio/uniswap-sdk";
 
 const client = createPublicClient({ chain: mainnet, transport: http() });
 const sdk = UniswapSDK.create(client, mainnet.id);
@@ -49,8 +49,6 @@ const [weth, usdc] = await sdk.getTokens({
 
 // Get a quote
 const quote = await sdk.getQuote({
-  tradeType: TradeType.ExactInput,
-  currencyIn: WETH,
   route: [
     {
       poolKey: {
@@ -62,7 +60,10 @@ const quote = await sdk.getQuote({
       },
     },
   ],
-  amountIn: 1000000000000000000n, // 1 ETH
+  exactInput: {
+    currency: WETH,
+    amount: 1000000000000000000n,
+  }, // 1 ETH
 });
 ```
 

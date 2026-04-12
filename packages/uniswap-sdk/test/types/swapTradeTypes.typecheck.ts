@@ -1,28 +1,62 @@
 import type { Address } from "viem";
 
-import { TradeType } from "@/types/tradeType";
-import type { BuildSwapExactInArgs, BuildSwapExactOutArgs } from "@/utils/buildSwapCallData";
-import type { SwapExactIn, SwapExactOut } from "@/utils/getQuote";
+import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
+import type { QuoteResponse, SwapQuoteParams } from "@/utils/getQuote";
+import type { SwapRoute, SwapRouteWithPools } from "@/utils/swapRoute";
 
 type Expect<T extends true> = T;
-type Equal<A, B> =
-  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type HasKey<T, K extends PropertyKey> = K extends keyof T ? true : false;
 
-type _SwapExactInTradeType = Expect<Equal<SwapExactIn["tradeType"], typeof TradeType.ExactInput>>;
-type _SwapExactInCurrencyIn = Expect<Equal<SwapExactIn["currencyIn"], Address>>;
-type _SwapExactInRejectsOutputAmount = Expect<Equal<SwapExactIn["amountOut"], never | undefined>>;
+declare const address: Address;
+declare const route: SwapRoute;
+declare const routeWithPools: SwapRouteWithPools;
 
-type _SwapExactOutTradeType = Expect<Equal<SwapExactOut["tradeType"], typeof TradeType.ExactOutput>>;
-type _SwapExactOutCurrencyOut = Expect<Equal<SwapExactOut["currencyOut"], Address>>;
-type _SwapExactOutRejectsInputCurrency = Expect<Equal<SwapExactOut["currencyIn"], never | undefined>>;
-type _SwapExactOutRejectsInputAmount = Expect<Equal<SwapExactOut["amountIn"], never | undefined>>;
+const exactInputQuoteParams: SwapQuoteParams = {
+  route,
+  exactInput: {
+    currency: address,
+    amount: 1n,
+  },
+};
 
-type _BuildSwapExactInAmountIn = Expect<Equal<BuildSwapExactInArgs["amountIn"], bigint>>;
-type _BuildSwapExactInRejectsAmountInMaximum = Expect<Equal<BuildSwapExactInArgs["amountInMaximum"], never | undefined>>;
+const exactOutputQuoteParams: SwapQuoteParams = {
+  route,
+  exactOutput: {
+    currency: address,
+    amount: 1n,
+  },
+};
 
-type _BuildSwapExactOutTradeType = Expect<Equal<BuildSwapExactOutArgs["tradeType"], typeof TradeType.ExactOutput>>;
-type _BuildSwapExactOutAmountOut = Expect<Equal<BuildSwapExactOutArgs["amountOut"], bigint>>;
-type _BuildSwapExactOutAmountInMaximum = Expect<Equal<BuildSwapExactOutArgs["amountInMaximum"], bigint>>;
-type _BuildSwapExactOutRejectsAmountOutMinimum = Expect<
-  Equal<BuildSwapExactOutArgs["amountOutMinimum"], never | undefined>
+const exactInputCallDataArgs: BuildSwapCallDataArgs = {
+  route: routeWithPools,
+  recipient: address,
+  exactInput: {
+    currency: address,
+    amount: 1n,
+  },
+  minAmountOut: 0n,
+};
+
+const exactOutputCallDataArgs: BuildSwapCallDataArgs = {
+  route: routeWithPools,
+  recipient: address,
+  exactOutput: {
+    currency: address,
+    amount: 1n,
+  },
+  maxAmountIn: 2n,
+};
+
+type _QuoteParamsRoute = Expect<Equal<(typeof exactInputQuoteParams)["route"], SwapRoute>>;
+type _QuoteParamsExactInputCurrency = Expect<Equal<(typeof exactInputQuoteParams)["exactInput"]["currency"], Address>>;
+type _QuoteParamsExactOutputAmount = Expect<
+  Equal<(typeof exactOutputQuoteParams)["exactOutput"]["amount"], bigint | string>
 >;
+
+type _CallDataArgsExactInputAmount = Expect<Equal<(typeof exactInputCallDataArgs)["exactInput"]["amount"], bigint>>;
+type _CallDataArgsHasMinAmountOut = Expect<Equal<(typeof exactInputCallDataArgs)["minAmountOut"], bigint>>;
+type _CallDataArgsHasMaxAmountIn = Expect<Equal<(typeof exactOutputCallDataArgs)["maxAmountIn"], bigint>>;
+
+type _QuoteResponseHasMeta = Expect<Equal<HasKey<QuoteResponse, "meta">, true>>;
+type _QuoteResponseHasNoTradeType = Expect<Equal<HasKey<QuoteResponse, "tradeType">, false>>;
