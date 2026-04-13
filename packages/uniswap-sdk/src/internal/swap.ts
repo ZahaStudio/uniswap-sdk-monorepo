@@ -39,8 +39,20 @@ interface ExactOutputCurrencyArgs {
 
 export type ResolveSwapCurrencyMetaArgs = ExactInputCurrencyArgs | ExactOutputCurrencyArgs;
 
-function isExactOutputArgs(args: ResolveSwapCurrencyMetaArgs): args is ExactOutputCurrencyArgs {
-  return "exactOutput" in args;
+export function hasExactOutputCurrency(exactOutput: unknown): exactOutput is { currency: Address } {
+  return (
+    exactOutput !== undefined && exactOutput !== null && typeof exactOutput === "object" && "currency" in exactOutput
+  );
+}
+
+export function hasExactOutputAmount(exactOutput: unknown): exactOutput is { currency: Address; amount: unknown } {
+  return (
+    exactOutput !== undefined &&
+    exactOutput !== null &&
+    typeof exactOutput === "object" &&
+    "currency" in exactOutput &&
+    "amount" in exactOutput
+  );
 }
 
 export function routeWithPoolsToSwapRoute(route: SwapRouteWithPools): SwapRoute {
@@ -58,12 +70,23 @@ export function resolveSwapCurrencyMeta(args: ResolveSwapCurrencyMetaArgs): Swap
     lastHopPoolKey.currency0.toLowerCase() === zeroAddress.toLowerCase() ||
     lastHopPoolKey.currency1.toLowerCase() === zeroAddress.toLowerCase();
 
-  const requestedCurrencyIn = isExactOutputArgs(args)
-    ? resolveSwapRouteExactOutput(args.exactOutput.currency, route).inputCurrency
-    : args.exactInput.currency;
-  const requestedCurrencyOut = isExactOutputArgs(args)
-    ? args.exactOutput.currency
-    : resolveSwapRouteExactInput(args.exactInput.currency, route).outputCurrency;
+  const exactOutput = args.exactOutput;
+
+  let requestedCurrencyIn: Address;
+  let requestedCurrencyOut: Address;
+
+  if (hasExactOutputCurrency(exactOutput)) {
+    requestedCurrencyIn = resolveSwapRouteExactOutput(exactOutput.currency, route).inputCurrency;
+    requestedCurrencyOut = exactOutput.currency;
+  } else {
+    const exactInput = args.exactInput;
+    if (exactInput === undefined) {
+      throw new Error("Expected exactInput when exactOutput is not provided.");
+    }
+
+    requestedCurrencyIn = exactInput.currency;
+    requestedCurrencyOut = resolveSwapRouteExactInput(exactInput.currency, route).outputCurrency;
+  }
 
   const resolvedCurrencyIn =
     useNativeToken && requestedCurrencyIn.toLowerCase() === wethAddress.toLowerCase() && !firstHopSupportsNativeInput

@@ -4,7 +4,7 @@ import { v4 } from "hookmate/abi";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
-import { resolveSwapCurrencyMeta } from "@/internal/swap";
+import { hasExactOutputAmount, resolveSwapCurrencyMeta } from "@/internal/swap";
 import { resolveSwapRouteExactInput, resolveSwapRouteExactOutput, type SwapRoute } from "@/utils/swapRoute";
 
 /**
@@ -57,10 +57,6 @@ export interface QuoteResponse {
   meta: SwapMeta;
 }
 
-function isExactOutputQuote(params: SwapQuoteParams): params is SwapQuoteExactOutputParams {
-  return "exactOutput" in params;
-}
-
 /**
  * Fetches a quote for a token swap using the V4 Quoter contract.
  * This function uses the provided pool instance to simulate the quote.
@@ -73,10 +69,12 @@ export async function getQuote(params: SwapQuoteParams, instance: UniswapSDKInst
   const { client, contracts } = instance;
   const { quoter, weth } = contracts;
   const meta = resolveSwapCurrencyMeta({ ...params, wethAddress: weth });
+  const exactOutputConfig = params.exactOutput;
+  const exactInputConfig = params.exactInput;
 
   try {
-    if (isExactOutputQuote(params)) {
-      const amountOut = BigInt(params.exactOutput.amount);
+    if (hasExactOutputAmount(exactOutputConfig)) {
+      const amountOut = BigInt(exactOutputConfig.amount);
       const { path } = resolveSwapRouteExactOutput(meta.requestedCurrencyOut, params.route);
 
       const simulation = await client.simulateContract({
@@ -105,7 +103,11 @@ export async function getQuote(params: SwapQuoteParams, instance: UniswapSDKInst
       };
     }
 
-    const amountIn = BigInt(params.exactInput.amount);
+    if (exactInputConfig === undefined) {
+      throw new Error("Missing exactInput parameters.");
+    }
+
+    const amountIn = BigInt(exactInputConfig.amount);
     const { path } = resolveSwapRouteExactInput(meta.requestedCurrencyIn, params.route);
 
     const simulation = await client.simulateContract({

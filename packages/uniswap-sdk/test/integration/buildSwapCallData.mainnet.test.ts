@@ -44,6 +44,37 @@ describe("buildSwapCallData (unichain rpc)", () => {
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 
+  it("treats exactOutput: undefined as exact-input params", async () => {
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
+    const block = await client.getBlock();
+    const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
+    const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
+
+    const calldata = await sdk.buildSwapCallData({
+      route: [{ pool }],
+      exactInput: {
+        currency: UNICHAIN_TOKENS.USDC,
+        amount: 1_000_000n,
+      },
+      exactOutput: undefined,
+      minAmountOut: 0n,
+      recipient: TEST_RECIPIENT,
+    } as never);
+
+    const decoded = decodeFunctionData({
+      abi: utility.UniversalRouterArtifact.abi,
+      data: calldata,
+    });
+
+    expect(decoded.functionName).toBe("execute");
+
+    const [commands, , deadline] = decoded.args as [Hex, Hex[], bigint];
+    expect(commands).toBe("0x10");
+    expect(deadline).toBe(expectedDeadline);
+    expect(calldata).toMatch(/^0x[0-9a-f]+$/);
+  });
+
   it("builds universal router calldata for a single-hop exact-output route", async () => {
     const client = createPinnedUnichainClient();
     const sdk = UniswapSDK.create(client, unichain.id);

@@ -8,7 +8,7 @@ import { encodeFunctionData, zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
-import { resolveSwapCurrencyMeta, routeWithPoolsToSwapRoute } from "@/internal/swap";
+import { hasExactOutputAmount, resolveSwapCurrencyMeta, routeWithPoolsToSwapRoute } from "@/internal/swap";
 import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { resolveSwapRouteExactInput, resolveSwapRouteExactOutput, type SwapRouteWithPools } from "@/utils/swapRoute";
 
@@ -56,16 +56,14 @@ interface BuildSwapCallDataExactOutputArgs extends BuildSwapCallDataCommonArgs {
 
 export type BuildSwapCallDataArgs = BuildSwapCallDataExactInputArgs | BuildSwapCallDataExactOutputArgs;
 
-function isExactOutputSwap(params: BuildSwapCallDataArgs): params is BuildSwapCallDataExactOutputArgs {
-  return "exactOutput" in params;
-}
-
 /**
  * Builds calldata for a Uniswap V4 swap.
  */
 export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
   const { route, permit2Signature, recipient, customActions, deadlineDuration, useNativeToken } = params;
-  const exactOutput = isExactOutputSwap(params);
+  const exactOutputConfig = params.exactOutput;
+  const exactInputConfig = params.exactInput;
+  const exactOutput = hasExactOutputAmount(exactOutputConfig);
 
   const v4Planner = new V4Planner();
   const routePlanner = new RoutePlanner();
@@ -76,23 +74,47 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
 
   const inputCurrency = meta.requestedCurrencyIn;
   const outputCurrency = meta.requestedCurrencyOut;
-  const inputAmountForWrap = exactOutput ? params.maxAmountIn : params.exactInput.amount;
+  const exactOutputAmount = exactOutput ? exactOutputConfig.amount : undefined;
+  const exactInputAmount = exactInputConfig?.amount;
+  const maxAmountIn = params.maxAmountIn;
+  const minAmountOut = params.minAmountOut;
+  const inputAmountForWrap = exactOutput ? params.maxAmountIn : exactInputConfig?.amount;
+
+  if (inputAmountForWrap === undefined) {
+    throw new Error("Missing swap input amount.");
+  }
 
   if (exactOutput) {
-    if (params.exactOutput.amount <= 0n) {
-      throw new Error(`Invalid exactOutput.amount: ${params.exactOutput.amount}. Must be a positive value.`);
+    if (exactOutputAmount === undefined) {
+      throw new Error("Missing exactOutput parameters.");
     }
 
-    if (params.maxAmountIn <= 0n) {
-      throw new Error(`Invalid maxAmountIn: ${params.maxAmountIn}. Must be a positive value.`);
+    if (exactOutputAmount <= 0n) {
+      throw new Error(`Invalid exactOutput.amount: ${exactOutputAmount}. Must be a positive value.`);
+    }
+
+    if (maxAmountIn === undefined) {
+      throw new Error("Missing maxAmountIn.");
+    }
+
+    if (maxAmountIn <= 0n) {
+      throw new Error(`Invalid maxAmountIn: ${maxAmountIn}. Must be a positive value.`);
     }
   } else {
-    if (params.exactInput.amount <= 0n) {
-      throw new Error(`Invalid exactInput.amount: ${params.exactInput.amount}. Must be a positive value.`);
+    if (exactInputAmount === undefined) {
+      throw new Error("Missing exactInput parameters.");
     }
 
-    if (params.minAmountOut < 0n) {
-      throw new Error(`Invalid minAmountOut: ${params.minAmountOut}. Must be non-negative.`);
+    if (exactInputAmount <= 0n) {
+      throw new Error(`Invalid exactInput.amount: ${exactInputAmount}. Must be a positive value.`);
+    }
+
+    if (minAmountOut === undefined) {
+      throw new Error("Missing minAmountOut.");
+    }
+
+    if (minAmountOut < 0n) {
+      throw new Error(`Invalid minAmountOut: ${minAmountOut}. Must be non-negative.`);
     }
   }
 
@@ -125,8 +147,8 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
         {
           currencyOut: outputCurrency,
           path,
-          amountOut: params.exactOutput.amount.toString(),
-          amountInMaximum: params.maxAmountIn.toString(),
+          amountOut: exactOutputAmount!.toString(),
+          amountInMaximum: maxAmountIn!.toString(),
         },
       ]);
     } else {
@@ -135,8 +157,8 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
         {
           currencyIn: inputCurrency,
           path,
-          amountIn: params.exactInput.amount.toString(),
-          amountOutMinimum: params.minAmountOut.toString(),
+          amountIn: exactInputAmount!.toString(),
+          amountOutMinimum: minAmountOut!.toString(),
         },
       ]);
     }
@@ -168,7 +190,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
   if (unwrapOutput) {
     routePlanner.addCommand(CommandType.UNWRAP_WETH, [
       recipient,
-      exactOutput ? params.exactOutput.amount.toString() : params.minAmountOut.toString(),
+      exactOutput ? exactOutputAmount!.toString() : minAmountOut!.toString(),
     ]);
     finalInputs.push(routePlanner.inputs.at(-1) as Hex);
   }
