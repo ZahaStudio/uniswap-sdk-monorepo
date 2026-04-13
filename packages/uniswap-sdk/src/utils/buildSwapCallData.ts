@@ -23,11 +23,6 @@ interface BuildSwapCallDataCommonArgs {
   deadlineDuration?: number;
   /** Optional Permit2 batch signature for token approval */
   permit2Signature?: BatchPermitOptions;
-  /** Custom actions to override default swap behavior. */
-  customActions?: {
-    action: Actions;
-    parameters: unknown[];
-  }[];
   /** When true, wraps/unwraps the native token for WETH-denominated pools. */
   useNativeToken?: boolean;
 }
@@ -78,7 +73,7 @@ type SwapPlan = ExactInputSwapPlan | ExactOutputSwapPlan;
  * Builds calldata for a Uniswap V4 swap.
  */
 export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
-  const { route, permit2Signature, recipient, customActions, deadlineDuration, useNativeToken } = params;
+  const { route, permit2Signature, recipient, deadlineDuration, useNativeToken } = params;
   const swapPlan = resolveSwapPlan(params);
 
   const v4Planner = new V4Planner();
@@ -113,36 +108,30 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
     }
   }
 
-  if (customActions && customActions.length > 0) {
-    for (const customAction of customActions) {
-      v4Planner.addAction(customAction.action, customAction.parameters);
-    }
+  if (swapPlan.tradeType === "exactOutput") {
+    const { path } = resolveSwapRouteExactOutput(outputCurrency, routeWithPoolKeys);
+    v4Planner.addAction(Actions.SWAP_EXACT_OUT, [
+      {
+        currencyOut: outputCurrency,
+        path,
+        amountOut: swapPlan.amountOut.toString(),
+        amountInMaximum: swapPlan.maxAmountIn.toString(),
+      },
+    ]);
   } else {
-    if (swapPlan.tradeType === "exactOutput") {
-      const { path } = resolveSwapRouteExactOutput(outputCurrency, routeWithPoolKeys);
-      v4Planner.addAction(Actions.SWAP_EXACT_OUT, [
-        {
-          currencyOut: outputCurrency,
-          path,
-          amountOut: swapPlan.amountOut.toString(),
-          amountInMaximum: swapPlan.maxAmountIn.toString(),
-        },
-      ]);
-    } else {
-      const { path } = resolveSwapRouteExactInput(inputCurrency, routeWithPoolKeys);
-      v4Planner.addAction(Actions.SWAP_EXACT_IN, [
-        {
-          currencyIn: inputCurrency,
-          path,
-          amountIn: swapPlan.amountIn.toString(),
-          amountOutMinimum: swapPlan.minAmountOut.toString(),
-        },
-      ]);
-    }
-
-    v4Planner.addSettle(inputCurrencyObject, !wrapInput);
-    v4Planner.addTake(outputCurrencyObject, unwrapOutput ? ROUTER_AS_RECIPIENT : recipient);
+    const { path } = resolveSwapRouteExactInput(inputCurrency, routeWithPoolKeys);
+    v4Planner.addAction(Actions.SWAP_EXACT_IN, [
+      {
+        currencyIn: inputCurrency,
+        path,
+        amountIn: swapPlan.amountIn.toString(),
+        amountOutMinimum: swapPlan.minAmountOut.toString(),
+      },
+    ]);
   }
+
+  v4Planner.addSettle(inputCurrencyObject, !wrapInput);
+  v4Planner.addTake(outputCurrencyObject, unwrapOutput ? ROUTER_AS_RECIPIENT : recipient);
 
   const deadline = await getDefaultDeadline(instance, deadlineDuration);
   const encodedActions = v4Planner.finalize();

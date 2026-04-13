@@ -236,18 +236,17 @@ const exactOutCalldata = await sdk.buildSwapCallData({
 
 **Args:** `BuildSwapCallDataArgs`
 
-| Field              | Type                          | Required  | Description                                       |
-| ------------------ | ----------------------------- | --------- | ------------------------------------------------- |
-| `route`            | `[{ pool, hookData? }, ...]`  | Yes       | Ordered route; single-hop = array of 1            |
-| `exactInput`       | `{ currency, amount }`        | Exact in  | Input currency and exact amount                   |
-| `exactOutput`      | `{ currency, amount }`        | Exact out | Output currency and exact amount                  |
-| `minAmountOut`     | `bigint`                      | Exact in  | Min output after slippage                         |
-| `maxAmountIn`      | `bigint`                      | Exact out | Max input after slippage                          |
-| `recipient`        | `Address`                     | Yes       | Output token recipient                            |
-| `permit2Signature` | `BatchPermitOptions`          | No        | Permit2 batch signature                           |
-| `deadlineDuration` | `number`                      | No        | Seconds from now (default: SDK `defaultDeadline`) |
-| `useNativeToken`   | `boolean`                     | No        | Wrap/unwrap the native token for WETH route edges |
-| `customActions`    | `Array<{action, parameters}>` | No        | Override default swap actions                     |
+| Field              | Type                         | Required  | Description                                       |
+| ------------------ | ---------------------------- | --------- | ------------------------------------------------- |
+| `route`            | `[{ pool, hookData? }, ...]` | Yes       | Ordered route; single-hop = array of 1            |
+| `exactInput`       | `{ currency, amount }`       | Exact in  | Input currency and exact amount                   |
+| `exactOutput`      | `{ currency, amount }`       | Exact out | Output currency and exact amount                  |
+| `minAmountOut`     | `bigint`                     | Exact in  | Min output after slippage                         |
+| `maxAmountIn`      | `bigint`                     | Exact out | Max input after slippage                          |
+| `recipient`        | `Address`                    | Yes       | Output token recipient                            |
+| `permit2Signature` | `BatchPermitOptions`         | No        | Permit2 batch signature                           |
+| `deadlineDuration` | `number`                     | No        | Seconds from now (default: SDK `defaultDeadline`) |
+| `useNativeToken`   | `boolean`                    | No        | Wrap/unwrap the native token for WETH route edges |
 
 **Returns:** `Promise<Hex>` — encoded `execute()` calldata for Universal Router.
 

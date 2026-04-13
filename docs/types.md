@@ -165,10 +165,6 @@ type BuildSwapCallDataArgs =
       minAmountOut: bigint;
       deadlineDuration?: number;
       permit2Signature?: BatchPermitOptions;
-      customActions?: Array<{
-        action: Actions;
-        parameters: unknown[];
-      }>;
       useNativeToken?: boolean;
     }
   | {
@@ -181,10 +177,6 @@ type BuildSwapCallDataArgs =
       maxAmountIn: bigint;
       deadlineDuration?: number;
       permit2Signature?: BatchPermitOptions;
-      customActions?: Array<{
-        action: Actions;
-        parameters: unknown[];
-      }>;
       useNativeToken?: boolean;
     };
 ```

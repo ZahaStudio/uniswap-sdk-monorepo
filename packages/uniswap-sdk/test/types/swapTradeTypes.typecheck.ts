@@ -48,6 +48,18 @@ const exactOutputCallDataArgs: BuildSwapCallDataArgs = {
   maxAmountIn: 2n,
 };
 
+const invalidCustomActionsArgs: BuildSwapCallDataArgs = {
+  route: routeWithPools,
+  recipient: address,
+  exactInput: {
+    currency: address,
+    amount: 1n,
+  },
+  minAmountOut: 0n,
+  // @ts-expect-error customActions is no longer supported
+  customActions: [],
+};
+
 type _QuoteParamsRoute = Expect<Equal<(typeof exactInputQuoteParams)["route"], SwapRoute>>;
 type _QuoteParamsExactInputCurrency = Expect<Equal<(typeof exactInputQuoteParams)["exactInput"]["currency"], Address>>;
 type _QuoteParamsExactOutputAmount = Expect<
@@ -57,6 +69,7 @@ type _QuoteParamsExactOutputAmount = Expect<
 type _CallDataArgsExactInputAmount = Expect<Equal<(typeof exactInputCallDataArgs)["exactInput"]["amount"], bigint>>;
 type _CallDataArgsHasMinAmountOut = Expect<Equal<(typeof exactInputCallDataArgs)["minAmountOut"], bigint>>;
 type _CallDataArgsHasMaxAmountIn = Expect<Equal<(typeof exactOutputCallDataArgs)["maxAmountIn"], bigint>>;
+type _InvalidCustomActionsArgs = Expect<Equal<(typeof invalidCustomActionsArgs)["recipient"], Address>>;
 
 type _QuoteResponseHasMeta = Expect<Equal<HasKey<QuoteResponse, "meta">, true>>;
 type _QuoteResponseHasNoTradeType = Expect<Equal<HasKey<QuoteResponse, "tradeType">, false>>;
