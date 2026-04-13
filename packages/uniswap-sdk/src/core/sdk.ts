@@ -217,15 +217,15 @@ export class UniswapSDK {
   }
 
   /**
-   * Simulates a token swap using the V4 Quoter contract to get the exact output amount.
+   * Simulates a token swap using the V4 Quoter contract for exact-in or exact-out quotes.
    *
-   * This method uses client.simulateContract() to call V4Quoter.quoteExactInput() and simulate
-   * the swap without executing it. It provides accurate pricing information for route-based
-   * swaps without sending a transaction.
+   * This method uses client.simulateContract() to call the appropriate V4 Quoter entrypoint
+   * without executing a transaction. It supports SwapQuoteParams in both exact-input and
+   * exact-output modes and returns quote amounts together with fetch metadata for route-based swaps.
    *
-   * @param args - Swap parameters including route and exact input or output amount
-   * @returns Promise<QuoteResponse> - Quote data with amount out and fetch timestamp
-   * @throws Error if simulation fails or contract call reverts
+   * @param args - Swap parameters including the route and either an exact input or exact output amount
+   * @returns Promise<QuoteResponse> - Quote data including amountOut, amountIn, meta, and the fetch timestamp
+   * @throws Error if quote simulation fails or the contract call reverts
    */
   public async getQuote(args: SwapQuoteParams): Promise<QuoteResponse> {
     return getQuote(args, this.instance);

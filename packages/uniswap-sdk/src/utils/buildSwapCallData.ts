@@ -173,7 +173,7 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
     finalInputs.push(routePlanner.inputs.at(-1) as Hex);
   }
 
-  if (exactOutput && wrapInput && !unwrapOutput) {
+  if (exactOutput && wrapInput) {
     routePlanner.addCommand(CommandType.UNWRAP_WETH, [recipient, "0"]);
     finalInputs.push(routePlanner.inputs.at(-1) as Hex);
   }

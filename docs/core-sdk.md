@@ -100,18 +100,20 @@ const pool = await sdk.getPool({
 Simulates a swap via V4 Quoter contract. No transaction is sent.
 
 ```ts
-const exactInQuote = await sdk.getQuote({
-  route: [
-    {
-      poolKey: {
-        currency0: "0x...",
-        currency1: "0x...",
-        fee: 3000,
-        tickSpacing: 60,
-        hooks: "0x0000000000000000000000000000000000000000",
-      },
+const route = [
+  {
+    poolKey: {
+      currency0: "0x...",
+      currency1: "0x...",
+      fee: 3000,
+      tickSpacing: 60,
+      hooks: "0x0000000000000000000000000000000000000000",
     },
-  ],
+  },
+];
+
+const exactInQuote = await sdk.getQuote({
+  route,
   exactInput: {
     currency: "0x...",
     amount: 1000000000000000000n, // bigint or string
