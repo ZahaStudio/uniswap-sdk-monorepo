@@ -75,6 +75,9 @@ export async function getQuote(params: SwapQuoteParams, instance: UniswapSDKInst
   try {
     if (hasExactOutputAmount(exactOutputConfig)) {
       const amountOut = BigInt(exactOutputConfig.amount);
+      if (amountOut <= 0n) {
+        throw new Error(`Invalid exactOutput.amount: ${amountOut}. Must be a positive value.`);
+      }
       const { path } = resolveSwapRouteExactOutput(meta.requestedCurrencyOut, params.route);
 
       const simulation = await client.simulateContract({
@@ -108,6 +111,9 @@ export async function getQuote(params: SwapQuoteParams, instance: UniswapSDKInst
     }
 
     const amountIn = BigInt(exactInputConfig.amount);
+    if (amountIn <= 0n) {
+      throw new Error(`Invalid exactInput.amount: ${amountIn}. Must be a positive value.`);
+    }
     const { path } = resolveSwapRouteExactInput(meta.requestedCurrencyIn, params.route);
 
     const simulation = await client.simulateContract({

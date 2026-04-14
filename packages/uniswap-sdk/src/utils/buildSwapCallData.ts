@@ -142,30 +142,30 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
       permit2Signature.permitBatch,
       permit2Signature.signature,
     ]);
-    finalInputs.push(getLastPlannerInput(routePlanner, "PERMIT2_PERMIT_BATCH"));
+    finalInputs.push(getLastPlannerInput(routePlanner));
   }
 
   if (wrapInput) {
     routePlanner.addCommand(CommandType.WRAP_ETH, [ROUTER_AS_RECIPIENT, swapPlan.inputAmountForWrap.toString()]);
-    finalInputs.push(getLastPlannerInput(routePlanner, "WRAP_ETH"));
+    finalInputs.push(getLastPlannerInput(routePlanner));
   }
 
   routePlanner.addCommand(CommandType.V4_SWAP, [encodedActions]);
-  finalInputs.push(getLastPlannerInput(routePlanner, "V4_SWAP"));
+  finalInputs.push(getLastPlannerInput(routePlanner));
 
   if (unwrapOutput) {
     routePlanner.addCommand(CommandType.UNWRAP_WETH, [recipient, swapPlan.unwrapAmountMinimum.toString()]);
-    finalInputs.push(getLastPlannerInput(routePlanner, "UNWRAP_WETH"));
+    finalInputs.push(getLastPlannerInput(routePlanner));
   }
 
   if (swapPlan.tradeType === "exactOutput" && wrapInput) {
     routePlanner.addCommand(CommandType.UNWRAP_WETH, [recipient, "0"]);
-    finalInputs.push(getLastPlannerInput(routePlanner, "UNWRAP_WETH refund"));
+    finalInputs.push(getLastPlannerInput(routePlanner));
   }
 
   if (swapPlan.tradeType === "exactOutput" && inputCurrency.toLowerCase() === zeroAddress.toLowerCase()) {
     routePlanner.addCommand(CommandType.SWEEP, [zeroAddress, recipient, "0"]);
-    finalInputs.push(getLastPlannerInput(routePlanner, "SWEEP"));
+    finalInputs.push(getLastPlannerInput(routePlanner));
   }
 
   return encodeFunctionData({
@@ -227,10 +227,10 @@ function resolveSwapPlan(params: BuildSwapCallDataArgs): SwapPlan {
   };
 }
 
-function getLastPlannerInput(routePlanner: RoutePlanner, commandName: string): Hex {
+function getLastPlannerInput(routePlanner: RoutePlanner): Hex {
   const input = routePlanner.inputs.at(-1);
   if (input === undefined || !isHex(input)) {
-    throw new Error(`Missing encoded input for ${commandName}.`);
+    throw new Error("Missing encoded planner input.");
   }
 
   return input;
