@@ -55,6 +55,16 @@ export function hasExactOutputAmount(exactOutput: unknown): exactOutput is { cur
   );
 }
 
+export function hasExactInputAmount(exactInput: unknown): exactInput is { currency: Address; amount: unknown } {
+  return (
+    exactInput !== undefined &&
+    exactInput !== null &&
+    typeof exactInput === "object" &&
+    "currency" in exactInput &&
+    "amount" in exactInput
+  );
+}
+
 export function routeWithPoolsToSwapRoute(route: SwapRouteWithPools): SwapRoute {
   return mapRoute(route, ({ pool, hookData }) => ({ poolKey: pool.poolKey, hookData }));
 }

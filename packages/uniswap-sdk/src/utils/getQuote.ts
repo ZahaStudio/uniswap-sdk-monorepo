@@ -4,7 +4,7 @@ import { v4 } from "hookmate/abi";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
-import { hasExactOutputAmount, resolveSwapCurrencyMeta } from "@/internal/swap";
+import { hasExactInputAmount, hasExactOutputAmount, resolveSwapCurrencyMeta } from "@/internal/swap";
 import { resolveSwapRouteExactInput, resolveSwapRouteExactOutput, type SwapRoute } from "@/utils/swapRoute";
 
 /**
@@ -68,11 +68,19 @@ export interface QuoteResponse {
 export async function getQuote(params: SwapQuoteParams, instance: UniswapSDKInstance): Promise<QuoteResponse> {
   const { client, contracts } = instance;
   const { quoter, weth } = contracts;
-  const meta = resolveSwapCurrencyMeta({ ...params, wethAddress: weth });
   const exactOutputConfig = params.exactOutput;
   const exactInputConfig = params.exactInput;
 
   try {
+    if (hasExactOutputAmount(exactOutputConfig) && hasExactInputAmount(exactInputConfig)) {
+      throw new Error("Conflicting swap parameters: provide exactInput or exactOutput, not both.");
+    }
+    if (!hasExactOutputAmount(exactOutputConfig) && !hasExactInputAmount(exactInputConfig)) {
+      throw new Error("Missing swap parameters: provide either exactInput or exactOutput.");
+    }
+
+    const meta = resolveSwapCurrencyMeta({ ...params, wethAddress: weth });
+
     if (hasExactOutputAmount(exactOutputConfig)) {
       const amountOut = BigInt(exactOutputConfig.amount);
       if (amountOut <= 0n) {
@@ -106,11 +114,7 @@ export async function getQuote(params: SwapQuoteParams, instance: UniswapSDKInst
       };
     }
 
-    if (exactInputConfig === undefined) {
-      throw new Error("Missing exactInput parameters.");
-    }
-
-    const amountIn = BigInt(exactInputConfig.amount);
+    const amountIn = BigInt(exactInputConfig!.amount);
     if (amountIn <= 0n) {
       throw new Error(`Invalid exactInput.amount: ${amountIn}. Must be a positive value.`);
     }
