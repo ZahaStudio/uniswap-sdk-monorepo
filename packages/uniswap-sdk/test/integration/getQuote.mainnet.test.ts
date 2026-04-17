@@ -8,7 +8,7 @@ describe("getQuote (unichain rpc)", () => {
   it("returns a quote for a single-hop route", async () => {
     const client = createPinnedUnichainClient();
     const sdk = UniswapSDK.create(client, unichain.id);
-    const amountIn = "1000000";
+    const amount = "1000000";
     const expectedAmountOut = 518374739793346n;
 
     const block = await client.getBlock();
@@ -18,14 +18,52 @@ describe("getQuote (unichain rpc)", () => {
     vi.setSystemTime(blockTimestampMs);
 
     const quote = await sdk.getQuote({
-      currencyIn: UNICHAIN_TOKENS.USDC,
       route: [{ poolKey: UNICHAIN_POOL_KEY }],
-      amountIn,
+      exactInput: {
+        currency: UNICHAIN_TOKENS.USDC,
+        amount,
+      },
     });
 
     vi.useRealTimers();
 
     expect(quote.amountOut).toBe(expectedAmountOut);
+    expect(quote.amountIn).toBe(BigInt(amount));
+    expect(quote.meta).toEqual({
+      resolvedCurrencyIn: UNICHAIN_TOKENS.USDC,
+      resolvedCurrencyOut: UNICHAIN_TOKENS.ETH,
+    });
+    expect(quote.timestamp).toBe(blockTimestampMs);
+  });
+
+  it("returns an exact-output quote for a single-hop route", async () => {
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
+    const amount = "518374739793346";
+    const expectedAmountIn = 1_000_000n;
+
+    const block = await client.getBlock();
+    const blockTimestampMs = Number(block.timestamp) * 1000;
+
+    vi.useFakeTimers();
+    vi.setSystemTime(blockTimestampMs);
+
+    const quote = await sdk.getQuote({
+      route: [{ poolKey: UNICHAIN_POOL_KEY }],
+      exactOutput: {
+        currency: UNICHAIN_TOKENS.ETH,
+        amount,
+      },
+    });
+
+    vi.useRealTimers();
+
+    expect(quote.amountIn).toBe(expectedAmountIn);
+    expect(quote.amountOut).toBe(BigInt(amount));
+    expect(quote.meta).toEqual({
+      resolvedCurrencyIn: UNICHAIN_TOKENS.USDC,
+      resolvedCurrencyOut: UNICHAIN_TOKENS.ETH,
+    });
     expect(quote.timestamp).toBe(blockTimestampMs);
   });
 });

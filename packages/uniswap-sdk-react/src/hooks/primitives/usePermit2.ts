@@ -118,6 +118,22 @@ function createPermit2InputsKey(
   return `${chainId}-${connectedAddress}-${spender}-${token0.address}-${token0.amount}-${token1.address}-${token1.amount}`;
 }
 
+async function resolveApprovalRequirement(
+  approval: UseTokenApprovalReturn,
+  token: UsePermit2Token,
+): Promise<boolean | undefined> {
+  if (approval.isRequired !== undefined) {
+    return approval.isRequired;
+  }
+
+  const { data } = await approval.allowance.refetch();
+  if (data === undefined) {
+    return undefined;
+  }
+
+  return data < token.amount;
+}
+
 /**
  * Reusable hook that manages the full Permit2 lifecycle:
  * ERC-20 approval(s) to the Permit2 contract, then off-chain Permit2 batch signing.
@@ -302,19 +318,21 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
 
   const approveAndSign = useCallback(async (): Promise<Permit2SignedResult> => {
     if (token0IsRelevant) {
-      if (approval0.isRequired === undefined) {
+      const token0ApprovalRequired = await resolveApprovalRequirement(approval0, token0);
+      if (token0ApprovalRequired === undefined) {
         throw new Error("Awaiting approval status for token0");
       }
-      if (approval0.isRequired) {
+      if (token0ApprovalRequired) {
         await approval0.approve();
       }
     }
 
     if (token1IsRelevant) {
-      if (approval1.isRequired === undefined) {
+      const token1ApprovalRequired = await resolveApprovalRequirement(approval1, token1);
+      if (token1ApprovalRequired === undefined) {
         throw new Error("Awaiting approval status for token1");
       }
-      if (approval1.isRequired) {
+      if (token1ApprovalRequired) {
         await approval1.approve();
       }
     }
@@ -324,7 +342,7 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
     }
 
     return permit2Sign();
-  }, [token0IsRelevant, token1IsRelevant, approval0, approval1, signed, permit2Sign]);
+  }, [token0IsRelevant, token1IsRelevant, approval0, approval1, token0, token1, signed, permit2Sign]);
 
   const reset = useCallback(() => {
     approval0.transaction.reset();

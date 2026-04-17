@@ -22,9 +22,11 @@ const poolKey = {
 };
 
 const quote = await sdk.getQuote({
-  currencyIn: WETH,
   route: [{ poolKey }],
-  amountIn: 1000000000000000000n, // 1 WETH
+  exactInput: {
+    currency: WETH,
+    amount: 1000000000000000000n,
+  }, // 1 WETH
 });
 
 console.log(`Output: ${quote.amountOut} USDC (raw)`);
@@ -65,9 +67,11 @@ const amountIn = parseEther("1");
 
 // Step 1: Get quote
 const quote = await sdk.getQuote({
-  currencyIn: WETH,
   route: [{ poolKey }],
-  amountIn,
+  exactInput: {
+    currency: WETH,
+    amount: amountIn,
+  },
 });
 
 const minAmountOut = calculateMinimumOutput(quote.amountOut, 50); // 0.5% slippage
@@ -93,10 +97,12 @@ const permit2Signature = permitData.buildPermit2BatchDataWithSignature(signature
 // Step 3: Get pool and build calldata
 const pool = await sdk.getPool(poolKey);
 const calldata = await sdk.buildSwapCallData({
-  currencyIn: WETH,
   route: [{ pool }],
-  amountIn,
-  amountOutMinimum: minAmountOut,
+  exactInput: {
+    currency: WETH,
+    amount: amountIn,
+  },
+  minAmountOut,
   recipient: account.address,
   permit2Signature,
 });
@@ -121,12 +127,14 @@ When swapping native ETH, skip Permit2 and send `value` with the transaction.
 ```ts
 // For a pool with WETH as one of the currencies
 const calldata = await sdk.buildSwapCallData({
-  currencyIn: WETH,
   route: [{ pool }],
-  amountIn: parseEther("1"),
-  amountOutMinimum: minAmountOut,
+  exactInput: {
+    currency: WETH,
+    amount: parseEther("1"),
+  },
+  minAmountOut,
   recipient: account.address,
-  useNativeETH: true, // enables WRAP_ETH / UNWRAP_WETH commands
+  useNativeToken: true, // enables WRAP_ETH / UNWRAP_WETH commands
 });
 
 const hash = await wallet.sendTransaction({
@@ -243,7 +251,6 @@ export function SwapWidget() {
 
   const swap = useSwap(
     {
-      currencyIn: WETH,
       route: [
         {
           poolKey: {
@@ -255,7 +262,10 @@ export function SwapWidget() {
           },
         },
       ],
-      amountIn: parseEther(amount || "0"),
+      exactInput: {
+        currency: WETH,
+        amount: parseEther(amount || "0"),
+      },
       slippageBps: 50,
     },
     { refetchInterval: 12000 },
