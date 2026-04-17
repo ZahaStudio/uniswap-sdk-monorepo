@@ -90,7 +90,7 @@ export interface UseSwapReturn<TMode extends SwapMode = "exactInput"> {
 }
 
 function isExactOutputParams(params: UseSwapParams): params is UseSwapExactOutputParams {
-  return "exactOutput" in params;
+  return params.exactOutput !== undefined && params.exactOutput !== null;
 }
 
 function isExactOutputQuoteData(quote: QuoteData): quote is ExactOutputQuoteData {
