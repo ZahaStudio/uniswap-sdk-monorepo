@@ -1,6 +1,8 @@
 import type { Pool, PoolKey } from "@uniswap/v4-sdk";
 import type { Address, Hex } from "viem";
 
+export const EMPTY_HOOK_DATA = "0x" as const;
+
 export interface SwapRouteHop {
   poolKey: PoolKey;
   hookData?: Hex;
@@ -47,6 +49,10 @@ export function mapRoute<TRoute extends readonly [unknown, ...unknown[]], TOutpu
   return [firstHop, ...remainingHops];
 }
 
+export function normalizeHookData(hookData?: Hex): Hex {
+  return hookData ?? EMPTY_HOOK_DATA;
+}
+
 export function resolveSwapRoute(currencyIn: Address, route: SwapRoute): ResolvedSwapRoute {
   return resolveSwapRouteExactInput(currencyIn, route);
 }
@@ -73,7 +79,7 @@ export function resolveSwapRouteExactInput(currencyIn: Address, route: SwapRoute
       fee: poolKey.fee,
       tickSpacing: poolKey.tickSpacing,
       hooks: poolKey.hooks as Address,
-      hookData: hookData ?? "0x",
+      hookData: normalizeHookData(hookData),
     };
   });
 
@@ -108,7 +114,7 @@ export function resolveSwapRouteExactOutput(currencyOut: Address, route: SwapRou
       fee: poolKey.fee,
       tickSpacing: poolKey.tickSpacing,
       hooks: poolKey.hooks as Address,
-      hookData: hookData ?? "0x",
+      hookData: normalizeHookData(hookData),
     });
 
     currentCurrency = previousCurrency.toLowerCase();

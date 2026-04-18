@@ -95,7 +95,7 @@ Represents a liquidity position. Key properties:
 ```ts
 interface SwapRouteHop {
   poolKey: PoolKey;
-  hookData?: Hex;
+  hookData?: Hex; // arbitrary per-hop bytes for custom hooks, defaults to "0x"
 }
 ```
 

@@ -22,7 +22,7 @@ const poolKey = {
 };
 
 const quote = await sdk.getQuote({
-  route: [{ poolKey }],
+  route: [{ poolKey, hookData: "0x" }], // pass custom bytes here for hooked pools
   exactInput: {
     currency: WETH,
     amount: 1000000000000000000n,
@@ -97,7 +97,7 @@ const permit2Signature = permitData.buildPermit2BatchDataWithSignature(signature
 // Step 3: Get pool and build calldata
 const pool = await sdk.getPool(poolKey);
 const calldata = await sdk.buildSwapCallData({
-  route: [{ pool }],
+  route: [{ pool, hookData: "0x" }], // replace with hook-specific bytes when routing through custom hooks
   exactInput: {
     currency: WETH,
     amount: amountIn,

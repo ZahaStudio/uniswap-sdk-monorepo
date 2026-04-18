@@ -107,8 +107,9 @@ const route = [
       currency1: "0x...",
       fee: 3000,
       tickSpacing: 60,
-      hooks: "0x0000000000000000000000000000000000000000",
+      hooks: "0xHookContractAddress",
     },
+    hookData: "0x1234", // optional per-hop bytes for custom hooks; defaults to "0x"
   },
 ];
 
@@ -134,12 +135,14 @@ const exactOutQuote = await sdk.getQuote({
 
 | Field            | Type                   | Required  | Description                                            |
 | ---------------- | ---------------------- | --------- | ------------------------------------------------------ |
-| `route`          | `SwapRoute`            | Yes       | Ordered swap route; single-hop = array of 1            |
+| `route`          | `SwapRoute`            | Yes       | Ordered swap route; each hop can include optional `hookData` bytes |
 | `exactInput`     | `{ currency, amount }` | Exact in  | Exact input currency and amount                        |
 | `exactOutput`    | `{ currency, amount }` | Exact out | Exact output currency and amount                       |
 | `useNativeToken` | `boolean`              | No        | Resolve WETH route edges as the native token in `meta` |
 
 **Returns:** `Promise<QuoteResponse>` — `{ amountIn, amountOut, timestamp, meta }`
+
+For custom hooks, provide hook-specific bytes on each route hop via `hookData`. The SDK forwards those bytes unchanged to the v4 quoter path and defaults omitted values to `"0x"`.
 
 ---
 
@@ -238,7 +241,7 @@ const exactOutCalldata = await sdk.buildSwapCallData({
 
 | Field              | Type                         | Required  | Description                                       |
 | ------------------ | ---------------------------- | --------- | ------------------------------------------------- |
-| `route`            | `[{ pool, hookData? }, ...]` | Yes       | Ordered route; single-hop = array of 1            |
+| `route`            | `[{ pool, hookData? }, ...]` | Yes       | Ordered route; each hop can include optional `hookData` bytes |
 | `exactInput`       | `{ currency, amount }`       | Exact in  | Input currency and exact amount                   |
 | `exactOutput`      | `{ currency, amount }`       | Exact out | Output currency and exact amount                  |
 | `minAmountOut`     | `bigint`                     | Exact in  | Min output after slippage                         |
@@ -249,6 +252,8 @@ const exactOutCalldata = await sdk.buildSwapCallData({
 | `useNativeToken`   | `boolean`                    | No        | Wrap/unwrap the native token for WETH route edges |
 
 **Returns:** `Promise<Hex>` — encoded `execute()` calldata for Universal Router.
+
+When routing through a custom hook, pass the required per-hop `hookData` alongside each pool in `route`. The calldata builder preserves those bytes exactly in the encoded v4 path.
 
 ---
 

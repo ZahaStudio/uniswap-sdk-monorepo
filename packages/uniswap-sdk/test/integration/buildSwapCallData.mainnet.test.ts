@@ -1,5 +1,5 @@
 import { utility } from "hookmate/abi";
-import { decodeFunctionData, type Hex } from "viem";
+import { decodeAbiParameters, decodeFunctionData, type Hex } from "viem";
 import { unichain } from "viem/chains";
 
 import { UniswapSDK } from "@/core/sdk";
@@ -133,6 +133,64 @@ describe("buildSwapCallData (unichain rpc)", () => {
     expect(commands).toBe("0x10");
     expect(deadline).toBe(expectedDeadline);
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
+  });
+
+  it("encodes custom hook data in the v4 swap path", async () => {
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
+    const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
+
+    const calldata = await sdk.buildSwapCallData({
+      route: [{ pool, hookData: "0x1234abcd" }],
+      exactInput: {
+        currency: UNICHAIN_TOKENS.USDC,
+        amount: 1_000_000n,
+      },
+      minAmountOut: 0n,
+      recipient: TEST_RECIPIENT,
+    });
+
+    const decoded = decodeFunctionData({
+      abi: utility.UniversalRouterArtifact.abi,
+      data: calldata,
+    });
+
+    const [, inputs] = decoded.args as [Hex, Hex[], bigint];
+    const [, v4Params] = decodeAbiParameters(
+      [
+        { type: "bytes" },
+        { type: "bytes[]" },
+      ],
+      inputs[0]!,
+    );
+
+    const [swapParams] = decodeAbiParameters(
+      [
+        {
+          type: "tuple",
+          components: [
+            { name: "currencyIn", type: "address" },
+            {
+              name: "path",
+              type: "tuple[]",
+              components: [
+                { name: "intermediateCurrency", type: "address" },
+                { name: "fee", type: "uint256" },
+                { name: "tickSpacing", type: "int24" },
+                { name: "hooks", type: "address" },
+                { name: "hookData", type: "bytes" },
+              ],
+            },
+            { name: "amountIn", type: "uint128" },
+            { name: "amountOutMinimum", type: "uint128" },
+          ],
+        },
+      ],
+      v4Params[0]!,
+    );
+
+    expect(swapParams.path).toHaveLength(1);
+    expect(swapParams.path[0]?.hookData).toBe("0x1234abcd");
   });
 
   it("adds WRAP_ETH command when useNativeToken is true and input is WETH", async () => {

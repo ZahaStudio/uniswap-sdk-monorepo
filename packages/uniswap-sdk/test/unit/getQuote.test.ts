@@ -217,4 +217,60 @@ describe("getQuote", () => {
       resolvedCurrencyOut: zeroAddress,
     });
   });
+
+  it("forwards custom hook data into the quoter path", async () => {
+    const simulateContract = vi.fn().mockResolvedValue({ result: [777n, 123n] });
+    const instance = {
+      client: {
+        simulateContract,
+      },
+      contracts: {
+        quoter: "0x0000000000000000000000000000000000000009",
+        weth: "0x0000000000000000000000000000000000000004",
+      },
+    } as unknown as UniswapSDKInstance;
+
+    await getQuote(
+      {
+        route: [
+          {
+            poolKey: {
+              currency0: "0x0000000000000000000000000000000000000001",
+              currency1: "0x0000000000000000000000000000000000000002",
+              fee: 500,
+              tickSpacing: 10,
+              hooks: "0x00000000000000000000000000000000000000aa",
+            },
+            hookData: "0x1234abcd",
+          },
+        ],
+        exactInput: {
+          currency: "0x0000000000000000000000000000000000000001",
+          amount: "1000",
+        },
+      },
+      instance,
+    );
+
+    expect(simulateContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        functionName: "quoteExactInput",
+        args: [
+          {
+            exactCurrency: "0x0000000000000000000000000000000000000001",
+            exactAmount: 1000n,
+            path: [
+              {
+                intermediateCurrency: "0x0000000000000000000000000000000000000002",
+                fee: 500,
+                tickSpacing: 10,
+                hooks: "0x00000000000000000000000000000000000000aa",
+                hookData: "0x1234abcd",
+              },
+            ],
+          },
+        ],
+      }),
+    );
+  });
 });

@@ -56,8 +56,9 @@ const quote = await sdk.getQuote({
         currency1,
         fee: 3000,
         tickSpacing: 60,
-        hooks: "0x0000000000000000000000000000000000000000",
+        hooks: "0xHookContractAddress",
       },
+      hookData: "0x1234", // optional per-hop bytes for custom hooks; defaults to "0x"
     },
   ],
   exactInput: {
@@ -66,6 +67,8 @@ const quote = await sdk.getQuote({
   }, // 1 ETH
 });
 ```
+
+For hooked v4 pools, pass hook-specific bytes on each route hop via `hookData`. The SDK forwards them unchanged to quote and swap path encoding.
 
 ### React
 
