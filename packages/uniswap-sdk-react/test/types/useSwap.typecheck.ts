@@ -1,5 +1,5 @@
 import type { SwapRoute } from "@zahastudio/uniswap-sdk";
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 
 import { useSwap, type UseSwapParams } from "@/hooks/useSwap";
 
@@ -9,6 +9,7 @@ type HasKey<T, K extends PropertyKey> = K extends keyof T ? true : false;
 
 declare const address: Address;
 declare const route: SwapRoute;
+declare const routeWithHookData: SwapRoute;
 
 const exactInputParams: UseSwapParams = {
   route,
@@ -26,6 +27,14 @@ const exactOutputParams: UseSwapParams = {
   },
 };
 
+const exactInputParamsWithHookData: UseSwapParams = {
+  route: routeWithHookData,
+  exactInput: {
+    currency: address,
+    amount: 1n,
+  },
+};
+
 const exactInputSwap = useSwap(exactInputParams);
 const exactOutputSwap = useSwap(exactOutputParams);
 
@@ -33,10 +42,12 @@ type ExactInputQuote = NonNullable<typeof exactInputSwap.steps.quote.data>;
 type ExactOutputQuote = NonNullable<typeof exactOutputSwap.steps.quote.data>;
 
 type _UseSwapParamsRoute = Expect<Equal<UseSwapParams["route"], SwapRoute>>;
+type _UseSwapRouteHookData = Expect<Equal<UseSwapParams["route"][number]["hookData"], Hex | undefined>>;
 type _UseSwapExactInputAmount = Expect<Equal<NonNullable<typeof exactInputParams.exactInput>["amount"], bigint>>;
 type _UseSwapExactOutputCurrency = Expect<
   Equal<NonNullable<typeof exactOutputParams.exactOutput>["currency"], Address>
 >;
+type _UseSwapAcceptsHookDataRoute = Expect<Equal<typeof exactInputParamsWithHookData.route, SwapRoute>>;
 
 type _UseSwapHasMeta = Expect<Equal<HasKey<typeof exactInputSwap, "meta">, true>>;
 type _UseSwapMetaResolvedIn = Expect<Equal<(typeof exactInputSwap.meta)["resolvedCurrencyIn"], Address>>;

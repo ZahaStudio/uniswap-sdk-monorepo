@@ -94,7 +94,12 @@ Full swap lifecycle: quote → approve → permit2 sign → execute.
 ```tsx
 const swap = useSwap(
   {
-    route: [{ poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: ZERO_ADDRESS } }],
+    route: [
+      {
+        poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: "0xHookContractAddress" },
+        hookData: "0x1234", // optional per-hop bytes for custom hooks; defaults to "0x"
+      },
+    ],
     exactInput: {
       currency: WETH,
       amount: parseEther("1"),
@@ -119,7 +124,7 @@ const exactOutSwap = useSwap({
 
 | Field            | Type                   | Required  | Description                                  |
 | ---------------- | ---------------------- | --------- | -------------------------------------------- |
-| `route`          | `SwapRoute`            | Yes       | Ordered route; single-hop = array of 1       |
+| `route`          | `SwapRoute`            | Yes       | Ordered route; each hop can include optional `hookData` bytes |
 | `exactInput`     | `{ currency, amount }` | Exact in  | Input currency and exact amount              |
 | `exactOutput`    | `{ currency, amount }` | Exact out | Output currency and exact amount             |
 | `recipient`      | `Address`              | No        | Output recipient (default: connected wallet) |
@@ -138,6 +143,8 @@ const exactOutSwap = useSwap({
 | `currentStep`    | `"quote" \| "approval" \| "permit2" \| "swap" \| "completed"` | First incomplete step                                                                      |
 | `executeAll`     | `() => Promise<Hex>`                                          | Run all remaining steps sequentially                                                       |
 | `reset`          | `() => void`                                                  | Reset mutation state (quote persists)                                                      |
+
+When routing through a custom v4 hook, supply the hook-specific bytes in `route[n].hookData`. `useSwap` preserves those bytes for both quote fetching and execution-time calldata building.
 
 #### Usage Patterns
 

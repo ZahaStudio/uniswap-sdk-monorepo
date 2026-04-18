@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import type { Address, Hex } from "viem";
 
 import type { BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
 import type { QuoteResponse, SwapQuoteParams } from "@/utils/getQuote";
@@ -61,6 +61,8 @@ const invalidCustomActionsArgs: BuildSwapCallDataArgs = {
 };
 
 type _QuoteParamsRoute = Expect<Equal<(typeof exactInputQuoteParams)["route"], SwapRoute>>;
+type _QuoteRouteHopHookData = Expect<Equal<SwapRoute[number]["hookData"], Hex | undefined>>;
+type _CallDataRouteHopHookData = Expect<Equal<SwapRouteWithPools[number]["hookData"], Hex | undefined>>;
 type _QuoteParamsExactInputCurrency = Expect<Equal<(typeof exactInputQuoteParams)["exactInput"]["currency"], Address>>;
 type _QuoteParamsExactOutputAmount = Expect<
   Equal<(typeof exactOutputQuoteParams)["exactOutput"]["amount"], bigint | string>

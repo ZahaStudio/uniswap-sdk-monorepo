@@ -1,4 +1,4 @@
-import type { SwapRoute } from "@zahastudio/uniswap-sdk";
+import { normalizeHookData, type SwapRoute } from "@zahastudio/uniswap-sdk";
 
 /**
  * Package key used as prefix for all query keys to ensure uniqueness.
@@ -72,7 +72,7 @@ export const swapKeys = {
         poolKey.fee,
         poolKey.tickSpacing,
         poolKey.hooks,
-        hookData ?? "0x",
+        normalizeHookData(hookData),
       ]),
       exactAmount,
       slippageBps,
