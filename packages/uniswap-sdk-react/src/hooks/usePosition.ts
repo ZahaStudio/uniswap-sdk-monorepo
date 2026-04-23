@@ -39,7 +39,7 @@ export interface UsePositionReturn {
 }
 
 /**
- * Hook to fetch a Uniswap V4 position.
+ * Hook to fetch a Uniswap v4 position.
  *
  * Fetches the position data and uncollected fees in a single query.
  * Use alongside `usePositionCollectFees`, `usePositionRemoveLiquidity`,

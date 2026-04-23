@@ -9,12 +9,12 @@ import { getTokens } from "@/utils/getTokens";
 
 /**
  * Complete position data with initialized SDK instances.
- * Returns fully usable Position and Pool objects from the Uniswap V4 SDK.
+ * Returns fully usable Position and Pool objects from the Uniswap v4 SDK.
  */
 export interface GetPositionResponse {
-  /** The position instance from Uniswap V4 SDK */
+  /** The position instance from Uniswap v4 SDK */
   position: V4Position;
-  /** The pool instance from Uniswap V4 SDK with current state */
+  /** The pool instance from Uniswap v4 SDK with current state */
   pool: Pool;
   /** The first token in the pool pair */
   currency0: Currency;
@@ -29,10 +29,10 @@ export interface GetPositionResponse {
 }
 
 /**
- * Retrieves a complete Uniswap V4 position with initialized SDK instances.
+ * Retrieves a complete Uniswap v4 position with initialized SDK instances.
  *
  * This method fetches position information and creates fully initialized Position and Pool
- * instances from the Uniswap V4 SDK. It validates that the position has liquidity and returns
+ * instances from the Uniswap v4 SDK. It validates that the position has liquidity and returns
  * objects ready for use in swaps, calculations, and other SDK operations.
  *
  * @param tokenId - The NFT token ID of the position

@@ -37,7 +37,7 @@ export interface UsePositionCollectFeesReturn {
 }
 
 /**
- * Hook to collect uncollected fees from a Uniswap V4 position.
+ * Hook to collect uncollected fees from a Uniswap v4 position.
  *
  * Internally loads the position via `usePosition` and automatically
  * refetches position data when the transaction confirms.

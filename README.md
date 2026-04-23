@@ -1,6 +1,6 @@
 # Community Uniswap SDK
 
-A TypeScript monorepo for interacting with **Uniswap V4**, with an additional **experimental Trading SDK** for Uniswap Trading API flows. The V4 SDK provides pool queries, token swaps, liquidity management, and Permit2 approvals out of the box, and includes first-class React bindings with hooks for every operation.
+A TypeScript monorepo for interacting with **Uniswap v4**, with an additional **experimental Trading SDK** for Uniswap Trading API flows. The v4 SDK provides pool queries, token swaps, liquidity management, and Permit2 approvals out of the box, and includes first-class React bindings with hooks for every operation.
 
 ## Packages
 
@@ -201,7 +201,7 @@ uniswap-sdk-monorepo/
 │   ├── trading-sdk/          # Experimental Trading API SDK
 │   └── trading-sdk-react/    # Experimental React hooks & provider
 ├── apps/
-│   └── example/              # Next.js demo app for V4 + experimental trading flows
+│   └── example/              # Next.js demo app for v4 + experimental trading flows
 └── tooling/
     └── acme-tsconfig/        # Shared TypeScript config
 ```
@@ -258,7 +258,7 @@ pnpm changeset
 
 ## AI Agent Integration
 
-The core V4 SDK ships with comprehensive documentation designed for AI agents (Claude, Cursor, Amp, Copilot, etc.). Those docs are published under `docs/` in `@zahastudio/uniswap-sdk`.
+The core v4 SDK ships with comprehensive documentation designed for AI agents (Claude, Cursor, Amp, Copilot, etc.). Those docs are published under `docs/` in `@zahastudio/uniswap-sdk`.
 
 To give your AI agent direct access to the SDK documentation, add the following line to your project's `AGENTS.md` (or equivalent):
 

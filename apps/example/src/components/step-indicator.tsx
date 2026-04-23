@@ -43,7 +43,7 @@ export function StepIndicator({ currentStep, approval, permit2, swapTx, isNative
   }
 
   const steps: StepItem[] = [
-    { id: "quote", label: "Quote", description: "Fetch price from Uniswap V4" },
+    { id: "quote", label: "Quote", description: "Fetch price from Uniswap v4" },
     ...(isNativeInput
       ? []
       : [

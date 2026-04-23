@@ -24,7 +24,7 @@ export interface UsePoolStateData {
  * Operation parameters for the usePoolState hook.
  */
 export interface UsePoolStateParams {
-  /** V4 pool key identifying the pool */
+  /** v4 pool key identifying the pool */
   poolKey: PoolKey;
 }
 
@@ -37,7 +37,7 @@ export interface UsePoolStateReturn {
 }
 
 /**
- * Hook to fetch a Uniswap V4 pool's current state.
+ * Hook to fetch a Uniswap v4 pool's current state.
  *
  * Fetches pool state for a given pool key and keeps it in sync via
  * optional polling with `refetchInterval`.

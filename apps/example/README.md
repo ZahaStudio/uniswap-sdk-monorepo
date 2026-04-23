@@ -2,7 +2,7 @@
 
 ## Overview
 
-This app demonstrates how to build real user flows with `@zahastudio/uniswap-sdk-react` on Uniswap V4. This app includes the following demos:
+This app demonstrates how to build real user flows with `@zahastudio/uniswap-sdk-react` on Uniswap v4. This app includes the following demos:
 
 - **Swap**: Quoting, Approval, Permit2 and Swap execution flow
 - **Position Management**: Uniswap v4 Position Management via the Position Manager

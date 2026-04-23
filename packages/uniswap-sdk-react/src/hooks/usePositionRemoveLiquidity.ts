@@ -39,7 +39,7 @@ export interface UsePositionRemoveLiquidityReturn {
 }
 
 /**
- * Hook to remove liquidity from a Uniswap V4 position.
+ * Hook to remove liquidity from a Uniswap v4 position.
  *
  * Internally loads the position via `usePosition` and automatically
  * refetches position data when the transaction confirms.

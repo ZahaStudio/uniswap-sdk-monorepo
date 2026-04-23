@@ -8,10 +8,10 @@ Core runtime types come from `@zahastudio/uniswap-sdk`. React hook-specific type
 
 ```ts
 interface V4Contracts {
-  poolManager: Address; // V4 PoolManager contract
-  positionManager: Address; // V4 PositionManager (NFT positions)
-  quoter: Address; // V4 Quoter (swap simulation)
-  stateView: Address; // V4 StateView (pool state queries)
+  poolManager: Address; // v4 PoolManager contract
+  positionManager: Address; // v4 PositionManager (NFT positions)
+  quoter: Address; // v4 Quoter (swap simulation)
+  stateView: Address; // v4 StateView (pool state queries)
   universalRouter: Address; // Universal Router (swap execution)
   permit2: Address; // Permit2 contract
   weth: Address; // Wrapped native token (WETH, WMATIC, etc.)
@@ -56,7 +56,7 @@ interface PoolKey {
 
 ### `Pool` (from `@uniswap/v4-sdk`)
 
-Represents a fully initialized V4 pool with current on-chain state. Key properties:
+Represents a fully initialized v4 pool with current on-chain state. Key properties:
 
 - `pool.sqrtRatioX96` — current price as Q64.96
 - `pool.liquidity` — active liquidity
@@ -189,7 +189,7 @@ type BuildSwapCallDataArgs =
 
 ```ts
 interface BuildAddLiquidityArgs {
-  pool: Pool; // V4 SDK Pool instance
+  pool: Pool; // v4 SDK Pool instance
   amount0?: string; // Token0 amount (smallest unit)
   amount1?: string; // Token1 amount (smallest unit)
   recipient: Address; // Position NFT recipient
@@ -239,8 +239,8 @@ interface BuildCollectFeesCallDataArgs {
 
 ```ts
 interface GetPositionResponse {
-  position: Position; // V4 SDK Position instance
-  pool: Pool; // V4 SDK Pool with current state
+  position: Position; // v4 SDK Position instance
+  pool: Pool; // v4 SDK Pool with current state
   currency0: Currency; // First token
   currency1: Currency; // Second token
   poolId: `0x${string}`; // Pool identifier

@@ -57,7 +57,7 @@ export interface ResolvedTickRange {
  * Parameters for the useCreatePosition hook.
  */
 export interface UseCreatePositionParams {
-  /** V4 pool key identifying the pool */
+  /** v4 pool key identifying the pool */
   poolKey: PoolKey;
   /** Amount of token0 to add — pass only the user-edited amount, leave the other undefined */
   amount0?: bigint;
@@ -107,7 +107,7 @@ export interface UseCreatePositionReturn {
 }
 
 /**
- * Hook to create a new Uniswap V4 position (mint).
+ * Hook to create a new Uniswap v4 position (mint).
  *
  * Fetches the pool via `sdk.getPool()`, computes the Position from the
  * user-provided amount (using `Position.fromAmount0` or `fromAmount1`),

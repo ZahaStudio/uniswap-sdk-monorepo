@@ -14,7 +14,7 @@ import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
  */
 export interface BuildAddLiquidityArgs {
   /**
-   * The Uniswap V4 pool to add liquidity to.
+   * The Uniswap v4 pool to add liquidity to.
    */
   pool: Pool;
 
@@ -81,7 +81,7 @@ export interface BuildCallDataResult {
 export interface BuildAddLiquidityCallDataResult extends BuildCallDataResult {}
 
 /**
- * Builds the calldata and native value required to add liquidity to a Uniswap V4 pool.
+ * Builds the calldata and native value required to add liquidity to a Uniswap v4 pool.
  *
  * This function supports flexible input handling. The caller may specify:
  * - Only `amount0`

@@ -11,8 +11,8 @@ import { getTokens } from "@/utils/getTokens";
 export const DEFAULT_HOOKS = zeroAddress;
 
 /**
- * Retrieves a Uniswap V4 pool instance for a given pool key.
- * @param poolKey - V4 pool key: currency0, currency1, fee, tickSpacing, hooks
+ * Retrieves a Uniswap v4 pool instance for a given pool key.
+ * @param poolKey - v4 pool key: currency0, currency1, fee, tickSpacing, hooks
  * @param instance - UniswapSDKInstance
  * @returns Promise resolving to pool data
  * @throws Error if SDK instance or token instances are not found or if pool data is not found

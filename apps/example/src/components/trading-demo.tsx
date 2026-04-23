@@ -100,7 +100,7 @@ function formatPoolType(type: string): string {
     case "v3-pool":
       return "V3";
     case "v4-pool":
-      return "V4";
+      return "v4";
     default:
       return type;
   }

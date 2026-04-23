@@ -21,7 +21,7 @@ export interface TickInfoResponse {
 }
 
 /**
- * Reads tick info for a given pool key and tick from V4 StateView.
+ * Reads tick info for a given pool key and tick from v4 StateView.
  */
 export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKInstance): Promise<TickInfoResponse> {
   const { client, contracts } = instance;
@@ -49,7 +49,7 @@ export async function getTickInfo(args: GetTickInfoArgs, instance: UniswapSDKIns
     args: [poolId32Bytes, tick],
   });
 
-  // V4 StateView getTickInfo returns:
+  // v4 StateView getTickInfo returns:
   // (uint128 liquidityGross, int128 liquidityNet, uint256 feeGrowthOutside0X128, uint256 feeGrowthOutside1X128)
   const [liquidityGross, liquidityNet, feeGrowthOutside0X128, feeGrowthOutside1X128] = result;
 

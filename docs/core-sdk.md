@@ -91,13 +91,13 @@ const pool = await sdk.getPool({
 
 **Args:** `PoolKey` — `{ currency0, currency1, fee, tickSpacing, hooks }`
 
-**Returns:** `Promise<Pool>` — fully initialized V4 SDK Pool instance.
+**Returns:** `Promise<Pool>` — fully initialized v4 SDK Pool instance.
 
 ---
 
 ### `sdk.getQuote(args)`
 
-Simulates a swap via V4 Quoter contract. No transaction is sent.
+Simulates a swap via v4 Quoter contract. No transaction is sent.
 
 ```ts
 const route = [
@@ -159,8 +159,8 @@ const pos = await sdk.getPosition("12345");
 
 | Field         | Type                | Description                |
 | ------------- | ------------------- | -------------------------- |
-| `position`    | `Position` (V4 SDK) | Fully initialized position |
-| `pool`        | `Pool` (V4 SDK)     | Pool with current state    |
+| `position`    | `Position` (v4 SDK) | Fully initialized position |
+| `pool`        | `Pool` (v4 SDK)     | Pool with current state    |
 | `currency0`   | `Currency`          | First token                |
 | `currency1`   | `Currency`          | Second token               |
 | `poolId`      | `0x${string}`       | Pool identifier            |
@@ -195,7 +195,7 @@ const fees = await sdk.getUncollectedFees("12345");
 
 ### `sdk.getTickInfo(args)`
 
-Queries tick data from V4 StateView.
+Queries tick data from v4 StateView.
 
 ```ts
 const tick = await sdk.getTickInfo({ poolKey, tick: 0 });
@@ -278,7 +278,7 @@ const { calldata, value } = await sdk.buildAddLiquidityCallData({
 
 | Field                   | Type                 | Required     | Description                                                |
 | ----------------------- | -------------------- | ------------ | ---------------------------------------------------------- |
-| `pool`                  | `Pool`               | Yes          | V4 SDK Pool instance                                       |
+| `pool`                  | `Pool`               | Yes          | v4 SDK Pool instance                                       |
 | `amount0`               | `string`             | One required | Amount of currency0 (smallest unit)                        |
 | `amount1`               | `string`             | One required | Amount of currency1 (smallest unit)                        |
 | `recipient`             | `Address`            | Yes          | Position NFT recipient                                     |
@@ -430,7 +430,7 @@ Supply a custom cache (e.g., Redis) via `UniswapSDK.create(client, chainId, { ca
 
 ### `sdk.getContractAddress(name)`
 
-Returns the address of a specific V4 contract.
+Returns the address of a specific v4 contract.
 
 ```ts
 const router = sdk.getContractAddress("universalRouter");

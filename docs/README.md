@@ -1,6 +1,6 @@
 # Community Uniswap SDK — AI Agent Reference
 
-> This documentation is optimized for AI agents building applications with the Community Uniswap SDK. It covers the current public V4 SDK APIs, decision trees, and copy-paste code patterns.
+> This documentation is optimized for AI agents building applications with the Community Uniswap SDK. It covers the current public v4 SDK APIs, decision trees, and copy-paste code patterns.
 
 ## Packages
 
@@ -23,13 +23,13 @@
 | [Recipes](./recipes.md)       | Complete end-to-end code examples for common tasks                  |
 | [Types Reference](./types.md) | Core SDK types plus the React hook types used throughout these docs |
 
-These docs focus on the Uniswap V4 SDK packages. The experimental Trading SDK packages live in the same monorepo but are documented in the root `README.md` for now.
+These docs focus on the Uniswap v4 SDK packages. The experimental Trading SDK packages live in the same monorepo but are documented in the root `README.md` for now.
 
 ## Key Concepts
 
-### Uniswap V4 Pool Keys
+### Uniswap v4 Pool Keys
 
-Every pool in V4 is identified by a `PoolKey` — a struct of `{ currency0, currency1, fee, tickSpacing, hooks }`. Currency addresses must be sorted (currency0 < currency1). The `hooks` address is `0x0000000000000000000000000000000000000000` for pools without hooks.
+Every pool in v4 is identified by a `PoolKey` — a struct of `{ currency0, currency1, fee, tickSpacing, hooks }`. Currency addresses must be sorted (currency0 < currency1). The `hooks` address is `0x0000000000000000000000000000000000000000` for pools without hooks.
 
 ### Token Ordering
 
@@ -41,7 +41,7 @@ Slippage and fees use basis points: 1 bps = 0.01%, 50 bps = 0.5%, 100 bps = 1%, 
 
 ### Permit2
 
-Uniswap V4 uses Permit2 for token approvals. The flow is:
+Uniswap v4 uses Permit2 for token approvals. The flow is:
 
 1. ERC-20 `approve()` → Permit2 contract (one-time per token)
 2. Off-chain Permit2 signature → spender (per transaction)

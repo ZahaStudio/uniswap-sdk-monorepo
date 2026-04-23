@@ -31,7 +31,7 @@
     "clean": "rm -rf .turbo && rm -rf node_modules && rm -rf dist"
   },
   "dependencies": {
-    "ky": "^2.0.1"
+    "ky": "^2.0.2"
   },
   "devDependencies": {
     "@acme/tsconfig": "workspace:*",

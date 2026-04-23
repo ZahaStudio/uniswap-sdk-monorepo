@@ -33,8 +33,8 @@ import {
 } from "@/utils/preparePermit2BatchData";
 
 /**
- * Configuration for V4 contracts.
- * Contains addresses for all required Uniswap V4 contracts.
+ * Configuration for v4 contracts.
+ * Contains addresses for all required Uniswap v4 contracts.
  */
 export interface V4Contracts {
   /** Address of the pool manager contract */
@@ -87,7 +87,7 @@ export interface UniswapSDKInstance {
 }
 
 /**
- * Main class for interacting with Uniswap V4 contracts.
+ * Main class for interacting with Uniswap v4 contracts.
  * Provides a flexible and scalable way to interact with different chains
  * and contracts without requiring multiple instances.
  */
@@ -185,13 +185,13 @@ export class UniswapSDK {
   }
 
   /**
-   * Creates a Uniswap V4 Pool instance by fetching real-time pool state from the blockchain.
+   * Creates a Uniswap v4 Pool instance by fetching real-time pool state from the blockchain.
    *
-   * This method uses multicall to efficiently fetch pool data from the V4StateView contract,
-   * calling getSlot0() and getLiquidity() in a single transaction. It then uses the Uniswap V4 SDK's
+   * This method uses multicall to efficiently fetch pool data from the v4 StateView contract,
+   * calling getSlot0() and getLiquidity() in a single transaction. It then uses the Uniswap v4 SDK's
    * Pool constructor with the live data to create a fully initialized pool instance.
    *
-   * @param poolKey - V4 pool key: currency0, currency1, fee, tickSpacing, hooks
+   * @param poolKey - v4 pool key: currency0, currency1, fee, tickSpacing, hooks
    * @returns Promise<Pool> - A fully initialized Pool instance with current market state
    * @throws Error if pool data cannot be fetched or pool doesn't exist
    */
@@ -217,9 +217,9 @@ export class UniswapSDK {
   }
 
   /**
-   * Simulates a token swap using the V4 Quoter contract for exact-in or exact-out quotes.
+   * Simulates a token swap using the v4 Quoter contract for exact-in or exact-out quotes.
    *
-   * This method uses client.simulateContract() to call the appropriate V4 Quoter entrypoint
+   * This method uses client.simulateContract() to call the appropriate v4 Quoter entrypoint
    * without executing a transaction. It supports SwapQuoteParams in both exact-input and
    * exact-output modes and returns quote amounts together with fetch metadata for route-based swaps.
    *
@@ -232,7 +232,7 @@ export class UniswapSDK {
   }
 
   /**
-   * Fetches tick information for a given pool key and tick from V4 StateView.
+   * Fetches tick information for a given pool key and tick from v4 StateView.
    *
    * This method uses client.readContract() to call V4StateView.getTickInfo() and retrieve
    * tick data including liquidity and fee growth information. It first creates Token instances
@@ -248,10 +248,10 @@ export class UniswapSDK {
   }
 
   /**
-   * Retrieves a complete Uniswap V4 position instance with pool and token information.
+   * Retrieves a complete Uniswap v4 position instance with pool and token information.
    *
    * This method fetches position details and builds a fully initialized Position instance
-   * using the Uniswap V4 SDK. It includes the pool state, token metadata, position
+   * using the Uniswap v4 SDK. It includes the pool state, token metadata, position
    * liquidity data, and current pool tick, providing a comprehensive view of the position.
    *
    * @param tokenId - The NFT token ID of the position
@@ -301,9 +301,9 @@ export class UniswapSDK {
   }
 
   /**
-   * Generates Universal Router calldata for executing token swaps using Uniswap V4.
+   * Generates Universal Router calldata for executing token swaps using Uniswap v4.
    *
-   * This method uses the V4Planner from the Uniswap V4 SDK to build swap actions and parameters.
+   * This method uses the V4Planner from the Uniswap v4 SDK to build swap actions and parameters.
    * It creates SWAP_EXACT_IN actions with settle and take operations, and optionally
    * includes Permit2 signatures for token approvals. Fetches the current block timestamp to
    * compute the transaction deadline.

@@ -63,7 +63,7 @@ export interface UsePositionIncreaseLiquidityReturn {
 }
 
 /**
- * Hook to increase liquidity on an existing Uniswap V4 position.
+ * Hook to increase liquidity on an existing Uniswap v4 position.
  *
  * Internally loads the position via `usePosition` and orchestrates ERC-20
  * approvals (to Permit2), off-chain Permit2 batch signing, and the increase

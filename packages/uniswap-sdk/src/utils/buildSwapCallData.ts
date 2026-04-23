@@ -13,7 +13,7 @@ import { getDefaultDeadline } from "@/utils/getDefaultDeadline";
 import { resolveSwapRouteExactInput, resolveSwapRouteExactOutput, type SwapRouteWithPools } from "@/utils/swapRoute";
 
 /**
- * Parameters for building a V4 swap
+ * Parameters for building a v4 swap
  */
 interface BuildSwapCallDataCommonArgs {
   /** Ordered list of pools to route through. A single-hop swap is a route with one entry. */
@@ -70,7 +70,7 @@ type ExactOutputSwapPlan = {
 type SwapPlan = ExactInputSwapPlan | ExactOutputSwapPlan;
 
 /**
- * Builds calldata for a Uniswap V4 swap.
+ * Builds calldata for a Uniswap v4 swap.
  */
 export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
   const { route, permit2Signature, recipient, deadlineDuration, useNativeToken } = params;

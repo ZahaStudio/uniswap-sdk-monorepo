@@ -17,7 +17,7 @@ export function decodeInt24FromInfo(info: bigint, shift: number): number {
 }
 
 /**
- * Decodes position metadata packed in a `uint256` returned by Uniswap V4's `getPoolAndPositionInfo`.
+ * Decodes position metadata packed in a `uint256` returned by Uniswap v4's `getPoolAndPositionInfo`.
  * The structure of the encoded info is:
  * - bits 0–7: `hasSubscriber` flag (boolean in practice, stored as `uint8`)
  * - bits 8–31: `tickLower` (int24)

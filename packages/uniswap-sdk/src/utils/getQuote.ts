@@ -58,7 +58,7 @@ export interface QuoteResponse {
 }
 
 /**
- * Fetches a quote for a token swap using the V4 Quoter contract.
+ * Fetches a quote for a token swap using the v4 Quoter contract.
  * This function uses the provided pool instance to simulate the quote.
  *
  * @param params - The parameters required for the quote, including route and exact amount.
