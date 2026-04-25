@@ -1,0 +1,54 @@
+library:
+  name: "Community Uniswap SDK"
+  repository: "https://github.com/ZahaStudio/uniswap-sdk-monorepo"
+  version: "0.4.0"
+  package_manager: "pnpm"
+generated_from:
+  docs:
+    - "docs/README.md"
+    - "docs/core-sdk.md"
+    - "docs/react-sdk.md"
+    - "docs/recipes.md"
+    - "docs/types.md"
+  packages:
+    - "packages/uniswap-sdk"
+    - "packages/uniswap-sdk-react"
+domains:
+  - name: "Core v4 SDK"
+    slug: "uniswap-sdk-core"
+    package: "packages/uniswap-sdk"
+    description: "Framework-agnostic Uniswap v4 SDK usage with viem clients, pool keys, quotes, calldata builders, Permit2, liquidity, positions, and native token execution."
+    sources:
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/README.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/core-sdk.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/types.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/core/sdk.ts"
+    failure_modes:
+      - "PoolKey currencies are not sorted with sortTokens."
+      - "Quote routes using poolKey are passed to calldata builders that require Pool instances."
+      - "Native ETH swaps use useNativeToken without sending transaction value."
+      - "Slippage values are passed as percentages instead of basis points."
+      - "Hooked pool route hops omit required hookData."
+  - name: "React v4 SDK"
+    slug: "react-uniswap-sdk"
+    package: "packages/uniswap-sdk-react"
+    description: "React bindings for the core v4 SDK with provider setup, chain-scoped SDK instances, hooks, step lifecycle orchestration, wagmi, and TanStack Query."
+    sources:
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/react-sdk.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/types.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/provider/UniswapSDKProvider.tsx"
+      - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useSwap.ts"
+    failure_modes:
+      - "UniswapSDKProvider is mounted outside wagmi or TanStack Query providers."
+      - "Hooks query the connected chain because chainId was not pinned."
+      - "Manual transaction execution skips quote, approval, and Permit2 sequencing."
+      - "Native ETH swaps are treated like ERC-20 swaps."
+      - "Create-position hooks receive both amount sides when the caller expected one side to be auto-computed."
+coverage:
+  ignored_packages:
+    - name: "packages/trading-sdk"
+      reason: "Experimental Trading SDK is intentionally out of scope for the v4 Intent migration."
+    - name: "packages/trading-sdk-react"
+      reason: "Experimental Trading React SDK is intentionally out of scope for the v4 Intent migration."

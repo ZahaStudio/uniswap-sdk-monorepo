@@ -1,6 +1,9 @@
 {
   "name": "@zahastudio/uniswap-sdk",
   "version": "0.4.0",
+  "keywords": [
+    "tanstack-intent"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -9,7 +12,8 @@
   "files": [
     "dist/**",
     "docs/**",
-    "README.md"
+    "README.md",
+    "skills"
   ],
   "type": "module",
   "sideEffects": false,
@@ -37,6 +41,7 @@
   },
   "devDependencies": {
     "@acme/tsconfig": "workspace:*",
+    "@tanstack/intent": "catalog:",
     "@types/node": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
