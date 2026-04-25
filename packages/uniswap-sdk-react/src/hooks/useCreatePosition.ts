@@ -2,12 +2,12 @@
 
 import { useCallback, useMemo } from "react";
 
-import type { PoolKey } from "@zahastudio/uniswap-sdk";
+import type { Currency, PoolKey } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 
-import { type UseQueryResult } from "@tanstack/react-query";
-import { nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
-import { Position } from "@uniswap/v4-sdk";
+import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import { encodeSqrtRatioX96, nearestUsableTick, TickMath } from "@uniswap/v3-sdk";
+import { Pool, Position } from "@uniswap/v4-sdk";
 
 import type { UseMutationHookOptions } from "@/types/hooks";
 
@@ -18,6 +18,7 @@ import { type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { usePoolState, type UsePoolStateData } from "@/hooks/usePoolState";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { assertSdkInitialized } from "@/utils/assertions";
+import { poolKeys } from "@/utils/queryKeys";
 
 /**
  * Arguments for creating a new position (passed at execution time).
@@ -106,6 +107,40 @@ export interface UseCreatePositionReturn {
   reset: () => void;
 }
 
+function hasPositiveAmount(amount: bigint | undefined): amount is bigint {
+  return amount !== undefined && amount > 0n;
+}
+
+function isUninitializedPoolError(error: Error | null): boolean {
+  if (!error) {
+    return false;
+  }
+
+  return error.message.includes("Pool does not exist") || error.message.includes("PRICE_BOUNDS");
+}
+
+function createInitialPool(params: {
+  currencies: readonly [Currency, Currency];
+  poolKey: PoolKey;
+  amount0: bigint;
+  amount1: bigint;
+}): Pool {
+  const { currencies, poolKey, amount0, amount1 } = params;
+  const sqrtPriceX96 = encodeSqrtRatioX96(amount1.toString(), amount0.toString());
+  const tickCurrent = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
+
+  return new Pool(
+    currencies[0],
+    currencies[1],
+    poolKey.fee,
+    poolKey.tickSpacing,
+    poolKey.hooks,
+    sqrtPriceX96.toString(),
+    "0",
+    tickCurrent,
+  );
+}
+
 /**
  * Hook to create a new Uniswap v4 position (mint).
  *
@@ -154,30 +189,67 @@ export function useCreatePosition(
     },
   );
 
+  const hasAmount0 = hasPositiveAmount(amount0);
+  const hasAmount1 = hasPositiveAmount(amount1);
+  const canCreateInitialPool =
+    hasAmount0 && hasAmount1 && poolQuery.isError && isUninitializedPoolError(poolQuery.error);
+
+  const initialPoolQuery = useQuery({
+    queryKey: [
+      ...poolKeys.detail(
+        poolKey.currency0,
+        poolKey.currency1,
+        poolKey.fee,
+        poolKey.tickSpacing,
+        poolKey.hooks,
+        chainId,
+      ),
+      "initial",
+      amount0?.toString(),
+      amount1?.toString(),
+    ],
+    queryFn: async (): Promise<{ pool: Pool }> => {
+      assertSdkInitialized(sdk);
+      if (!hasPositiveAmount(amount0) || !hasPositiveAmount(amount1)) {
+        throw new Error("Both amount0 and amount1 are required when creating a new pool.");
+      }
+
+      const currencies = await sdk.getTokens({
+        addresses: [poolKey.currency0 as Address, poolKey.currency1 as Address],
+      });
+
+      return {
+        pool: createInitialPool({
+          currencies,
+          poolKey,
+          amount0,
+          amount1,
+        }),
+      };
+    },
+    enabled: canCreateInitialPool,
+  });
+
+  const resolvedPool = poolQuery.data?.pool ?? initialPoolQuery.data?.pool;
+
   const tickRange = useMemo((): ResolvedTickRange | null => {
-    if (!poolQuery.data) {
+    if (!resolvedPool) {
       return null;
     }
 
-    const { pool } = poolQuery.data;
-    const tickLower = paramTickLower ?? nearestUsableTick(TickMath.MIN_TICK, pool.tickSpacing);
-    const tickUpper = paramTickUpper ?? nearestUsableTick(TickMath.MAX_TICK, pool.tickSpacing);
+    const tickLower = paramTickLower ?? nearestUsableTick(TickMath.MIN_TICK, resolvedPool.tickSpacing);
+    const tickUpper = paramTickUpper ?? nearestUsableTick(TickMath.MAX_TICK, resolvedPool.tickSpacing);
 
     return {
       tickLower,
       tickUpper,
     };
-  }, [poolQuery.data, paramTickLower, paramTickUpper]);
+  }, [resolvedPool, paramTickLower, paramTickUpper]);
 
   const calculatedPosition = useMemo((): CalculatedPosition | null => {
-    if (!poolQuery.data || !tickRange) {
+    if (!resolvedPool || !tickRange) {
       return null;
     }
-
-    const { pool } = poolQuery.data;
-
-    const hasAmount0 = amount0 !== undefined && amount0 > 0n;
-    const hasAmount1 = amount1 !== undefined && amount1 > 0n;
 
     // Need exactly one amount to compute the other
     if (!hasAmount0 && !hasAmount1) {
@@ -189,7 +261,7 @@ export function useCreatePosition(
 
       if (hasAmount0 && !hasAmount1) {
         pos = Position.fromAmount0({
-          pool,
+          pool: resolvedPool,
           tickLower: tickRange.tickLower,
           tickUpper: tickRange.tickUpper,
           amount0: amount0!.toString(),
@@ -197,14 +269,14 @@ export function useCreatePosition(
         });
       } else if (hasAmount1 && !hasAmount0) {
         pos = Position.fromAmount1({
-          pool,
+          pool: resolvedPool,
           tickLower: tickRange.tickLower,
           tickUpper: tickRange.tickUpper,
           amount1: amount1!.toString(),
         });
       } else {
         pos = Position.fromAmounts({
-          pool,
+          pool: resolvedPool,
           tickLower: tickRange.tickLower,
           tickUpper: tickRange.tickUpper,
           amount0: amount0!.toString(),
@@ -222,21 +294,22 @@ export function useCreatePosition(
     } catch {
       return null;
     }
-  }, [poolQuery.data, tickRange, amount0, amount1]);
+  }, [resolvedPool, tickRange, amount0, amount1, hasAmount0, hasAmount1]);
 
   const buildCalldata = useCallback(
     async ({ batchPermit, args }: { batchPermit: unknown; args: CreatePositionArgs }) => {
-      if (!poolQuery.data) {
-        throw new Error("Pool not loaded. Wait for pool query to complete before creating a position.");
+      if (!resolvedPool) {
+        throw new Error(
+          "Pool not loaded. Wait for pool query to complete, or provide both token amounts for a new pool.",
+        );
       }
       if (!tickRange) {
         throw new Error("Tick range not resolved. Wait for pool query to complete.");
       }
       assertSdkInitialized(sdk);
 
-      const { pool } = poolQuery.data;
       return sdk.buildAddLiquidityCallData({
-        pool,
+        pool: resolvedPool,
         tickLower: tickRange.tickLower,
         tickUpper: tickRange.tickUpper,
         amount0: amount0 !== undefined && amount0 > 0n ? amount0.toString() : undefined,
@@ -249,14 +322,13 @@ export function useCreatePosition(
         >[0]["permit2BatchSignature"],
       });
     },
-    [poolQuery.data, tickRange, sdk, amount0, amount1],
+    [resolvedPool, tickRange, sdk, amount0, amount1],
   );
 
-  const pool = poolQuery.data?.pool;
   const pipeline = useAddLiquidityPipeline<CreatePositionArgs>({
-    currencies: pool ? [pool.currency0, pool.currency1] : undefined,
+    currencies: resolvedPool ? [resolvedPool.currency0, resolvedPool.currency1] : undefined,
     permit2Amounts: [calculatedPosition?.amount0 ?? 0n, calculatedPosition?.amount1 ?? 0n],
-    enabled: !!pool,
+    enabled: !!resolvedPool,
     chainId,
     onSuccess,
     buildCalldata,
