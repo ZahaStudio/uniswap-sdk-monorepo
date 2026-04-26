@@ -1,18 +1,4 @@
-# check-skills.yml — Drop this into your library repo's .github/workflows/
-#
-# Validates intent skills on PRs. After a release or manual run, opens or
-# updates one review PR when existing skills, artifact coverage, or workspace
-# package coverage need review.
-#
-# Triggers: pull requests touching skills/artifacts, new release published, or
-# manual workflow_dispatch.
-#
-# intent-workflow-version: 3
-#
-# Template variables (replaced by `intent setup`):
-#   @zahastudio/uniswap-sdk-monorepo — e.g. @tanstack/query or my-workspace workspace
-
-name: Check Skills
+name: Intent
 
 on:
   pull_request:
@@ -23,56 +9,64 @@ on:
       - "**/_artifacts/**"
   release:
     types: [published]
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
-    name: Validate intent skills
+    name: Validate Skill
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - run: corepack enable pnpm
+
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: "24"
+          cache: "pnpm"
 
-      - name: Install intent
-        run: npm install -g @tanstack/intent
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Validate skills
-        run: intent validate --github-summary
+      - name: Validate Skill
+        run: pnpm exec intent validate --github-summary
 
   review:
-    name: Check intent skill coverage
+    name: Skill Coverage
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - run: corepack enable pnpm
+
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: "24"
+          cache: "pnpm"
 
-      - name: Install intent
-        run: npm install -g @tanstack/intent
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Check skills
+      - name: Check Skill Coverage
         id: stale
         run: |
-          intent stale --github-review --package-label "@zahastudio/uniswap-sdk-monorepo"
+          pnpm exec intent stale --github-review --package-label "@zahastudio/uniswap-sdk-monorepo"
 
-      - name: Open or update review PR
+      - name: Review PR
         if: steps.stale.outputs.has_review == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
