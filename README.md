@@ -258,23 +258,23 @@ pnpm changeset
 
 ## AI Agent Integration
 
-The core v4 SDK ships with comprehensive documentation designed for AI agents (Claude, Cursor, Amp, Copilot, etc.). Those docs are published under `docs/` in `@zahastudio/uniswap-sdk`.
+The stable v4 SDK packages ship TanStack Intent skills for AI coding agents (Codex, Cursor, Claude Code, Copilot, Amp, etc.). Skills are versioned with the npm packages and are discovered from your installed dependencies.
 
-To give your AI agent direct access to the SDK documentation, add the following line to your project's `AGENTS.md` (or equivalent):
+After installing the SDK package, run Intent in your app:
 
-```markdown
-Read `node_modules/@zahastudio/uniswap-sdk/docs/README.md` for the full Community Uniswap SDK reference, including core SDK methods, React hooks, type definitions, and end-to-end recipes.
+```bash
+npx @tanstack/intent@latest list
+npx @tanstack/intent@latest install
 ```
 
-Or reference individual docs as needed:
+To load a skill directly:
 
-| Path                                                     | Contents                                       |
-| -------------------------------------------------------- | ---------------------------------------------- |
-| `node_modules/@zahastudio/uniswap-sdk/docs/README.md`    | Overview, key concepts, decision tree          |
-| `node_modules/@zahastudio/uniswap-sdk/docs/core-sdk.md`  | Core SDK class, all methods, type signatures   |
-| `node_modules/@zahastudio/uniswap-sdk/docs/react-sdk.md` | React provider, all hooks, step-based patterns |
-| `node_modules/@zahastudio/uniswap-sdk/docs/recipes.md`   | 10 complete copy-paste code examples           |
-| `node_modules/@zahastudio/uniswap-sdk/docs/types.md`     | Core and React hook types used in these docs   |
+```bash
+npx @tanstack/intent@latest load @zahastudio/uniswap-sdk#uniswap-sdk-core
+npx @tanstack/intent@latest load @zahastudio/uniswap-sdk-react#react-uniswap-sdk
+```
+
+The markdown docs in `docs/` remain the source reference for the v4 SDK APIs, examples, and types.
 
 ## Contributors & Maintainers
 

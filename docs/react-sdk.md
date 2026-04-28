@@ -122,14 +122,14 @@ const exactOutSwap = useSwap({
 
 **Params:** `UseSwapParams`
 
-| Field            | Type                   | Required  | Description                                  |
-| ---------------- | ---------------------- | --------- | -------------------------------------------- |
+| Field            | Type                   | Required  | Description                                                   |
+| ---------------- | ---------------------- | --------- | ------------------------------------------------------------- |
 | `route`          | `SwapRoute`            | Yes       | Ordered route; each hop can include optional `hookData` bytes |
-| `exactInput`     | `{ currency, amount }` | Exact in  | Input currency and exact amount              |
-| `exactOutput`    | `{ currency, amount }` | Exact out | Output currency and exact amount             |
-| `recipient`      | `Address`              | No        | Output recipient (default: connected wallet) |
-| `slippageBps`    | `number`               | No        | Slippage in BPS (default: SDK default)       |
-| `useNativeToken` | `boolean`              | No        | Resolve WETH route edges as the native token |
+| `exactInput`     | `{ currency, amount }` | Exact in  | Input currency and exact amount                               |
+| `exactOutput`    | `{ currency, amount }` | Exact out | Output currency and exact amount                              |
+| `recipient`      | `Address`              | No        | Output recipient (default: connected wallet)                  |
+| `slippageBps`    | `number`               | No        | Slippage in BPS (default: SDK default)                        |
+| `useNativeToken` | `boolean`              | No        | Resolve WETH route edges as the native token                  |
 
 **Returns:** `UseSwapReturn`
 

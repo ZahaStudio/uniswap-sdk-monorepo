@@ -156,13 +156,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     });
 
     const [, inputs] = decoded.args as [Hex, Hex[], bigint];
-    const [, v4Params] = decodeAbiParameters(
-      [
-        { type: "bytes" },
-        { type: "bytes[]" },
-      ],
-      inputs[0]!,
-    );
+    const [, v4Params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], inputs[0]!);
 
     const [swapParams] = decodeAbiParameters(
       [

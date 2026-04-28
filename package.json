@@ -30,6 +30,8 @@
     "clean": "turbo run clean && rm -rf node_modules",
     "format": "oxfmt .",
     "format:check": "oxfmt . --check",
+    "intent:validate": "pnpm --filter @zahastudio/uniswap-sdk exec intent validate && pnpm --filter @zahastudio/uniswap-sdk-react exec intent validate",
+    "intent:stale": "intent stale",
     "changeset": "changeset",
     "version": "changeset version",
     "release": "changeset publish",
@@ -39,13 +41,15 @@
     "@changesets/changelog-github": "^0.6.0",
     "@changesets/cli": "^2.31.0",
     "@changesets/config": "^3.1.4",
-    "oxfmt": "^0.45.0",
+    "@tanstack/intent": "catalog:",
+    "oxfmt": "^0.46.0",
     "oxlint": "^1.61.0",
+    "taze": "^19.11.0",
     "turbo": "^2.9.6",
     "typescript": "catalog:"
   },
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@10.33.1"
+  "packageManager": "pnpm@10.33.2"
 }

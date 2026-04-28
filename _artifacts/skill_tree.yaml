@@ -1,0 +1,44 @@
+library:
+  name: "Community Uniswap SDK"
+  version: "0.4.0"
+  repository: "https://github.com/ZahaStudio/uniswap-sdk-monorepo"
+  description: "TypeScript SDKs for Uniswap v4 core and React application flows."
+generated_from:
+  domain_map: "_artifacts/domain_map.yaml"
+  skill_spec: "_artifacts/skill_spec.md"
+generated_at: "2026-04-25T00:00:00Z"
+skills:
+  - name: "uniswap-sdk-core"
+    slug: "uniswap-sdk-core"
+    type: "core"
+    domain: "core-v4-sdk"
+    path: "skills/uniswap-sdk-core/SKILL.md"
+    package: "packages/uniswap-sdk"
+    description: "Framework-agnostic @zahastudio/uniswap-sdk usage for UniswapSDK.create, v4 PoolKey routes, getQuote, calldata builders, Permit2, liquidity, positions, native ETH, slippage BPS, and viem clients."
+    sources:
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/README.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/core-sdk.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/types.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/core/sdk.ts"
+  - name: "react-uniswap-sdk"
+    slug: "react-uniswap-sdk"
+    type: "framework"
+    domain: "react-v4-sdk"
+    path: "skills/react-uniswap-sdk/SKILL.md"
+    package: "packages/uniswap-sdk-react"
+    description: "React and Next.js @zahastudio/uniswap-sdk-react usage for UniswapSDKProvider, wagmi, QueryClientProvider, useSwap, position hooks, approval hooks, Permit2 hooks, step lifecycles, and chain-scoped TanStack Query options."
+    requires:
+      - "uniswap-sdk-core"
+    sources:
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/react-sdk.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:docs/types.md"
+      - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/provider/UniswapSDKProvider.tsx"
+      - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useSwap.ts"
+coverage:
+  ignored_packages:
+    - name: "packages/trading-sdk"
+      reason: "Experimental Trading SDK is intentionally out of scope for the v4 Intent migration."
+    - name: "packages/trading-sdk-react"
+      reason: "Experimental Trading React SDK is intentionally out of scope for the v4 Intent migration."

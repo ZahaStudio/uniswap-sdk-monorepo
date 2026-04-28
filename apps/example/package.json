@@ -15,7 +15,7 @@
     "@zahastudio/uniswap-sdk": "workspace:*",
     "@zahastudio/uniswap-sdk-react": "workspace:*",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.8.0",
+    "lucide-react": "^1.11.0",
     "next": "^16.2.4",
     "react": "catalog:",
     "react-dom": "catalog:",
