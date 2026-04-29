@@ -345,6 +345,8 @@ const { calldata, value } = await sdk.buildCollectFeesCallData({
 
 **Returns:** `Promise<{ calldata: string, value: string }>`
 
+This builder currently encodes fee collection with empty hook data (`"0x"`). Positions in custom hooked pools that require non-empty hook data for collection are not supported by this helper yet.
+
 ---
 
 ## Permit2

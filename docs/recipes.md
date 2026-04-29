@@ -221,6 +221,8 @@ const { calldata, value } = await sdk.buildCollectFeesCallData({
   recipient: account.address,
 });
 
+// Uses empty hookData ("0x"); custom hooked pools that require collect hook bytes are not supported yet.
+
 const hash = await wallet.sendTransaction({
   account,
   to: sdk.getContractAddress("positionManager"),

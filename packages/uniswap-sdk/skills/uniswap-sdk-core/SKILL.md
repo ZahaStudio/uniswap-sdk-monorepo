@@ -148,6 +148,7 @@ const { calldata, value } = await sdk.buildAddLiquidityCallData({
 
 Use the Position Manager address for add, remove, and collect liquidity transactions.
 For ERC-20 flows, ensure the wallet has also approved the token contract to the Permit2 contract before relying on the off-chain Permit2 signature.
+Fee collection currently uses empty hook data (`"0x"`); custom hooked positions that require collection hook bytes are not supported by `buildCollectFeesCallData` yet.
 
 ## Common Mistakes
 
