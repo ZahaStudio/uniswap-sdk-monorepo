@@ -1,6 +1,6 @@
 library:
   name: "Community Uniswap SDK"
-  version: "0.4.0"
+  version: "0.5.0"
   repository: "https://github.com/ZahaStudio/uniswap-sdk-monorepo"
   description: "TypeScript SDKs for Uniswap v4 core and React application flows."
 generated_from:

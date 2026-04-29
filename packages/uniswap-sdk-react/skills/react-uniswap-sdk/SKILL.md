@@ -5,7 +5,7 @@ description: >
 type: framework
 library: "@zahastudio/uniswap-sdk-react"
 framework: react
-library_version: "0.4.0"
+library_version: "0.5.0"
 requires:
   - uniswap-sdk-core
 sources:

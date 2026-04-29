@@ -4,7 +4,7 @@ description: >
   Use this when building with @zahastudio/uniswap-sdk core APIs: UniswapSDK.create, v4 PoolKey routes, getQuote, buildSwapCallData, Permit2 batch signatures, liquidity calldata, position reads, native ETH/WETH handling, contract overrides, slippage BPS, and viem PublicClient integration.
 type: core
 library: "@zahastudio/uniswap-sdk"
-library_version: "0.4.0"
+library_version: "0.5.0"
 sources:
   - "ZahaStudio/uniswap-sdk-monorepo:docs/README.md"
   - "ZahaStudio/uniswap-sdk-monorepo:docs/core-sdk.md"
