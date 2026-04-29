@@ -55,9 +55,7 @@ export function Providers({ children, wagmiConfig }: { children: ReactNode; wagm
 import { useUniswapSDK } from "@zahastudio/uniswap-sdk-react";
 
 export function PoolReader() {
-  const { sdk, isInitialized, chainId } = useUniswapSDK({ chainId: 1 });
-
-  if (!isInitialized) return null;
+  const { sdk, chainId } = useUniswapSDK({ chainId: 1 });
 
   return (
     <span>
@@ -67,7 +65,7 @@ export function PoolReader() {
 }
 ```
 
-SDK instances are cached per chain ID.
+SDK instances are cached per chain ID. If the provider is missing or wagmi cannot provide a public client for the chain, `useUniswapSDK` throws instead of returning an uninitialized SDK.
 
 ### Run a full swap lifecycle
 

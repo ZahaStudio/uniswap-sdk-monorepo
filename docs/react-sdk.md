@@ -80,10 +80,11 @@ const { sdk } = useUniswapSDK({ chainId: 42161 });
 | Field           | Type         | Description                   |
 | --------------- | ------------ | ----------------------------- |
 | `sdk`           | `UniswapSDK` | The SDK instance              |
-| `isInitialized` | `boolean`    | Whether SDK is ready          |
+| `isInitialized` | `boolean`    | `true` when the hook returns  |
 | `chainId`       | `number`     | Effective chain ID being used |
 
 SDK instances are cached per chain — calling with the same `chainId` returns the same instance.
+If `UniswapSDKProvider` is missing or wagmi cannot provide a public client for the chain, the hook throws instead of returning an uninitialized SDK.
 
 ---
 
