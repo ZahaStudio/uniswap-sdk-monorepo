@@ -437,6 +437,8 @@ The package also exports lower-level helpers for advanced integrations and React
 | Export | Purpose |
 | ------ | ------- |
 | `calculateMaximumInput` | Derive exact-output `maxAmountIn` from a quote and BPS slippage |
+| `Position` | Re-exported v4 SDK `Position` runtime used by React position helpers |
+| `TickMath` / `nearestUsableTick` | Re-exported v3 SDK tick helpers used for position ranges |
 | `DEFAULT_HOOKS` | Zero-address hook value for pools without hooks |
 | `BIPS_BASE` / `assertBasisPoints` | Basis-point constants and validation |
 | `resolveSwapRouteExactInput` / `resolveSwapRouteExactOutput` | Resolve v4 route path structs from ordered pool keys |
