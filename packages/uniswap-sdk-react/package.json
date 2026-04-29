@@ -9,6 +9,14 @@
     "type": "git",
     "url": "https://github.com/ZahaStudio/uniswap-sdk-monorepo.git"
   },
+  "intent": {
+    "version": 1,
+    "repo": "ZahaStudio/uniswap-sdk-monorepo",
+    "docs": "docs/",
+    "requires": [
+      "@zahastudio/uniswap-sdk"
+    ]
+  },
   "files": [
     "dist/**",
     "docs/**",
