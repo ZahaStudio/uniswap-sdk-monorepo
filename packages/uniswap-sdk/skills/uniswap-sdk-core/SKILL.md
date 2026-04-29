@@ -11,6 +11,16 @@ sources:
   - "ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md"
   - "ZahaStudio/uniswap-sdk-monorepo:docs/types.md"
   - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/core/sdk.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/helpers/swap.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/helpers/tokens.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/internal/swap.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/buildAddLiquidityCallData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/buildCollectFeesCallData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/buildRemoveLiquidityCallData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/buildSwapCallData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/getQuote.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/preparePermit2BatchData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/swapRoute.ts"
 ---
 
 # Community Uniswap SDK Core

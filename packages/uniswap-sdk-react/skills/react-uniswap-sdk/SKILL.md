@@ -13,7 +13,18 @@ sources:
   - "ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md"
   - "ZahaStudio/uniswap-sdk-monorepo:docs/types.md"
   - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/provider/UniswapSDKProvider.tsx"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useCreatePosition.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePoolState.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePosition.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePositionCollectFees.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePositionIncreaseLiquidity.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePositionRemoveLiquidity.ts"
   - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useSwap.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useUniswapSDK.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/usePermit2.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useToken.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useTokenApproval.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useTransaction.ts"
 ---
 
 This skill builds on `uniswap-sdk-core`. Read it first for pool keys, routes, Permit2, slippage BPS, native token handling, and calldata behavior.
