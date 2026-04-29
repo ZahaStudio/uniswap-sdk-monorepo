@@ -18,7 +18,7 @@
 
 | Document                      | Contents                                                            |
 | ----------------------------- | ------------------------------------------------------------------- |
-| [Core SDK](./core-sdk.md)     | `UniswapSDK` class, all methods, type signatures, standalone usage  |
+| [Core SDK](./core-sdk.md)     | `UniswapSDK` class, primary methods, common utility exports, standalone usage |
 | [React SDK](./react-sdk.md)   | Provider setup, all hooks, step-based lifecycle patterns            |
 | [Recipes](./recipes.md)       | Complete end-to-end code examples for common tasks                  |
 | [Types Reference](./types.md) | Core SDK types plus the React hook types used throughout these docs |

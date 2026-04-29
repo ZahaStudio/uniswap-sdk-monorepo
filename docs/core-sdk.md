@@ -430,6 +430,21 @@ type CacheAdapter = {
 
 Supply a custom cache (e.g., Redis) via `UniswapSDK.create(client, chainId, { cache: myAdapter })`.
 
+### Additional utility exports
+
+The package also exports lower-level helpers for advanced integrations and React bindings:
+
+| Export | Purpose |
+| ------ | ------- |
+| `calculateMaximumInput` | Derive exact-output `maxAmountIn` from a quote and BPS slippage |
+| `DEFAULT_HOOKS` | Zero-address hook value for pools without hooks |
+| `BIPS_BASE` / `assertBasisPoints` | Basis-point constants and validation |
+| `resolveSwapRouteExactInput` / `resolveSwapRouteExactOutput` | Resolve v4 route path structs from ordered pool keys |
+| `normalizeHookData` | Default omitted per-hop hook data to `"0x"` |
+| `getPoolKeyFromPoolId` | Low-level helper that requires an internal `UniswapSDKInstance` argument |
+
+Prefer the `UniswapSDK` class methods for application code unless you are composing lower-level SDK internals.
+
 ---
 
 ## Accessor Properties
