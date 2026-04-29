@@ -43,7 +43,7 @@ export function Providers({ children, wagmiConfig }: { children: ReactNode; wagm
 }
 ```
 
-`UniswapSDKProvider` must be inside both `WagmiProvider` and `QueryClientProvider`.
+Render `WagmiProvider`, `QueryClientProvider`, and `UniswapSDKProvider` above every component that calls SDK hooks. The SDK provider owns SDK configuration and caching; hook consumers still need wagmi and TanStack Query contexts.
 
 ## Hooks and Components
 
@@ -169,17 +169,13 @@ Exact-output mode bases approval, Permit2, and transaction value on `quote.maxAm
 
 ## Common Mistakes
 
-### CRITICAL Provider order hides SDK context
+### CRITICAL Hook consumers outside required providers
 
 Wrong:
 
 ```tsx
 <UniswapSDKProvider>
-  <WagmiProvider config={wagmiConfig}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </WagmiProvider>
+  <SwapPage />
 </UniswapSDKProvider>
 ```
 
@@ -195,7 +191,7 @@ Correct:
 </WagmiProvider>
 ```
 
-The React SDK reads wagmi and TanStack Query context from parent providers.
+SDK hook consumers read wagmi and TanStack Query context, so they must be rendered under those providers as well as `UniswapSDKProvider`.
 
 Source: ZahaStudio/uniswap-sdk-monorepo:docs/react-sdk.md
 

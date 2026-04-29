@@ -41,7 +41,7 @@ domains:
       - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/provider/UniswapSDKProvider.tsx"
       - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useSwap.ts"
     failure_modes:
-      - "UniswapSDKProvider is mounted outside wagmi or TanStack Query providers."
+      - "SDK hook consumers are rendered outside wagmi or TanStack Query providers."
       - "Hooks query the connected chain because chainId was not pinned."
       - "Manual transaction execution skips quote, approval, and Permit2 sequencing."
       - "Native ETH swaps are treated like ERC-20 swaps."

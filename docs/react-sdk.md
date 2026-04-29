@@ -10,7 +10,7 @@ Peer dependencies: `react >= 18`, `viem >= 2`, `wagmi >= 2`, `@wagmi/core >= 2`,
 
 ## Provider Setup
 
-The `UniswapSDKProvider` must be nested inside `WagmiProvider` and `QueryClientProvider`:
+Render `WagmiProvider`, `QueryClientProvider`, and `UniswapSDKProvider` above any component that calls SDK hooks. A common setup is:
 
 ```tsx
 import { WagmiProvider } from "wagmi";
@@ -31,6 +31,8 @@ function App() {
   );
 }
 ```
+
+The SDK provider owns SDK configuration and caching. The hooks also call wagmi and TanStack Query hooks, so hook consumers must be rendered within those providers.
 
 ### `UniswapSDKConfig`
 
