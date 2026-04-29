@@ -206,8 +206,9 @@ Create a new liquidity position: fetch pool → compute amounts → approve → 
 const create = useCreatePosition(
   {
     poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: ZERO_ADDRESS },
-    amount0: parseUnits("1", 18), // pass ONE amount, the other is auto-computed
+    amount0: parseUnits("1", 18), // existing pools: pass ONE amount, the other is computed
     // amount1: parseUnits("2000", 6), // OR pass this instead
+    // new zero-liquidity pools: pass BOTH amount0 and amount1
     tickLower: -887220, // optional, defaults to full range
     tickUpper: 887220, // optional, defaults to full range
   },
@@ -220,8 +221,8 @@ const create = useCreatePosition(
 | Field       | Type      | Required      | Description                                            |
 | ----------- | --------- | ------------- | ------------------------------------------------------ |
 | `poolKey`   | `PoolKey` | Yes           | Pool to add liquidity to                               |
-| `amount0`   | `bigint`  | Conditionally | Token0 amount; pass one side to auto-compute the other |
-| `amount1`   | `bigint`  | Conditionally | Token1 amount; pass one side to auto-compute the other |
+| `amount0`   | `bigint`  | Conditionally | Token0 amount; one side is enough for pools with liquidity |
+| `amount1`   | `bigint`  | Conditionally | Token1 amount; zero-liquidity pools require both sides |
 | `tickLower` | `number`  | No            | Lower tick (default: full range)                       |
 | `tickUpper` | `number`  | No            | Upper tick (default: full range)                       |
 
@@ -252,6 +253,8 @@ const txHash = await create.executeAll({
   slippageTolerance: 50, // optional
 });
 ```
+
+One-sided input works for pools that already have liquidity. For a new pool with zero liquidity, provide both `amount0` and `amount1` so the initial price can be derived.
 
 ---
 

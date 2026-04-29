@@ -145,6 +145,7 @@ export function CreatePositionButton({ recipient }: { recipient: `0x${string}` }
 ```
 
 Pass exactly one of `amount0` or `amount1` when you want the hook to compute the complementary amount.
+This is for pools that already have liquidity. For zero-liquidity pool creation, pass both `amount0` and `amount1` so the initial price can be derived.
 
 ## React-Specific Patterns
 
@@ -267,5 +268,6 @@ useCreatePosition({ poolKey, amount0: 1_000_000n });
 ```
 
 The hook only auto-computes the complementary side when exactly one side is supplied; passing both sides uses both explicit amounts.
+For zero-liquidity pool creation, both amounts are required.
 
 Source: ZahaStudio/uniswap-sdk-monorepo:docs/react-sdk.md
