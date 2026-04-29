@@ -16,12 +16,12 @@
 
 ## Documentation Map
 
-| Document                      | Contents                                                            |
-| ----------------------------- | ------------------------------------------------------------------- |
+| Document                      | Contents                                                                      |
+| ----------------------------- | ----------------------------------------------------------------------------- |
 | [Core SDK](./core-sdk.md)     | `UniswapSDK` class, primary methods, common utility exports, standalone usage |
-| [React SDK](./react-sdk.md)   | Provider setup, all hooks, step-based lifecycle patterns            |
-| [Recipes](./recipes.md)       | Complete end-to-end code examples for common tasks                  |
-| [Types Reference](./types.md) | Core SDK types plus the React hook types used throughout these docs |
+| [React SDK](./react-sdk.md)   | Provider setup, all hooks, step-based lifecycle patterns                      |
+| [Recipes](./recipes.md)       | Complete end-to-end code examples for common tasks                            |
+| [Types Reference](./types.md) | Core SDK types plus the React hook types used throughout these docs           |
 
 These docs focus on the Uniswap v4 SDK packages. The experimental Trading SDK packages live in the same monorepo but are documented in the root `README.md` for now.
 

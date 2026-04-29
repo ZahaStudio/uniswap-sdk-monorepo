@@ -9,14 +9,6 @@
     "type": "git",
     "url": "https://github.com/ZahaStudio/uniswap-sdk-monorepo.git"
   },
-  "intent": {
-    "version": 1,
-    "repo": "ZahaStudio/uniswap-sdk-monorepo",
-    "docs": "docs/",
-    "requires": [
-      "@zahastudio/uniswap-sdk"
-    ]
-  },
   "files": [
     "dist/**",
     "docs/**",
@@ -24,8 +16,8 @@
     "skills"
   ],
   "type": "module",
-  "main": "./dist/index.mjs",
   "sideEffects": false,
+  "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.mts",
   "exports": {
@@ -66,5 +58,13 @@
     "react": ">=18.0.0",
     "viem": ">=2.0.0",
     "wagmi": ">=2.0.0"
+  },
+  "intent": {
+    "version": 1,
+    "repo": "ZahaStudio/uniswap-sdk-monorepo",
+    "docs": "docs/",
+    "requires": [
+      "@zahastudio/uniswap-sdk"
+    ]
   }
 }

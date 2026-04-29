@@ -99,7 +99,13 @@ const swap = useSwap(
   {
     route: [
       {
-        poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: "0x0000000000000000000000000000000000000000" },
+        poolKey: {
+          currency0,
+          currency1,
+          fee: 3000,
+          tickSpacing: 60,
+          hooks: "0x0000000000000000000000000000000000000000",
+        },
         hookData: "0x1234", // optional per-hop bytes for custom hooks; defaults to "0x"
       },
     ],
@@ -220,13 +226,13 @@ const create = useCreatePosition(
 
 **Params:** `UseCreatePositionParams`
 
-| Field       | Type      | Required      | Description                                            |
-| ----------- | --------- | ------------- | ------------------------------------------------------ |
-| `poolKey`   | `PoolKey` | Yes           | Pool to add liquidity to                               |
+| Field       | Type      | Required      | Description                                                |
+| ----------- | --------- | ------------- | ---------------------------------------------------------- |
+| `poolKey`   | `PoolKey` | Yes           | Pool to add liquidity to                                   |
 | `amount0`   | `bigint`  | Conditionally | Token0 amount; one side is enough for pools with liquidity |
-| `amount1`   | `bigint`  | Conditionally | Token1 amount; zero-liquidity pools require both sides |
-| `tickLower` | `number`  | No            | Lower tick (default: full range)                       |
-| `tickUpper` | `number`  | No            | Upper tick (default: full range)                       |
+| `amount1`   | `bigint`  | Conditionally | Token1 amount; zero-liquidity pools require both sides     |
+| `tickLower` | `number`  | No            | Lower tick (default: full range)                           |
+| `tickUpper` | `number`  | No            | Upper tick (default: full range)                           |
 
 **Returns:** `UseCreatePositionReturn`
 

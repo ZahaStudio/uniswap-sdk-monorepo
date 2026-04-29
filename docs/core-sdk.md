@@ -434,16 +434,16 @@ Supply a custom cache (e.g., Redis) via `UniswapSDK.create(client, chainId, { ca
 
 The package also exports lower-level helpers for advanced integrations and React bindings:
 
-| Export | Purpose |
-| ------ | ------- |
-| `calculateMaximumInput` | Derive exact-output `maxAmountIn` from a quote and BPS slippage |
-| `Position` | Re-exported v4 SDK `Position` runtime used by React position helpers |
-| `TickMath` / `nearestUsableTick` | Re-exported v3 SDK tick helpers used for position ranges |
-| `DEFAULT_HOOKS` | Zero-address hook value for pools without hooks |
-| `BIPS_BASE` / `assertBasisPoints` | Basis-point constants and validation |
-| `resolveSwapRouteExactInput` / `resolveSwapRouteExactOutput` | Resolve v4 route path structs from ordered pool keys |
-| `normalizeHookData` | Default omitted per-hop hook data to `"0x"` |
-| `getPoolKeyFromPoolId` | Low-level helper that requires an internal `UniswapSDKInstance` argument |
+| Export                                                       | Purpose                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `calculateMaximumInput`                                      | Derive exact-output `maxAmountIn` from a quote and BPS slippage          |
+| `Position`                                                   | Re-exported v4 SDK `Position` runtime used by React position helpers     |
+| `TickMath` / `nearestUsableTick`                             | Re-exported v3 SDK tick helpers used for position ranges                 |
+| `DEFAULT_HOOKS`                                              | Zero-address hook value for pools without hooks                          |
+| `BIPS_BASE` / `assertBasisPoints`                            | Basis-point constants and validation                                     |
+| `resolveSwapRouteExactInput` / `resolveSwapRouteExactOutput` | Resolve v4 route path structs from ordered pool keys                     |
+| `normalizeHookData`                                          | Default omitted per-hop hook data to `"0x"`                              |
+| `getPoolKeyFromPoolId`                                       | Low-level helper that requires an internal `UniswapSDKInstance` argument |
 
 Prefer the `UniswapSDK` class methods for application code unless you are composing lower-level SDK internals.
 

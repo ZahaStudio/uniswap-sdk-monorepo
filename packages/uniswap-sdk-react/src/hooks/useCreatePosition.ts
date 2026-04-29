@@ -2,10 +2,10 @@
 
 import { useCallback, useMemo } from "react";
 
-import { nearestUsableTick, Position, TickMath, type PoolKey } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 
 import { type UseQueryResult } from "@tanstack/react-query";
+import { nearestUsableTick, Position, TickMath, type PoolKey } from "@zahastudio/uniswap-sdk";
 
 import type { UseMutationHookOptions } from "@/types/hooks";
 
