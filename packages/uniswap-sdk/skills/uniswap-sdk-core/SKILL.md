@@ -48,6 +48,8 @@ const quote = await sdk.getQuote({
 ### Quote exact-input and exact-output swaps
 
 ```ts
+import { calculateMaximumInput } from "@zahastudio/uniswap-sdk";
+
 const exactInputQuote = await sdk.getQuote({
   route: [{ poolKey, hookData: "0x" }],
   exactInput: { currency: WETH, amount: 1_000_000_000_000_000_000n },
@@ -57,6 +59,8 @@ const exactOutputQuote = await sdk.getQuote({
   route: [{ poolKey, hookData: "0x" }],
   exactOutput: { currency: USDC, amount: 1_000_000n },
 });
+
+const maxAmountIn = calculateMaximumInput(exactOutputQuote.amountIn, 50);
 ```
 
 Use `exactInput` or `exactOutput`, never both. `hookData` is optional per route hop and defaults to `"0x"`.

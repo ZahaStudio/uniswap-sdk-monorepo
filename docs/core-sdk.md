@@ -396,6 +396,15 @@ import { calculateMinimumOutput } from "@zahastudio/uniswap-sdk";
 const minOut = calculateMinimumOutput(1_000_000n, 50); // 995_000n (0.5% slippage)
 ```
 
+### `calculateMaximumInput(expectedInput, slippageBps)`
+
+Use this with exact-output quotes to derive `maxAmountIn` before calling `buildSwapCallData`.
+
+```ts
+import { calculateMaximumInput } from "@zahastudio/uniswap-sdk";
+const maxIn = calculateMaximumInput(1_000_000n, 50); // 1_005_000n (0.5% slippage)
+```
+
 ### `sortTokens(address0, address1)`
 
 ```ts
