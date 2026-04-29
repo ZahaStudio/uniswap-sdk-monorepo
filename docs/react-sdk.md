@@ -99,7 +99,7 @@ const swap = useSwap(
   {
     route: [
       {
-        poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: "0xHookContractAddress" },
+        poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: "0x0000000000000000000000000000000000000000" },
         hookData: "0x1234", // optional per-hop bytes for custom hooks; defaults to "0x"
       },
     ],

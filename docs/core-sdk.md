@@ -107,7 +107,7 @@ const route = [
       currency1: "0x...",
       fee: 3000,
       tickSpacing: 60,
-      hooks: "0xHookContractAddress",
+      hooks: "0x0000000000000000000000000000000000000000", // replace with the hook contract address for hooked pools
     },
     hookData: "0x1234", // optional per-hop bytes for custom hooks; defaults to "0x"
   },
