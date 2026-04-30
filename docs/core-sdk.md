@@ -107,7 +107,7 @@ const route = [
       currency1: "0x...",
       fee: 3000,
       tickSpacing: 60,
-      hooks: "0xHookContractAddress",
+      hooks: "0x0000000000000000000000000000000000000000", // replace with the hook contract address for hooked pools
     },
     hookData: "0x1234", // optional per-hop bytes for custom hooks; defaults to "0x"
   },
@@ -345,6 +345,8 @@ const { calldata, value } = await sdk.buildCollectFeesCallData({
 
 **Returns:** `Promise<{ calldata: string, value: string }>`
 
+This builder currently encodes fee collection with empty hook data (`"0x"`). Positions in custom hooked pools that require non-empty hook data for collection are not supported by this helper yet.
+
 ---
 
 ## Permit2
@@ -394,6 +396,15 @@ import { calculateMinimumOutput } from "@zahastudio/uniswap-sdk";
 const minOut = calculateMinimumOutput(1_000_000n, 50); // 995_000n (0.5% slippage)
 ```
 
+### `calculateMaximumInput(expectedInput, slippageBps)`
+
+Use this with exact-output quotes to derive `maxAmountIn` before calling `buildSwapCallData`.
+
+```ts
+import { calculateMaximumInput } from "@zahastudio/uniswap-sdk";
+const maxIn = calculateMaximumInput(1_000_000n, 50); // 1_005_000n (0.5% slippage)
+```
+
 ### `sortTokens(address0, address1)`
 
 ```ts
@@ -418,6 +429,21 @@ type CacheAdapter = {
 ```
 
 Supply a custom cache (e.g., Redis) via `UniswapSDK.create(client, chainId, { cache: myAdapter })`.
+
+### Additional utility exports
+
+The package also exports lower-level helpers for advanced integrations and React bindings:
+
+| Export                                                       | Purpose                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `calculateMaximumInput`                                      | Derive exact-output `maxAmountIn` from a quote and BPS slippage          |
+| `DEFAULT_HOOKS`                                              | Zero-address hook value for pools without hooks                          |
+| `BIPS_BASE` / `assertBasisPoints`                            | Basis-point constants and validation                                     |
+| `resolveSwapRouteExactInput` / `resolveSwapRouteExactOutput` | Resolve v4 route path structs from ordered pool keys                     |
+| `normalizeHookData`                                          | Default omitted per-hop hook data to `"0x"`                              |
+| `getPoolKeyFromPoolId`                                       | Low-level helper that requires an internal `UniswapSDKInstance` argument |
+
+Prefer the `UniswapSDK` class methods for application code unless you are composing lower-level SDK internals.
 
 ---
 

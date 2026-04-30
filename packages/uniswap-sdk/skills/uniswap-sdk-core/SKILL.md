@@ -4,13 +4,23 @@ description: >
   Use this when building with @zahastudio/uniswap-sdk core APIs: UniswapSDK.create, v4 PoolKey routes, getQuote, buildSwapCallData, Permit2 batch signatures, liquidity calldata, position reads, native ETH/WETH handling, contract overrides, slippage BPS, and viem PublicClient integration.
 type: core
 library: "@zahastudio/uniswap-sdk"
-library_version: "0.4.0"
+library_version: "0.5.0"
 sources:
   - "ZahaStudio/uniswap-sdk-monorepo:docs/README.md"
   - "ZahaStudio/uniswap-sdk-monorepo:docs/core-sdk.md"
   - "ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md"
   - "ZahaStudio/uniswap-sdk-monorepo:docs/types.md"
   - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/core/sdk.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/helpers/swap.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/helpers/tokens.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/internal/swap.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/buildAddLiquidityCallData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/buildCollectFeesCallData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/buildRemoveLiquidityCallData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/buildSwapCallData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/getQuote.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/preparePermit2BatchData.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk/src/utils/swapRoute.ts"
 ---
 
 # Community Uniswap SDK Core
@@ -48,6 +58,8 @@ const quote = await sdk.getQuote({
 ### Quote exact-input and exact-output swaps
 
 ```ts
+import { calculateMaximumInput } from "@zahastudio/uniswap-sdk";
+
 const exactInputQuote = await sdk.getQuote({
   route: [{ poolKey, hookData: "0x" }],
   exactInput: { currency: WETH, amount: 1_000_000_000_000_000_000n },
@@ -57,6 +69,8 @@ const exactOutputQuote = await sdk.getQuote({
   route: [{ poolKey, hookData: "0x" }],
   exactOutput: { currency: USDC, amount: 1_000_000n },
 });
+
+const maxAmountIn = calculateMaximumInput(exactOutputQuote.amountIn, 50);
 ```
 
 Use `exactInput` or `exactOutput`, never both. `hookData` is optional per route hop and defaults to `"0x"`.
@@ -148,6 +162,7 @@ const { calldata, value } = await sdk.buildAddLiquidityCallData({
 
 Use the Position Manager address for add, remove, and collect liquidity transactions.
 For ERC-20 flows, ensure the wallet has also approved the token contract to the Permit2 contract before relying on the off-chain Permit2 signature.
+Fee collection currently uses empty hook data (`"0x"`); custom hooked positions that require collection hook bytes are not supported by `buildCollectFeesCallData` yet.
 
 ## Common Mistakes
 

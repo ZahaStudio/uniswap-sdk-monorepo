@@ -7,6 +7,9 @@ on:
       - "**/skills/**"
       - "_artifacts/**"
       - "**/_artifacts/**"
+      - "docs/**"
+      - "packages/uniswap-sdk/src/**"
+      - "packages/uniswap-sdk-react/src/**"
   release:
     types: [published]
   workflow_dispatch:
@@ -38,6 +41,23 @@ jobs:
 
       - name: Validate Skill
         run: pnpm exec intent validate --github-summary
+
+      - name: Check Skill Coverage
+        run: |
+          pnpm exec intent stale --json > intent-stale.json
+          node --input-type=module <<'EOF'
+          import { readFileSync } from 'node:fs';
+
+          const results = JSON.parse(readFileSync('intent-stale.json', 'utf8'));
+          const staleSkills = results.flatMap((pkg) =>
+            pkg.skills.filter((skill) => skill.needsReview).map((skill) => `${pkg.library}#${skill.name}`),
+          );
+
+          if (staleSkills.length > 0) {
+            console.error(`Intent skills need review: ${staleSkills.join(', ')}`);
+            process.exit(1);
+          }
+          EOF
 
   review:
     name: Skill Coverage

@@ -5,7 +5,7 @@ description: >
 type: framework
 library: "@zahastudio/uniswap-sdk-react"
 framework: react
-library_version: "0.4.0"
+library_version: "0.5.0"
 requires:
   - uniswap-sdk-core
 sources:
@@ -13,7 +13,18 @@ sources:
   - "ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md"
   - "ZahaStudio/uniswap-sdk-monorepo:docs/types.md"
   - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/provider/UniswapSDKProvider.tsx"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useCreatePosition.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePoolState.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePosition.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePositionCollectFees.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePositionIncreaseLiquidity.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/usePositionRemoveLiquidity.ts"
   - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useSwap.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/useUniswapSDK.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/usePermit2.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useToken.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useTokenApproval.ts"
+  - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useTransaction.ts"
 ---
 
 This skill builds on `uniswap-sdk-core`. Read it first for pool keys, routes, Permit2, slippage BPS, native token handling, and calldata behavior.
@@ -43,7 +54,7 @@ export function Providers({ children, wagmiConfig }: { children: ReactNode; wagm
 }
 ```
 
-`UniswapSDKProvider` must be inside both `WagmiProvider` and `QueryClientProvider`.
+Render `WagmiProvider`, `QueryClientProvider`, and `UniswapSDKProvider` above every component that calls SDK hooks. The SDK provider owns SDK configuration and caching; hook consumers still need wagmi and TanStack Query contexts.
 
 ## Hooks and Components
 
@@ -55,9 +66,7 @@ export function Providers({ children, wagmiConfig }: { children: ReactNode; wagm
 import { useUniswapSDK } from "@zahastudio/uniswap-sdk-react";
 
 export function PoolReader() {
-  const { sdk, isInitialized, chainId } = useUniswapSDK({ chainId: 1 });
-
-  if (!isInitialized) return null;
+  const { sdk, chainId } = useUniswapSDK({ chainId: 1 });
 
   return (
     <span>
@@ -67,7 +76,7 @@ export function PoolReader() {
 }
 ```
 
-SDK instances are cached per chain ID.
+SDK instances are cached per chain ID. If the provider is missing or wagmi cannot provide a public client for the chain, `useUniswapSDK` throws instead of returning an uninitialized SDK.
 
 ### Run a full swap lifecycle
 
@@ -147,6 +156,7 @@ export function CreatePositionButton({ recipient }: { recipient: `0x${string}` }
 ```
 
 Pass exactly one of `amount0` or `amount1` when you want the hook to compute the complementary amount.
+This is for pools that already have liquidity. For zero-liquidity pool creation, pass both `amount0` and `amount1` so the initial price can be derived.
 
 ## React-Specific Patterns
 
@@ -170,17 +180,13 @@ Exact-output mode bases approval, Permit2, and transaction value on `quote.maxAm
 
 ## Common Mistakes
 
-### CRITICAL Provider order hides SDK context
+### CRITICAL Hook consumers outside required providers
 
 Wrong:
 
 ```tsx
 <UniswapSDKProvider>
-  <WagmiProvider config={wagmiConfig}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </WagmiProvider>
+  <SwapPage />
 </UniswapSDKProvider>
 ```
 
@@ -196,7 +202,7 @@ Correct:
 </WagmiProvider>
 ```
 
-The React SDK reads wagmi and TanStack Query context from parent providers.
+SDK hook consumers read wagmi and TanStack Query context, so they must be rendered under those providers as well as `UniswapSDKProvider`.
 
 Source: ZahaStudio/uniswap-sdk-monorepo:docs/react-sdk.md
 
@@ -269,5 +275,6 @@ useCreatePosition({ poolKey, amount0: 1_000_000n });
 ```
 
 The hook only auto-computes the complementary side when exactly one side is supplied; passing both sides uses both explicit amounts.
+For zero-liquidity pool creation, both amounts are required.
 
 Source: ZahaStudio/uniswap-sdk-monorepo:docs/react-sdk.md

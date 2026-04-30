@@ -10,7 +10,7 @@ Peer dependencies: `react >= 18`, `viem >= 2`, `wagmi >= 2`, `@wagmi/core >= 2`,
 
 ## Provider Setup
 
-The `UniswapSDKProvider` must be nested inside `WagmiProvider` and `QueryClientProvider`:
+Render `WagmiProvider`, `QueryClientProvider`, and `UniswapSDKProvider` above any component that calls SDK hooks. A common setup is:
 
 ```tsx
 import { WagmiProvider } from "wagmi";
@@ -31,6 +31,8 @@ function App() {
   );
 }
 ```
+
+The SDK provider owns SDK configuration and caching. The hooks also call wagmi and TanStack Query hooks, so hook consumers must be rendered within those providers.
 
 ### `UniswapSDKConfig`
 
@@ -80,10 +82,11 @@ const { sdk } = useUniswapSDK({ chainId: 42161 });
 | Field           | Type         | Description                   |
 | --------------- | ------------ | ----------------------------- |
 | `sdk`           | `UniswapSDK` | The SDK instance              |
-| `isInitialized` | `boolean`    | Whether SDK is ready          |
+| `isInitialized` | `boolean`    | `true` when the hook returns  |
 | `chainId`       | `number`     | Effective chain ID being used |
 
 SDK instances are cached per chain — calling with the same `chainId` returns the same instance.
+If `UniswapSDKProvider` is missing or wagmi cannot provide a public client for the chain, the hook throws instead of returning an uninitialized SDK.
 
 ---
 
@@ -96,7 +99,13 @@ const swap = useSwap(
   {
     route: [
       {
-        poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: "0xHookContractAddress" },
+        poolKey: {
+          currency0,
+          currency1,
+          fee: 3000,
+          tickSpacing: 60,
+          hooks: "0x0000000000000000000000000000000000000000",
+        },
         hookData: "0x1234", // optional per-hop bytes for custom hooks; defaults to "0x"
       },
     ],
@@ -205,8 +214,9 @@ Create a new liquidity position: fetch pool → compute amounts → approve → 
 const create = useCreatePosition(
   {
     poolKey: { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: ZERO_ADDRESS },
-    amount0: parseUnits("1", 18), // pass ONE amount, the other is auto-computed
+    amount0: parseUnits("1", 18), // existing pools: pass ONE amount, the other is computed
     // amount1: parseUnits("2000", 6), // OR pass this instead
+    // new zero-liquidity pools: pass BOTH amount0 and amount1
     tickLower: -887220, // optional, defaults to full range
     tickUpper: 887220, // optional, defaults to full range
   },
@@ -216,13 +226,13 @@ const create = useCreatePosition(
 
 **Params:** `UseCreatePositionParams`
 
-| Field       | Type      | Required      | Description                                            |
-| ----------- | --------- | ------------- | ------------------------------------------------------ |
-| `poolKey`   | `PoolKey` | Yes           | Pool to add liquidity to                               |
-| `amount0`   | `bigint`  | Conditionally | Token0 amount; pass one side to auto-compute the other |
-| `amount1`   | `bigint`  | Conditionally | Token1 amount; pass one side to auto-compute the other |
-| `tickLower` | `number`  | No            | Lower tick (default: full range)                       |
-| `tickUpper` | `number`  | No            | Upper tick (default: full range)                       |
+| Field       | Type      | Required      | Description                                                |
+| ----------- | --------- | ------------- | ---------------------------------------------------------- |
+| `poolKey`   | `PoolKey` | Yes           | Pool to add liquidity to                                   |
+| `amount0`   | `bigint`  | Conditionally | Token0 amount; one side is enough for pools with liquidity |
+| `amount1`   | `bigint`  | Conditionally | Token1 amount; zero-liquidity pools require both sides     |
+| `tickLower` | `number`  | No            | Lower tick (default: full range)                           |
+| `tickUpper` | `number`  | No            | Upper tick (default: full range)                           |
 
 **Returns:** `UseCreatePositionReturn`
 
@@ -251,6 +261,8 @@ const txHash = await create.executeAll({
   slippageTolerance: 50, // optional
 });
 ```
+
+One-sided input works for pools that already have liquidity. For a new pool with zero liquidity, provide both `amount0` and `amount1` so the initial price can be derived.
 
 ---
 
