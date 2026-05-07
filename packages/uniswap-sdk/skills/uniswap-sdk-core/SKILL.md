@@ -1,7 +1,7 @@
 ---
 name: uniswap-sdk-core
 description: >
-  Use this when building with @zahastudio/uniswap-sdk core APIs: UniswapSDK.create, v4 PoolKey routes, getQuote, buildSwapCallData, Permit2 batch signatures, liquidity calldata, position reads, native ETH/WETH handling, contract overrides, slippage BPS, and viem PublicClient integration.
+  Use this when building with @zahastudio/uniswap-sdk core APIs: UniswapSDK.create, Uniswap v4 PoolKey routes, getQuote, buildSwapCallData, Permit2 batch signatures, liquidity calldata, position reads, native ETH/WETH handling, contract overrides, slippage BPS, and viem PublicClient integration.
 type: core
 library: "@zahastudio/uniswap-sdk"
 library_version: "0.5.0"
@@ -181,7 +181,7 @@ const [currency0, currency1] = sortTokens(WETH, USDC);
 const poolKey = { currency0, currency1, fee: 3000, tickSpacing: 60, hooks: ZERO_HOOKS };
 ```
 
-V4 pool keys require sorted currencies; swap direction comes from `exactInput.currency` or `exactOutput.currency` plus the ordered route.
+Uniswap v4 pool keys require sorted currencies; swap direction comes from `exactInput.currency` or `exactOutput.currency` plus the ordered route.
 
 Source: ZahaStudio/uniswap-sdk-monorepo:docs/README.md
 

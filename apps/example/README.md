@@ -7,7 +7,7 @@ This app demonstrates how to build real user flows with `@zahastudio/uniswap-sdk
 - **Swap**: Quoting, Approval, Permit2 and Swap execution flow
 - **Trading**: Experimental Uniswap Trading API quote, approval, permit and swap flow
 - **Position Management**: Uniswap v4 Position Management via the Position Manager
-- **Create Position**: New v4 position creation with Permit2 approvals
+- **Create Position**: New Uniswap v4 position creation with Permit2 approvals
 
 By default, the app runs against `Ethereum Mainnet` (Chain ID: `1`).
 
@@ -71,4 +71,4 @@ From the monorepo root:
    pnpm dev
    ```
 
-5. Interact with the demos to execute ETH/USDC swaps or manage v4 positions
+5. Interact with the demos to execute ETH/USDC swaps or manage Uniswap v4 positions

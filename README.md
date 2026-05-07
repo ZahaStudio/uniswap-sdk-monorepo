@@ -1,6 +1,6 @@
 # Community Uniswap SDK
 
-A TypeScript monorepo for interacting with **Uniswap v4**, with an additional **experimental Trading SDK** for Uniswap Trading API flows. The v4 SDK provides pool queries, token swaps, liquidity management, and Permit2 approvals out of the box, and includes first-class React bindings with hooks for every operation.
+A TypeScript monorepo for interacting with **Uniswap v4**, with an additional **experimental Trading SDK** for Uniswap Trading API flows. The Uniswap v4 SDK provides pool queries, token swaps, liquidity management, and Permit2 approvals out of the box, and includes first-class React bindings with hooks for every operation.
 
 ## Packages
 
@@ -68,7 +68,7 @@ const quote = await sdk.getQuote({
 });
 ```
 
-For hooked v4 pools, pass hook-specific bytes on each route hop via `hookData`. The SDK forwards them unchanged to quote and swap path encoding.
+For hooked Uniswap v4 pools, pass hook-specific bytes on each route hop via `hookData`. The SDK forwards them unchanged to quote and swap path encoding.
 
 ### React
 
@@ -201,7 +201,7 @@ uniswap-sdk-monorepo/
 │   ├── trading-sdk/          # Experimental Trading API SDK
 │   └── trading-sdk-react/    # Experimental React hooks & provider
 ├── apps/
-│   └── example/              # Next.js demo app for v4 + experimental trading flows
+│   └── example/              # Next.js demo app for Uniswap v4 + experimental trading flows
 └── tooling/
     └── acme-tsconfig/        # Shared TypeScript config
 ```
@@ -258,7 +258,7 @@ pnpm changeset
 
 ## AI Agent Integration
 
-The stable v4 SDK packages ship TanStack Intent skills for AI coding agents (Codex, Cursor, Claude Code, Copilot, Amp, etc.). Skills are versioned with the npm packages and are discovered from your installed dependencies.
+The stable Uniswap v4 SDK packages ship TanStack Intent skills for AI coding agents (Codex, Cursor, Claude Code, Copilot, Amp, etc.). Skills are versioned with the npm packages and are discovered from your installed dependencies.
 
 After installing the SDK package, run Intent in your app:
 
@@ -274,7 +274,7 @@ npx @tanstack/intent@latest load @zahastudio/uniswap-sdk#uniswap-sdk-core
 npx @tanstack/intent@latest load @zahastudio/uniswap-sdk-react#react-uniswap-sdk
 ```
 
-The markdown docs in `docs/` remain the source reference for the v4 SDK APIs, examples, and types.
+The markdown docs in `docs/` remain the source reference for the Uniswap v4 SDK APIs, examples, and types.
 
 ## Contributors & Maintainers
 

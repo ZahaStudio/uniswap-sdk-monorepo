@@ -1,6 +1,6 @@
 # Community Uniswap SDK — AI Agent Reference
 
-> This documentation is optimized for AI agents building applications with the Community Uniswap SDK. It covers the current public v4 SDK APIs, decision trees, and copy-paste code patterns.
+> This documentation is optimized for AI agents building applications with the Community Uniswap SDK. It covers the current public Uniswap v4 SDK APIs, decision trees, and copy-paste code patterns.
 
 ## Packages
 
@@ -29,7 +29,7 @@ These docs focus on the Uniswap v4 SDK packages. The experimental Trading SDK pa
 
 ### Uniswap v4 Pool Keys
 
-Every pool in v4 is identified by a `PoolKey` — a struct of `{ currency0, currency1, fee, tickSpacing, hooks }`. Currency addresses must be sorted (currency0 < currency1). The `hooks` address is `0x0000000000000000000000000000000000000000` for pools without hooks.
+Every pool in Uniswap v4 is identified by a `PoolKey` — a struct of `{ currency0, currency1, fee, tickSpacing, hooks }`. Currency addresses must be sorted (currency0 < currency1). The `hooks` address is `0x0000000000000000000000000000000000000000` for pools without hooks.
 
 ### Token Ordering
 

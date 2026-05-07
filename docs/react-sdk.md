@@ -153,7 +153,7 @@ const exactOutSwap = useSwap({
 | `executeAll`     | `() => Promise<Hex>`                                          | Run all remaining steps sequentially                                                       |
 | `reset`          | `() => void`                                                  | Reset mutation state (quote persists)                                                      |
 
-When routing through a custom v4 hook, supply the hook-specific bytes in `route[n].hookData`. `useSwap` preserves those bytes for both quote fetching and execution-time calldata building.
+When routing through a custom Uniswap v4 hook, supply the hook-specific bytes in `route[n].hookData`. `useSwap` preserves those bytes for both quote fetching and execution-time calldata building.
 
 #### Usage Patterns
 

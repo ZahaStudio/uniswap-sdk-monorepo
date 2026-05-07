@@ -76,7 +76,7 @@ const tokens = await sdk.getTokens({
 
 ### `sdk.getPool(poolKey)`
 
-Fetches real-time pool state (slot0 + liquidity) via multicall from V4StateView.
+Fetches real-time pool state (slot0 + liquidity) via multicall from Uniswap v4 StateView.
 
 ```ts
 const pool = await sdk.getPool({
@@ -91,13 +91,13 @@ const pool = await sdk.getPool({
 
 **Args:** `PoolKey` — `{ currency0, currency1, fee, tickSpacing, hooks }`
 
-**Returns:** `Promise<Pool>` — fully initialized v4 SDK Pool instance.
+**Returns:** `Promise<Pool>` — fully initialized Uniswap v4 SDK Pool instance.
 
 ---
 
 ### `sdk.getQuote(args)`
 
-Simulates a swap via v4 Quoter contract. No transaction is sent.
+Simulates a swap via Uniswap v4 Quoter contract. No transaction is sent.
 
 ```ts
 const route = [
@@ -142,7 +142,7 @@ const exactOutQuote = await sdk.getQuote({
 
 **Returns:** `Promise<QuoteResponse>` — `{ amountIn, amountOut, timestamp, meta }`
 
-For custom hooks, provide hook-specific bytes on each route hop via `hookData`. The SDK forwards those bytes unchanged to the v4 quoter path and defaults omitted values to `"0x"`.
+For custom hooks, provide hook-specific bytes on each route hop via `hookData`. The SDK forwards those bytes unchanged to the Uniswap v4 quoter path and defaults omitted values to `"0x"`.
 
 ---
 
@@ -159,8 +159,8 @@ const pos = await sdk.getPosition("12345");
 
 | Field         | Type                | Description                |
 | ------------- | ------------------- | -------------------------- |
-| `position`    | `Position` (v4 SDK) | Fully initialized position |
-| `pool`        | `Pool` (v4 SDK)     | Pool with current state    |
+| `position`    | `Position` (Uniswap v4 SDK) | Fully initialized position |
+| `pool`        | `Pool` (Uniswap v4 SDK)     | Pool with current state    |
 | `currency0`   | `Currency`          | First token                |
 | `currency1`   | `Currency`          | Second token               |
 | `poolId`      | `0x${string}`       | Pool identifier            |
@@ -195,7 +195,7 @@ const fees = await sdk.getUncollectedFees("12345");
 
 ### `sdk.getTickInfo(args)`
 
-Queries tick data from v4 StateView.
+Queries tick data from Uniswap v4 StateView.
 
 ```ts
 const tick = await sdk.getTickInfo({ poolKey, tick: 0 });
@@ -253,7 +253,7 @@ const exactOutCalldata = await sdk.buildSwapCallData({
 
 **Returns:** `Promise<Hex>` — encoded `execute()` calldata for Universal Router.
 
-When routing through a custom hook, pass the required per-hop `hookData` alongside each pool in `route`. The calldata builder preserves those bytes exactly in the encoded v4 path.
+When routing through a custom hook, pass the required per-hop `hookData` alongside each pool in `route`. The calldata builder preserves those bytes exactly in the encoded Uniswap v4 path.
 
 ---
 
@@ -278,7 +278,7 @@ const { calldata, value } = await sdk.buildAddLiquidityCallData({
 
 | Field                   | Type                 | Required     | Description                                                |
 | ----------------------- | -------------------- | ------------ | ---------------------------------------------------------- |
-| `pool`                  | `Pool`               | Yes          | v4 SDK Pool instance                                       |
+| `pool`                  | `Pool`               | Yes          | Uniswap v4 SDK Pool instance                               |
 | `amount0`               | `string`             | One required | Amount of currency0 (smallest unit)                        |
 | `amount1`               | `string`             | One required | Amount of currency1 (smallest unit)                        |
 | `recipient`             | `Address`            | Yes          | Position NFT recipient                                     |
@@ -439,7 +439,7 @@ The package also exports lower-level helpers for advanced integrations and React
 | `calculateMaximumInput`                                      | Derive exact-output `maxAmountIn` from a quote and BPS slippage          |
 | `DEFAULT_HOOKS`                                              | Zero-address hook value for pools without hooks                          |
 | `BIPS_BASE` / `assertBasisPoints`                            | Basis-point constants and validation                                     |
-| `resolveSwapRouteExactInput` / `resolveSwapRouteExactOutput` | Resolve v4 route path structs from ordered pool keys                     |
+| `resolveSwapRouteExactInput` / `resolveSwapRouteExactOutput` | Resolve Uniswap v4 route path structs from ordered pool keys             |
 | `normalizeHookData`                                          | Default omitted per-hop hook data to `"0x"`                              |
 | `getPoolKeyFromPoolId`                                       | Low-level helper that requires an internal `UniswapSDKInstance` argument |
 
@@ -456,7 +456,7 @@ Prefer the `UniswapSDK` class methods for application code unless you are compos
 
 ### `sdk.getContractAddress(name)`
 
-Returns the address of a specific v4 contract.
+Returns the address of a specific Uniswap v4 contract.
 
 ```ts
 const router = sdk.getContractAddress("universalRouter");
