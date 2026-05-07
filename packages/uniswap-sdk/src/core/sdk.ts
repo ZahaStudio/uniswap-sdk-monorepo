@@ -4,7 +4,6 @@ import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 import { getUniswapContracts } from "hookmate";
 import { type Address, type Chain, type PublicClient } from "viem";
 
-import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
 import { assertBasisPoints } from "@/helpers/percent";
 import {
   buildAddLiquidityCallData,
@@ -59,8 +58,6 @@ export interface V4Contracts {
 export interface UniswapSDKOptions {
   /** Optional overrides for contract addresses */
   contracts?: V4Contracts;
-  /** Optional cache adapter */
-  cache?: CacheAdapter;
   /** Default deadline offset in seconds (default: 600 = 10 minutes) */
   defaultDeadline?: number;
   /** Default slippage tolerance in basis points (default: 50 = 0.5%) */
@@ -78,8 +75,6 @@ export interface UniswapSDKInstance {
   chain: Chain;
   /** Contract addresses */
   contracts: V4Contracts;
-  /** Cache adapter */
-  cache: CacheAdapter;
   /** Default deadline offset in seconds */
   defaultDeadline: number;
   /** Default slippage tolerance in basis points */
@@ -98,7 +93,6 @@ export class UniswapSDK {
     client: PublicClient,
     chain: Chain,
     contracts: V4Contracts,
-    cache: CacheAdapter,
     defaultDeadline: number,
     defaultSlippageTolerance: number,
   ) {
@@ -106,7 +100,6 @@ export class UniswapSDK {
       client,
       chain,
       contracts,
-      cache,
       defaultDeadline,
       defaultSlippageTolerance,
     };
@@ -118,7 +111,7 @@ export class UniswapSDK {
    * @param client - Viem public client for the target chain
    * @param chainId - Chain ID for the target network. This may intentionally differ from `client.chain?.id`
    * when using a forked RPC client while still targeting the original chain's contract addresses.
-   * @param options - Optional configuration: contracts, cache, defaultDeadline, defaultSlippageTolerance
+   * @param options - Optional configuration: contracts, defaultDeadline, defaultSlippageTolerance
    */
   public static create(client: PublicClient, chainId: number, options: UniswapSDKOptions = {}): UniswapSDK {
     if (!Number.isInteger(chainId) || chainId <= 0) {
@@ -130,7 +123,6 @@ export class UniswapSDK {
 
     const {
       contracts,
-      cache = createDefaultCache(),
       defaultDeadline = 10 * 60, // 10 minutes
       defaultSlippageTolerance = 50, // 0.5%
     } = options;
@@ -153,7 +145,7 @@ export class UniswapSDK {
         weth: WETH_ADDRESS(chainId) as Address,
       } satisfies V4Contracts);
 
-    return new UniswapSDK(client, chain, resolvedContracts, cache, defaultDeadline, defaultSlippageTolerance);
+    return new UniswapSDK(client, chain, resolvedContracts, defaultDeadline, defaultSlippageTolerance);
   }
 
   /**

@@ -32,7 +32,6 @@ const sdk = UniswapSDK.create(client, 1); // chainId = 1
 | Field                      | Type           | Default                              | Description                        |
 | -------------------------- | -------------- | ------------------------------------ | ---------------------------------- |
 | `contracts`                | `V4Contracts`  | Auto-resolved via hookmate           | Override contract addresses        |
-| `cache`                    | `CacheAdapter` | LRU cache (1000 entries, 30-day TTL) | Custom cache adapter               |
 | `defaultDeadline`          | `number`       | `600` (10 minutes)                   | Default deadline offset in seconds |
 | `defaultSlippageTolerance` | `number`       | `50` (0.5%)                          | Default slippage in basis points   |
 
@@ -418,17 +417,6 @@ const [currency0, currency1] = sortTokens(tokenA, tokenB);
 import { percentFromBips } from "@zahastudio/uniswap-sdk";
 const slippage = percentFromBips(50); // Percent instance representing 0.5%
 ```
-
-### `CacheAdapter`
-
-```ts
-type CacheAdapter = {
-  get<T>(key: string): T | undefined | Promise<T | undefined>;
-  set<T>(key: string, value: T, ttlMs?: number): void | Promise<void>;
-};
-```
-
-Supply a custom cache (e.g., Redis) via `UniswapSDK.create(client, chainId, { cache: myAdapter })`.
 
 ### Additional utility exports
 

@@ -493,6 +493,8 @@ function TickSlider({
 
 function getStepActionLabel(step: AddLiquidityStep): string {
   switch (step) {
+    case "loading":
+      return "Loading";
     case "approval0":
       return "Approve token0";
     case "approval1":
@@ -520,6 +522,7 @@ function AddLiquidityStepIndicator({
   const order: AddLiquidityStep[] = ["approval0", "approval1", "permit2", "execute", "completed"];
 
   function getStatus(stepId: AddLiquidityStep): StepItem["status"] {
+    if (currentStep === "loading") return "pending";
     if (currentStep === "completed") return "completed";
     const currentIdx = order.indexOf(currentStep);
     const stepIdx = order.indexOf(stepId);

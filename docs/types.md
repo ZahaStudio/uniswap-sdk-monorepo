@@ -23,19 +23,9 @@ interface V4Contracts {
 ```ts
 interface UniswapSDKOptions {
   contracts?: V4Contracts; // Override contract addresses
-  cache?: CacheAdapter; // Custom cache (default: LRU)
   defaultDeadline?: number; // Positive integer seconds (default: 600)
   defaultSlippageTolerance?: number; // BPS (default: 50 = 0.5%)
 }
-```
-
-### `CacheAdapter`
-
-```ts
-type CacheAdapter = {
-  get<T>(key: string): T | undefined | Promise<T | undefined>;
-  set<T>(key: string, value: T, ttlMs?: number): void | Promise<void>;
-};
 ```
 
 ---

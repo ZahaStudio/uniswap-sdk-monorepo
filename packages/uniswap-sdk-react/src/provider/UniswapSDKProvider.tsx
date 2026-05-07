@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useRef, type ReactNode } from "react";
+import { createContext, useCallback, type ReactNode } from "react";
 
 import type { PublicClient } from "viem";
 
@@ -26,13 +26,12 @@ export interface UniswapSDKConfig {
 }
 
 /**
- * Internal context value that holds the shared SDK cache and config.
- * SDK instances are created lazily per chain and cached for deduplication.
+ * Internal context value for creating SDK instances from the provider config.
  */
 export interface UniswapSDKContextValue {
   /** Custom contracts per chain from provider config */
   contracts?: Record<number, V4Contracts>;
-  /** Retrieve or create a cached SDK instance for a chain */
+  /** Create an SDK instance for a chain */
   getSdk: (params: { chainId: number; publicClient: PublicClient }) => UniswapSDK;
 }
 
@@ -43,20 +42,9 @@ export interface UniswapSDKProviderProps {
   config?: UniswapSDKConfig;
 }
 
-interface CachedSDKEntry {
-  sdk: UniswapSDK;
-  publicClient: PublicClient;
-  contracts: V4Contracts | undefined;
-  defaultDeadline: number | undefined;
-  defaultSlippageTolerance: number | undefined;
-}
-
 /**
  * Provider component for the Uniswap SDK.
  * Must be wrapped inside WagmiProvider and QueryClientProvider.
- *
- * Stores a shared SDK instance cache so that multiple calls to `useUniswapSDK`
- * with the same chainId return the same SDK instance.
  *
  * @example
  * ```tsx
@@ -79,36 +67,15 @@ interface CachedSDKEntry {
  */
 
 export function UniswapSDKProvider({ children, config = {} }: UniswapSDKProviderProps) {
-  const sdkCache = useRef(new Map<number, CachedSDKEntry>());
-
   const getSdk = useCallback(
     ({ chainId, publicClient }: { chainId: number; publicClient: PublicClient }) => {
       const contracts = config.contracts?.[chainId];
-      const cached = sdkCache.current.get(chainId);
-      if (
-        cached &&
-        cached.publicClient === publicClient &&
-        cached.contracts === contracts &&
-        cached.defaultDeadline === config.defaultDeadline &&
-        cached.defaultSlippageTolerance === config.defaultSlippageTolerance
-      ) {
-        return cached.sdk;
-      }
 
-      const instance = UniswapSDK.create(publicClient, chainId, {
+      return UniswapSDK.create(publicClient, chainId, {
         contracts,
         defaultDeadline: config.defaultDeadline,
         defaultSlippageTolerance: config.defaultSlippageTolerance,
       });
-      sdkCache.current.set(chainId, {
-        sdk: instance,
-        publicClient,
-        contracts,
-        defaultDeadline: config.defaultDeadline,
-        defaultSlippageTolerance: config.defaultSlippageTolerance,
-      });
-
-      return instance;
     },
     [config.contracts, config.defaultDeadline, config.defaultSlippageTolerance],
   );

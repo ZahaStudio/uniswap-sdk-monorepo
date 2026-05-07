@@ -357,30 +357,3 @@ console.log(`Tick range: ${info.tickLower} - ${info.tickUpper}`);
 const fees = await sdk.getUncollectedFees("12345");
 console.log(`Fees: ${fees.amount0} token0, ${fees.amount1} token1`);
 ```
-
----
-
-## Recipe 10: Custom Cache Adapter (Redis)
-
-```ts
-import Redis from "ioredis";
-import type { CacheAdapter } from "@zahastudio/uniswap-sdk";
-
-const redis = new Redis();
-
-const redisCache: CacheAdapter = {
-  async get<T>(key: string): Promise<T | undefined> {
-    const val = await redis.get(key);
-    return val ? JSON.parse(val) : undefined;
-  },
-  async set<T>(key: string, value: T, ttlMs?: number): Promise<void> {
-    if (ttlMs) {
-      await redis.set(key, JSON.stringify(value), "PX", ttlMs);
-    } else {
-      await redis.set(key, JSON.stringify(value));
-    }
-  },
-};
-
-const sdk = UniswapSDK.create(client, 1, { cache: redisCache });
-```

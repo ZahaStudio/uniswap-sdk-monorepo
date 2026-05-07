@@ -43,13 +43,13 @@
     "@changesets/config": "^3.1.4",
     "@tanstack/intent": "catalog:",
     "oxfmt": "^0.46.0",
-    "oxlint": "^1.61.0",
+    "oxlint": "^1.63.0",
     "taze": "^19.11.0",
-    "turbo": "^2.9.6",
+    "turbo": "^2.9.9",
     "typescript": "catalog:"
   },
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@10.33.2"
+  "packageManager": "pnpm@10.33.4"
 }

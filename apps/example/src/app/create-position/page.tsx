@@ -1,7 +1,14 @@
 "use client";
 
 import { AppLayout } from "@/components/app-layout";
-import { CreatePositionDemo } from "@/components/create-position-demo";
+import dynamicImport from "next/dynamic";
+
+export const dynamic = "force-dynamic";
+
+const CreatePositionDemo = dynamicImport(
+  () => import("@/components/create-position-demo").then((mod) => mod.CreatePositionDemo),
+  { ssr: false },
+);
 
 export default function CreatePositionPage() {
   return (

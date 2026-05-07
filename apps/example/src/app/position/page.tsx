@@ -1,7 +1,11 @@
 "use client";
 
 import { AppLayout } from "@/components/app-layout";
-import { PositionDemo } from "@/components/position-demo";
+import dynamicImport from "next/dynamic";
+
+const PositionDemo = dynamicImport(() => import("@/components/position-demo").then((mod) => mod.PositionDemo), {
+  ssr: false,
+});
 
 export default function PositionPage() {
   return (

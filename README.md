@@ -19,7 +19,7 @@ An [example](./apps/example) app is provided in the repo implementing swap, posi
 - **Swap execution** — quote, build calldata, and execute swaps through Universal Router
 - **Liquidity Management** — mint, increase, decrease positions and collect fees
 - **Permit2** — batch token approvals with typed signature generation
-- **Built-in caching** — LRU cache with pluggable adapter interface
+- **Metadata reuse** — lightweight in-memory reuse for token metadata and pool keys
 - **React Hooks** — step-by-step hooks for swaps, positions, approvals, and transactions
 
 ## Quick Start
