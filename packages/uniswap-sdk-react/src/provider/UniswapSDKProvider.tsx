@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, type ReactNode } from "react";
+import { createContext, useCallback, useRef, type ReactNode } from "react";
 
 import type { PublicClient } from "viem";
 
@@ -43,7 +43,13 @@ export interface UniswapSDKProviderProps {
   config?: UniswapSDKConfig;
 }
 
-const sdkCache = new Map<number, UniswapSDK>();
+interface CachedSDKEntry {
+  sdk: UniswapSDK;
+  publicClient: PublicClient;
+  contracts: V4Contracts | undefined;
+  defaultDeadline: number | undefined;
+  defaultSlippageTolerance: number | undefined;
+}
 
 /**
  * Provider component for the Uniswap SDK.
@@ -73,19 +79,34 @@ const sdkCache = new Map<number, UniswapSDK>();
  */
 
 export function UniswapSDKProvider({ children, config = {} }: UniswapSDKProviderProps) {
+  const sdkCache = useRef(new Map<number, CachedSDKEntry>());
+
   const getSdk = useCallback(
     ({ chainId, publicClient }: { chainId: number; publicClient: PublicClient }) => {
-      const cached = sdkCache.get(chainId);
-      if (cached) {
-        return cached;
+      const contracts = config.contracts?.[chainId];
+      const cached = sdkCache.current.get(chainId);
+      if (
+        cached &&
+        cached.publicClient === publicClient &&
+        cached.contracts === contracts &&
+        cached.defaultDeadline === config.defaultDeadline &&
+        cached.defaultSlippageTolerance === config.defaultSlippageTolerance
+      ) {
+        return cached.sdk;
       }
 
       const instance = UniswapSDK.create(publicClient, chainId, {
-        contracts: config.contracts?.[chainId],
+        contracts,
         defaultDeadline: config.defaultDeadline,
         defaultSlippageTolerance: config.defaultSlippageTolerance,
       });
-      sdkCache.set(chainId, instance);
+      sdkCache.current.set(chainId, {
+        sdk: instance,
+        publicClient,
+        contracts,
+        defaultDeadline: config.defaultDeadline,
+        defaultSlippageTolerance: config.defaultSlippageTolerance,
+      });
 
       return instance;
     },

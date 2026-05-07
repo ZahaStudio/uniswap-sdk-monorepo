@@ -51,6 +51,13 @@ interface BuildSwapCallDataExactOutputArgs extends BuildSwapCallDataCommonArgs {
 
 export type BuildSwapCallDataArgs = BuildSwapCallDataExactInputArgs | BuildSwapCallDataExactOutputArgs;
 
+export interface BuildSwapCallDataResult {
+  /** Encoded Universal Router calldata for the swap transaction. */
+  calldata: Hex;
+  /** Native currency value to send with the transaction. */
+  value: string;
+}
+
 type ExactInputSwapPlan = {
   tradeType: "exactInput";
   amountIn: bigint;
@@ -72,7 +79,10 @@ type SwapPlan = ExactInputSwapPlan | ExactOutputSwapPlan;
 /**
  * Builds calldata for a Uniswap v4 swap.
  */
-export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance: UniswapSDKInstance): Promise<Hex> {
+export async function buildSwapCallData(
+  params: BuildSwapCallDataArgs,
+  instance: UniswapSDKInstance,
+): Promise<BuildSwapCallDataResult> {
   const { route, permit2Signature, recipient, deadlineDuration, useNativeToken } = params;
   const swapPlan = resolveSwapPlan(params);
 
@@ -168,11 +178,16 @@ export async function buildSwapCallData(params: BuildSwapCallDataArgs, instance:
     finalInputs.push(getLastPlannerInput(routePlanner));
   }
 
-  return encodeFunctionData({
+  const calldata = encodeFunctionData({
     abi: utility.UniversalRouterArtifact.abi,
     functionName: "execute",
     args: [getPlannerCommands(routePlanner), finalInputs, deadline],
   });
+
+  return {
+    calldata,
+    value: wrapInput ? swapPlan.inputAmountForWrap.toString() : "0",
+  };
 }
 
 function resolveSwapPlan(params: BuildSwapCallDataArgs): SwapPlan {

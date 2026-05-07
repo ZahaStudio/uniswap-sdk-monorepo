@@ -28,6 +28,11 @@ export interface GetPositionResponse {
   currentTick: number;
 }
 
+export interface GetPositionOptions {
+  /** Allow building a Position object for flows like fee collection after liquidity was fully removed. */
+  allowZeroLiquidity?: boolean;
+}
+
 /**
  * Retrieves a complete Uniswap v4 position with initialized SDK instances.
  *
@@ -40,7 +45,11 @@ export interface GetPositionResponse {
  * @returns Promise<GetPositionResponse> - Complete position with SDK instances
  * @throws Error if position data cannot be fetched, position doesn't exist, or liquidity is 0
  */
-export async function getPosition(tokenId: string, instance: UniswapSDKInstance): Promise<GetPositionResponse> {
+export async function getPosition(
+  tokenId: string,
+  instance: UniswapSDKInstance,
+  options: GetPositionOptions = {},
+): Promise<GetPositionResponse> {
   // Get position info (includes slot0 and poolLiquidity to avoid redundant calls)
   const positionInfo = await getPositionInfo(tokenId, instance);
 
@@ -48,7 +57,7 @@ export async function getPosition(tokenId: string, instance: UniswapSDKInstance)
   const { currency0: currency0Address, currency1: currency1Address, fee, tickSpacing, hooks } = poolKey;
 
   // Validate that position has liquidity
-  if (liquidity === 0n) {
+  if (liquidity === 0n && !options.allowZeroLiquidity) {
     throw new Error("Position has no liquidity");
   }
 

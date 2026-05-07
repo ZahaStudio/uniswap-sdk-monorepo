@@ -2,7 +2,7 @@
 
 import { useContext, useMemo } from "react";
 
-import { UniswapSDK } from "@zahastudio/uniswap-sdk";
+import type { UniswapSDK } from "@zahastudio/uniswap-sdk";
 import { useChainId, usePublicClient } from "wagmi";
 
 import { UniswapSDKContext } from "../provider/UniswapSDKProvider";

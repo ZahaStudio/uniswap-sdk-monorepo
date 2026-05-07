@@ -2,7 +2,7 @@ import type { Pool, PoolKey } from "@uniswap/v4-sdk";
 
 import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 import { getUniswapContracts } from "hookmate";
-import { type Address, type Chain, type Hex, type PublicClient } from "viem";
+import { type Address, type Chain, type PublicClient } from "viem";
 
 import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
 import { assertBasisPoints } from "@/helpers/percent";
@@ -17,7 +17,7 @@ import {
   buildRemoveLiquidityCallData,
   type BuildRemoveLiquidityCallDataArgs,
 } from "@/utils/buildRemoveLiquidityCallData";
-import { buildSwapCallData, type BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
+import { buildSwapCallData, type BuildSwapCallDataArgs, type BuildSwapCallDataResult } from "@/utils/buildSwapCallData";
 import { getChainById } from "@/utils/chains";
 import { getPool } from "@/utils/getPool";
 import { getPosition, type GetPositionResponse } from "@/utils/getPosition";
@@ -309,10 +309,10 @@ export class UniswapSDK {
    * compute the transaction deadline.
    *
    * @param args @type {BuildSwapCallDataArgs} - Swap configuration including pool, amounts, and recipient
-   * @returns Promise<Hex> - Encoded Universal Router calldata ready for transaction execution
+   * @returns Promise<BuildSwapCallDataResult> - Calldata and value for the swap transaction
    * @throws Error if swap parameters are invalid or calldata generation fails
    */
-  public async buildSwapCallData(args: BuildSwapCallDataArgs): Promise<Hex> {
+  public async buildSwapCallData(args: BuildSwapCallDataArgs): Promise<BuildSwapCallDataResult> {
     return buildSwapCallData(args, this.instance);
   }
 

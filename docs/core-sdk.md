@@ -212,7 +212,7 @@ These methods generate encoded transaction calldata. They do NOT send transactio
 Builds Universal Router calldata for a swap.
 
 ```ts
-const calldata = await sdk.buildSwapCallData({
+const { calldata, value } = await sdk.buildSwapCallData({
   route: [{ pool }], // Pool instance(s) from getPool
   exactInput: {
     currency: "0x...",
@@ -224,9 +224,9 @@ const calldata = await sdk.buildSwapCallData({
   useNativeToken: false,
   deadlineDuration: 300, // optional: seconds
 });
-// Returns: Hex (encoded calldata)
+// Returns calldata plus native value for the transaction.
 
-const exactOutCalldata = await sdk.buildSwapCallData({
+const exactOutSwap = await sdk.buildSwapCallData({
   route: [{ pool }],
   exactOutput: {
     currency: "0x...",

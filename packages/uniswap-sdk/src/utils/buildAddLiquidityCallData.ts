@@ -184,6 +184,9 @@ export async function buildAddLiquidityCallData(
     if (!amount0 || !amount1) {
       throw new Error("Both amount0 and amount1 are required when creating a new pool.");
     }
+    if (BigInt(amount0) <= 0n || BigInt(amount1) <= 0n) {
+      throw new Error("Both amount0 and amount1 must be positive when creating a new pool.");
+    }
     sqrtPriceX96 = encodeSqrtRatioX96(amount1, amount0).toString();
   } else {
     sqrtPriceX96 = pool.sqrtRatioX96.toString();

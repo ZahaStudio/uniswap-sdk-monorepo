@@ -164,7 +164,7 @@ await sdk.getPositionInfo(tokenId);                 // Lightweight position meta
 await sdk.getUncollectedFees(tokenId);              // Accrued fee amounts
 
 // Transaction calldata builders (do not send transactions)
-await sdk.buildSwapCallData(swapArgs);              // Universal Router swap calldata (exact in/out)
+await sdk.buildSwapCallData(swapArgs);              // Universal Router swap calldata and native value
 await sdk.buildAddLiquidityCallData(addArgs);       // Position Manager mint calldata
 await sdk.buildRemoveLiquidityCallData(removeArgs); // Position Manager burn calldata
 await sdk.buildCollectFeesCallData(collectArgs);    // Position Manager collect calldata

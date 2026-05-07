@@ -21,7 +21,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -51,7 +51,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -82,7 +82,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactOutput: {
         currency: UNICHAIN_TOKENS.ETH,
@@ -112,7 +112,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pools = await Promise.all(UNICHAIN_ETH_TO_WETH_ROUTE.map(({ poolKey }) => sdk.getPool(poolKey)));
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: mapRoute(UNICHAIN_ETH_TO_WETH_ROUTE, (_, index) => ({ pool: pools[index]! })),
       exactInput: {
         currency: UNICHAIN_TOKENS.ETH,
@@ -140,7 +140,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const sdk = UniswapSDK.create(client, unichain.id);
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: [{ pool, hookData: "0x1234abcd" }],
       exactInput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -194,7 +194,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.WETH,
@@ -226,7 +226,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -258,7 +258,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: [{ pool }, { pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.WETH,
@@ -290,7 +290,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
-    const calldata = await sdk.buildSwapCallData({
+    const { calldata } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactOutput: {
         currency: UNICHAIN_TOKENS.USDC,

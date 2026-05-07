@@ -96,7 +96,7 @@ const permit2Signature = permitData.buildPermit2BatchDataWithSignature(signature
 
 // Step 3: Get pool and build calldata
 const pool = await sdk.getPool(poolKey);
-const calldata = await sdk.buildSwapCallData({
+const { calldata, value } = await sdk.buildSwapCallData({
   route: [{ pool, hookData: "0x" }], // replace with hook-specific bytes when routing through custom hooks
   exactInput: {
     currency: WETH,
@@ -112,6 +112,7 @@ const hash = await wallet.sendTransaction({
   account,
   to: universalRouter,
   data: calldata,
+  value: BigInt(value),
   chain: mainnet,
 });
 
@@ -126,7 +127,7 @@ When swapping native ETH, skip Permit2 and send `value` with the transaction.
 
 ```ts
 // For a pool with WETH as one of the currencies
-const calldata = await sdk.buildSwapCallData({
+const { calldata, value } = await sdk.buildSwapCallData({
   route: [{ pool }],
   exactInput: {
     currency: WETH,
@@ -141,7 +142,7 @@ const hash = await wallet.sendTransaction({
   account,
   to: universalRouter,
   data: calldata,
-  value: parseEther("1"), // send ETH with the transaction
+  value: BigInt(value), // send ETH with the transaction
   chain: mainnet,
 });
 ```

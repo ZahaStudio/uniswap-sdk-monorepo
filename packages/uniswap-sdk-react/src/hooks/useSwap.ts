@@ -259,7 +259,7 @@ export function useSwap(
       const pools = await Promise.all(route.map(({ poolKey }) => sdk.getPool(poolKey)));
       const resolvedRoute = mapRoute(route, (hop, index) => ({ pool: pools[index]!, hookData: hop.hookData }));
 
-      const calldata = exactOutput
+      const swapCallData = exactOutput
         ? await (() => {
             const exactOutputQuote = quote as ExactOutputQuoteData;
 
@@ -293,15 +293,14 @@ export function useSwap(
 
       return swapTransaction.sendTransaction({
         to: universalRouter,
-        data: calldata,
-        value: isNativeInput ? maxSpendAmount : 0n,
+        data: swapCallData.calldata,
+        value: BigInt(swapCallData.value),
       });
     },
     [
       connectedAddress,
       exactOutput,
       inputBalance,
-      isNativeInput,
       params,
       permit2.permit2,
       quote,

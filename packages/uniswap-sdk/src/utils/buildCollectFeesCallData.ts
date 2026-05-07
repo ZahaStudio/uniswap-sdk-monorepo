@@ -56,7 +56,7 @@ export async function buildCollectFeesCallData(
   { tokenId, recipient, deadlineDuration }: BuildCollectFeesCallDataArgs,
   instance: UniswapSDKInstance,
 ): Promise<BuildCallDataResult> {
-  const positionData = await getPosition(tokenId, instance);
+  const positionData = await getPosition(tokenId, instance, { allowZeroLiquidity: true });
 
   const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 

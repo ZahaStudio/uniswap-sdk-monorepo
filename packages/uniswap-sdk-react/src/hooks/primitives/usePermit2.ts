@@ -156,7 +156,7 @@ async function resolveApprovalRequirement(
  *
  * const signed = await permit2.approveAndSign();
  * if (signed.kind === "batch") {
- *   sdk.buildSwapCallData({ permit2Signature: signed.data });
+  *   const { calldata, value } = await sdk.buildSwapCallData({ permit2Signature: signed.data });
  * }
  * ```
  *
