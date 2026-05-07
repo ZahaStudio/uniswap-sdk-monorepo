@@ -222,8 +222,7 @@ export async function buildAddLiquidityCallData(
     throw new Error("Invalid input: at least one of amount0 or amount1 must be defined.");
   }
 
-  // Build calldata
-  const { calldata, value } = V4PositionManager.addCallParameters(position, {
+  return V4PositionManager.addCallParameters(position, {
     recipient,
     deadline: deadline.toString(),
     slippageTolerance: slippagePercent,
@@ -232,9 +231,4 @@ export async function buildAddLiquidityCallData(
     useNative: pool.currency0.isNative ? pool.currency0 : undefined, // Only token0 can be native
     batchPermit: permit2BatchSignature,
   });
-
-  return {
-    calldata,
-    value,
-  };
 }

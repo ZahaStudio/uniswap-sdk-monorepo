@@ -52,8 +52,7 @@ export async function getTokens<const TAddresses extends readonly [Address, ...A
     }
   }
 
-  // return the cached values if we are able to find all addresses in
-  // cache
+  // Return cached values when every address has already been resolved.
   if (missingAddresses.length === 0) {
     return addresses.map((address) => {
       const cachedToken = resultByAddress.get(normalize(address));
@@ -64,13 +63,11 @@ export async function getTokens<const TAddresses extends readonly [Address, ...A
     }) as GetTokensResult<TAddresses>;
   }
 
-  const calls = missingAddresses
-    .filter((address) => address !== zeroAddress) // filter out native currency
-    .flatMap((address) => [
-      { address, abi: erc20Abi, functionName: "symbol" },
-      { address, abi: erc20Abi, functionName: "name" },
-      { address, abi: erc20Abi, functionName: "decimals" },
-    ]);
+  const calls = missingAddresses.flatMap((address) => [
+    { address, abi: erc20Abi, functionName: "symbol" },
+    { address, abi: erc20Abi, functionName: "name" },
+    { address, abi: erc20Abi, functionName: "decimals" },
+  ]);
 
   try {
     const results = await client.multicall({

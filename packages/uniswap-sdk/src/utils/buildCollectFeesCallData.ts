@@ -60,16 +60,11 @@ export async function buildCollectFeesCallData(
 
   const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 
-  const { calldata, value } = V4PositionManager.collectCallParameters(positionData.position, {
+  return V4PositionManager.collectCallParameters(positionData.position, {
     tokenId,
     recipient,
     slippageTolerance: percentFromBips(0),
     deadline,
     hookData: "0x",
   });
-
-  return {
-    calldata,
-    value,
-  };
 }

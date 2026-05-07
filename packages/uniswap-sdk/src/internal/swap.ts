@@ -71,14 +71,16 @@ export function routeWithPoolsToSwapRoute(route: SwapRouteWithPools): SwapRoute 
 
 export function resolveSwapCurrencyMeta(args: ResolveSwapCurrencyMetaArgs): SwapCurrencyMeta {
   const { route, useNativeToken, wethAddress } = args;
+  const nativeAddress = zeroAddress.toLowerCase();
+  const normalizedWethAddress = wethAddress.toLowerCase();
   const firstHopPoolKey = route[0].poolKey;
   const lastHopPoolKey = route[route.length - 1]!.poolKey;
   const firstHopSupportsNativeInput =
-    firstHopPoolKey.currency0.toLowerCase() === zeroAddress.toLowerCase() ||
-    firstHopPoolKey.currency1.toLowerCase() === zeroAddress.toLowerCase();
+    firstHopPoolKey.currency0.toLowerCase() === nativeAddress ||
+    firstHopPoolKey.currency1.toLowerCase() === nativeAddress;
   const lastHopSupportsNativeOutput =
-    lastHopPoolKey.currency0.toLowerCase() === zeroAddress.toLowerCase() ||
-    lastHopPoolKey.currency1.toLowerCase() === zeroAddress.toLowerCase();
+    lastHopPoolKey.currency0.toLowerCase() === nativeAddress ||
+    lastHopPoolKey.currency1.toLowerCase() === nativeAddress;
 
   const exactOutput = args.exactOutput;
 
@@ -99,11 +101,11 @@ export function resolveSwapCurrencyMeta(args: ResolveSwapCurrencyMetaArgs): Swap
   }
 
   const resolvedCurrencyIn =
-    useNativeToken && requestedCurrencyIn.toLowerCase() === wethAddress.toLowerCase() && !firstHopSupportsNativeInput
+    useNativeToken && requestedCurrencyIn.toLowerCase() === normalizedWethAddress && !firstHopSupportsNativeInput
       ? zeroAddress
       : requestedCurrencyIn;
   const resolvedCurrencyOut =
-    useNativeToken && requestedCurrencyOut.toLowerCase() === wethAddress.toLowerCase() && !lastHopSupportsNativeOutput
+    useNativeToken && requestedCurrencyOut.toLowerCase() === normalizedWethAddress && !lastHopSupportsNativeOutput
       ? zeroAddress
       : requestedCurrencyOut;
 

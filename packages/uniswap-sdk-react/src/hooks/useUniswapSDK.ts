@@ -3,6 +3,7 @@
 import { useContext, useMemo } from "react";
 
 import type { UniswapSDK } from "@zahastudio/uniswap-sdk";
+
 import { useChainId, usePublicClient } from "wagmi";
 
 import { UniswapSDKContext } from "../provider/UniswapSDKProvider";
@@ -79,17 +80,15 @@ export function useUniswapSDK(options: UseUniswapSDKOptions = {}): UseUniswapSDK
       throw new Error(`No public client available for chain ID ${resolvedChainId}`);
     }
 
-    const instance = context.getSdk({
+    return context.getSdk({
       chainId: resolvedChainId,
       publicClient,
     });
-
-    return instance;
   }, [context, resolvedChainId, publicClient]);
 
   return {
     sdk,
-    isInitialized: sdk !== null,
+    isInitialized: true,
     chainId: resolvedChainId,
   };
 }

@@ -259,37 +259,34 @@ export function useSwap(
       const pools = await Promise.all(route.map(({ poolKey }) => sdk.getPool(poolKey)));
       const resolvedRoute = mapRoute(route, (hop, index) => ({ pool: pools[index]!, hookData: hop.hookData }));
 
-      const swapCallData = exactOutput
-        ? await (() => {
-            const exactOutputQuote = quote as ExactOutputQuoteData;
-
-            return sdk.buildSwapCallData({
-              route: resolvedRoute,
-              exactOutput: {
-                currency: params.exactOutput.currency,
-                amount: exactOutputQuote.amountOut,
-              },
-              maxAmountIn: exactOutputQuote.maxAmountIn,
-              recipient: recipient ?? connectedAddress,
-              permit2Signature,
-              useNativeToken,
-            });
-          })()
-        : await (() => {
-            const exactInputQuote = quote as ExactInputQuoteData;
-
-            return sdk.buildSwapCallData({
-              route: resolvedRoute,
-              exactInput: {
-                currency: params.exactInput.currency,
-                amount: params.exactInput.amount,
-              },
-              minAmountOut: exactInputQuote.minAmountOut,
-              recipient: recipient ?? connectedAddress,
-              permit2Signature,
-              useNativeToken,
-            });
-          })();
+      let swapCallData: { calldata: Hex; value: string };
+      if (exactOutput) {
+        const exactOutputQuote = quote as ExactOutputQuoteData;
+        swapCallData = await sdk.buildSwapCallData({
+          route: resolvedRoute,
+          exactOutput: {
+            currency: params.exactOutput.currency,
+            amount: exactOutputQuote.amountOut,
+          },
+          maxAmountIn: exactOutputQuote.maxAmountIn,
+          recipient: recipient ?? connectedAddress,
+          permit2Signature,
+          useNativeToken,
+        });
+      } else {
+        const exactInputQuote = quote as ExactInputQuoteData;
+        swapCallData = await sdk.buildSwapCallData({
+          route: resolvedRoute,
+          exactInput: {
+            currency: params.exactInput.currency,
+            amount: params.exactInput.amount,
+          },
+          minAmountOut: exactInputQuote.minAmountOut,
+          recipient: recipient ?? connectedAddress,
+          permit2Signature,
+          useNativeToken,
+        });
+      }
 
       return swapTransaction.sendTransaction({
         to: universalRouter,

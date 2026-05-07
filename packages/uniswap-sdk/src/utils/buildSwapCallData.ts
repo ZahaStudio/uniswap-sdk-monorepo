@@ -103,20 +103,9 @@ export async function buildSwapCallData(
   const inputCurrencyObject = getCurrencyFromPool(inputPool, inputCurrency);
   const outputCurrencyObject = getCurrencyFromPool(outputPool, outputCurrency);
 
-  let wrapInput = false;
-  let unwrapOutput = false;
-
-  if (useNativeToken) {
-    const wethAddress = instance.contracts.weth.toLowerCase();
-
-    if (inputCurrency.toLowerCase() === wethAddress) {
-      wrapInput = true;
-    }
-
-    if (outputCurrency.toLowerCase() === wethAddress) {
-      unwrapOutput = true;
-    }
-  }
+  const wethAddress = instance.contracts.weth.toLowerCase();
+  const wrapInput = !!useNativeToken && inputCurrency.toLowerCase() === wethAddress;
+  const unwrapOutput = !!useNativeToken && outputCurrency.toLowerCase() === wethAddress;
 
   if (swapPlan.tradeType === "exactOutput") {
     const { path } = resolveSwapRouteExactOutput(outputCurrency, routeWithPoolKeys);
