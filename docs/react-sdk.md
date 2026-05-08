@@ -84,7 +84,7 @@ const { sdk } = useUniswapSDK({ chainId: 42161 });
 | `sdk`     | `UniswapSDK` | The SDK instance              |
 | `chainId` | `number`     | Effective chain ID being used |
 
-SDK instances are not shared across components. Each hook call keeps its own instance stable while its `chainId`, wagmi public client, and provider context are unchanged.
+SDK instances are cached by the nearest `UniswapSDKProvider` using only `chainId`. The first wagmi public client observed for a chain is used until provider config changes or the provider unmounts.
 If `UniswapSDKProvider` is missing or wagmi cannot provide a public client for the chain, the hook throws instead of returning an uninitialized SDK.
 
 ---

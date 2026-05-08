@@ -97,7 +97,7 @@ Available hooks:
 
 | Hook                             | Purpose                                               |
 | -------------------------------- | ----------------------------------------------------- |
-| `useUniswapSDK()`                | Access SDK instances by chain                         |
+| `useUniswapSDK()`                | Access provider-cached SDK instances by chain         |
 | `useSwap()`                      | Full swap workflow (quote, approve, permit2, execute) |
 | `useCreatePosition()`            | Full position creation workflow                       |
 | `usePosition()`                  | Fetch position data by token ID                       |

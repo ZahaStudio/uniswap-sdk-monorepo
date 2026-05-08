@@ -24,8 +24,7 @@ export interface UseUniswapSDKReturn {
 export interface UseUniswapSDKOptions {
   /**
    * Chain ID to use. If omitted, uses the currently connected chain.
-   * SDK instances are not shared across components; each hook call keeps its
-   * own instance stable with React useMemo while its inputs are unchanged.
+   * SDK instances are cached by the nearest provider using only this chainId.
    */
   chainId?: number;
 }
@@ -33,9 +32,9 @@ export interface UseUniswapSDKOptions {
 /**
  * Hook to access a Uniswap SDK instance for a specific chain.
  *
- * SDK instances are not globally or provider cached. The hook only keeps the
- * returned instance stable within the calling component while its chainId,
- * public client, and provider context are unchanged.
+ * SDK instances are cached by the nearest provider using only chainId. The
+ * first public client observed for a chain is used until provider config changes
+ * or the provider unmounts.
  *
  * @param options - Optional configuration for the hook.
  * @returns The SDK context value containing the SDK instance and resolved chain ID.
@@ -58,7 +57,7 @@ export interface UseUniswapSDKOptions {
  *   const mainnet = useUniswapSDK({ chainId: 1 });
  *   const arbitrum = useUniswapSDK({ chainId: 42161 });
  *
- *   // Each hook call owns its SDK instance.
+ *   // Calls for the same chain under one provider share an SDK instance.
  * }
  * ```
  */

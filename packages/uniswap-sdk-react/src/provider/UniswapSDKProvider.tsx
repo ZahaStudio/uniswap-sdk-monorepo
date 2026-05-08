@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, type ReactNode } from "react";
+import { createContext, useCallback, useEffect, useRef, type ReactNode } from "react";
 
 import type { PublicClient } from "viem";
 
@@ -67,15 +67,29 @@ export interface UniswapSDKProviderProps {
  */
 
 export function UniswapSDKProvider({ children, config = {} }: UniswapSDKProviderProps) {
+  const sdkCacheRef = useRef(new Map<number, UniswapSDK>());
+
+  useEffect(() => {
+    sdkCacheRef.current.clear();
+  }, [config.contracts, config.defaultDeadline, config.defaultSlippageTolerance]);
+
   const getSdk = useCallback(
     ({ chainId, publicClient }: { chainId: number; publicClient: PublicClient }) => {
+      const cached = sdkCacheRef.current.get(chainId);
+      if (cached) {
+        return cached;
+      }
+
       const contracts = config.contracts?.[chainId];
 
-      return UniswapSDK.create(publicClient, chainId, {
+      const sdk = UniswapSDK.create(publicClient, chainId, {
         contracts,
         defaultDeadline: config.defaultDeadline,
         defaultSlippageTolerance: config.defaultSlippageTolerance,
       });
+
+      sdkCacheRef.current.set(chainId, sdk);
+      return sdk;
     },
     [config.contracts, config.defaultDeadline, config.defaultSlippageTolerance],
   );
