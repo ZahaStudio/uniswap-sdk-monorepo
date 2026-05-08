@@ -128,7 +128,7 @@ export function useTradingApproval({
       throw new Error("Approval reset transaction not available.");
     }
 
-    const { hash } = await resetTransaction.sendAndConfirm(approvalState.cancel);
+    const { hash } = await resetTransaction.sendTransactionAndConfirm(approvalState.cancel);
     await refetchApproval();
     return hash;
   }, [connectedAddress, refetchApproval, resetTransaction, resolveApproval, swapper]);
@@ -141,7 +141,7 @@ export function useTradingApproval({
       throw new Error("Approval transaction not available.");
     }
 
-    const { hash } = await approvalTransaction.sendAndConfirm(approvalState.approval);
+    const { hash } = await approvalTransaction.sendTransactionAndConfirm(approvalState.approval);
     await refetchApproval();
     return hash;
   }, [approvalTransaction, connectedAddress, refetchApproval, resolveApproval, swapper]);

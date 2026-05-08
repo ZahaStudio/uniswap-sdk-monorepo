@@ -28,6 +28,16 @@ interface UniswapSDKOptions {
 }
 ```
 
+### EIP-5792 Batch Types
+
+```ts
+import type { Call, Capabilities } from "viem";
+
+type WalletCapabilities = Capabilities;
+
+type WalletBatchCall = Pick<Call, "to" | "data" | "value">;
+```
+
 ---
 
 ## Pool & Token Types
@@ -432,13 +442,28 @@ interface CalculatedPosition {
 interface UseTransactionReturn {
   txHash: Hex | undefined;
   receipt: TransactionReceipt | undefined;
+  batchId: string | undefined;
+  callsStatus: GetCallsStatusReturnType | undefined;
   status: "idle" | "pending" | "confirming" | "confirmed" | "error";
+  isAtomicBatchSupported: boolean;
   error: Error | undefined;
   sendTransaction: (params: { to: Address; data: Hex; value?: bigint }) => Promise<Hex>;
-  sendAndConfirm: (params: { to: Address; data: Hex; value?: bigint }) => Promise<{
+  sendTransactionAndConfirm: (params: { to: Address; data: Hex; value?: bigint }) => Promise<{
     hash: Hex;
     receipt: TransactionReceipt;
   }>;
+  sendBatchTransaction: (params: {
+    calls: readonly WalletBatchCall[];
+    capabilities?: WalletCapabilities;
+    id?: string;
+  }) => Promise<SendBatchTransactionResult>;
+  sendBatchTransactionAndConfirm: (params: {
+    calls: readonly WalletBatchCall[];
+    capabilities?: WalletCapabilities;
+    id?: string;
+    timeout?: number;
+    pollingInterval?: number;
+  }) => Promise<SendBatchTransactionAndConfirmResult>;
   reset: () => void;
 }
 ```

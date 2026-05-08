@@ -14,7 +14,10 @@ import type { UseMutationHookOptions } from "@/types/hooks";
 import { useAddLiquidityPipeline, type AddLiquidityStep } from "@/hooks/primitives/useAddLiquidityPipeline";
 import { type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
-import { type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
+import {
+  type SendBatchTransactionAndConfirmResult,
+  type UseTransactionReturn,
+} from "@/hooks/primitives/useTransaction";
 import { usePoolState, type UsePoolStateData } from "@/hooks/usePoolState";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { assertSdkInitialized } from "@/utils/assertions";
@@ -92,6 +95,7 @@ export interface UseCreatePositionReturn {
     execute: {
       transaction: UseTransactionReturn;
       execute: (args: CreatePositionArgs) => Promise<Hex>;
+      executeBatch: (args: CreatePositionArgs) => Promise<SendBatchTransactionAndConfirmResult>;
     };
   };
   /** Calculated position amounts from the user-provided input, null while loading or no input */
@@ -102,6 +106,8 @@ export interface UseCreatePositionReturn {
   currentStep: AddLiquidityStep;
   /** Execute all remaining required steps sequentially. Returns tx hash. */
   executeAll: (args: CreatePositionArgs) => Promise<Hex>;
+  /** Execute all required onchain calls as one atomic EIP-5792 batch. */
+  executeBatch: (args: CreatePositionArgs) => Promise<SendBatchTransactionAndConfirmResult>;
   /** Reset all mutation state (approvals, permit2, transaction) */
   reset: () => void;
 }
@@ -269,6 +275,7 @@ export function useCreatePosition(
     tickRange,
     currentStep: pipeline.currentStep,
     executeAll: pipeline.executeAll,
+    executeBatch: pipeline.executeBatch,
     reset: pipeline.reset,
   };
 }

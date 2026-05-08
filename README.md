@@ -19,6 +19,7 @@ An [example](./apps/example) app is provided in the repo implementing swap, posi
 - **Swap execution** — quote, build calldata, and execute swaps through Universal Router
 - **Liquidity Management** — mint, increase, decrease positions and collect fees
 - **Permit2** — batch token approvals with typed signature generation
+- **EIP-5792 wallet batches** — atomic approval + action call batches when supported by the connected wallet
 - **Metadata reuse** — lightweight in-memory reuse for token metadata and pool keys
 - **React Hooks** — step-by-step hooks for swaps, positions, approvals, and transactions
 
@@ -95,20 +96,20 @@ function App() {
 
 Available hooks:
 
-| Hook                             | Purpose                                               |
-| -------------------------------- | ----------------------------------------------------- |
-| `useUniswapSDK()`                | Access provider-cached SDK instances by chain         |
-| `useSwap()`                      | Full swap workflow (quote, approve, permit2, execute) |
-| `useCreatePosition()`            | Full position creation workflow                       |
-| `usePosition()`                  | Fetch position data by token ID                       |
-| `usePoolState()`                 | Fetch current pool state by pool key                  |
-| `usePositionIncreaseLiquidity()` | Add liquidity to an existing position                 |
-| `usePositionRemoveLiquidity()`   | Remove liquidity from a position                      |
-| `usePositionCollectFees()`       | Collect accrued fees                                  |
-| `useToken()`                     | Fetch token metadata and balance (primitive)          |
-| `usePermit2()`                   | Permit2 signature workflow (includes approval)        |
-| `useTokenApproval()`             | ERC20 approval workflow                               |
-| `useTransaction()`               | Transaction lifecycle management                      |
+| Hook                             | Purpose                                                    |
+| -------------------------------- | ---------------------------------------------------------- |
+| `useUniswapSDK()`                | Access provider-cached SDK instances by chain              |
+| `useSwap()`                      | Full swap workflow (quote, approve, permit2, execute)      |
+| `useCreatePosition()`            | Full position creation workflow                            |
+| `usePosition()`                  | Fetch position data by token ID                            |
+| `usePoolState()`                 | Fetch current pool state by pool key                       |
+| `usePositionIncreaseLiquidity()` | Add liquidity to an existing position                      |
+| `usePositionRemoveLiquidity()`   | Remove liquidity from a position                           |
+| `usePositionCollectFees()`       | Collect accrued fees                                       |
+| `useToken()`                     | Fetch token metadata and balance (primitive)               |
+| `usePermit2()`                   | Permit2 signature workflow (includes approval)             |
+| `useTokenApproval()`             | ERC20 approval workflow                                    |
+| `useTransaction()`               | Single transaction and EIP-5792 batch lifecycle management |
 
 ### Trading SDK (Experimental)
 

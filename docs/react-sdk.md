@@ -150,6 +150,7 @@ const exactOutSwap = useSwap({
 | `meta`           | `SwapMeta`                                                    | Resolved input/output currencies after `useNativeToken`                                    |
 | `currentStep`    | `"quote" \| "approval" \| "permit2" \| "swap" \| "completed"` | First incomplete step                                                                      |
 | `executeAll`     | `() => Promise<Hex>`                                          | Run all remaining steps sequentially                                                       |
+| `executeBatch`   | `() => Promise<SendBatchTransactionAndConfirmResult>`         | Run required onchain calls as one atomic EIP-5792 batch                                    |
 | `reset`          | `() => void`                                                  | Reset mutation state (quote persists)                                                      |
 
 When routing through a custom Uniswap v4 hook, supply the hook-specific bytes in `route[n].hookData`. `useSwap` preserves those bytes for both quote fetching and execution-time calldata building.
@@ -161,6 +162,15 @@ When routing through a custom Uniswap v4 hook, supply the hook-specific bytes in
 ```tsx
 const txHash = await swap.executeAll();
 ```
+
+**Atomic EIP-5792 batch:**
+
+```tsx
+const result = await swap.executeBatch();
+console.log(result.id, result.status.status);
+```
+
+`executeBatch` batches required ERC-20 approvals to Permit2 before the Universal Router call. Permit2 signed permit data remains embedded in the Universal Router calldata. The hook checks wallet atomic capability first and does not submit calls if atomic batching is unsupported.
 
 **Step-by-step control:**
 
@@ -235,18 +245,19 @@ const create = useCreatePosition(
 
 **Returns:** `UseCreatePositionReturn`
 
-| Field                  | Type                                         | Description                                                                  |
-| ---------------------- | -------------------------------------------- | ---------------------------------------------------------------------------- |
-| `pool`                 | `UseQueryResult<UsePoolStateData>`           | Pool query where `data.pool` is the current pool state                       |
-| `position`             | `CalculatedPosition \| null`                 | Computed amounts: `{ amount0, amount1, formattedAmount0, formattedAmount1 }` |
-| `tickRange`            | `{ tickLower, tickUpper } \| null`           | Resolved tick range                                                          |
-| `steps.approvalToken0` | `UseTokenApprovalReturn`                     | ERC-20 approval for token0                                                   |
-| `steps.approvalToken1` | `UseTokenApprovalReturn`                     | ERC-20 approval for token1                                                   |
-| `steps.permit2`        | `UsePermit2SignStep`                         | Permit2 batch signature                                                      |
-| `steps.execute`        | `{ transaction, execute }`                   | Mint transaction                                                             |
-| `currentStep`          | `AddLiquidityStep`                           | First incomplete step                                                        |
-| `executeAll`           | `(args: CreatePositionArgs) => Promise<Hex>` | Run all steps                                                                |
-| `reset`                | `() => void`                                 | Reset mutation state                                                         |
+| Field                  | Type                                                                          | Description                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `pool`                 | `UseQueryResult<UsePoolStateData>`                                            | Pool query where `data.pool` is the current pool state                       |
+| `position`             | `CalculatedPosition \| null`                                                  | Computed amounts: `{ amount0, amount1, formattedAmount0, formattedAmount1 }` |
+| `tickRange`            | `{ tickLower, tickUpper } \| null`                                            | Resolved tick range                                                          |
+| `steps.approvalToken0` | `UseTokenApprovalReturn`                                                      | ERC-20 approval for token0                                                   |
+| `steps.approvalToken1` | `UseTokenApprovalReturn`                                                      | ERC-20 approval for token1                                                   |
+| `steps.permit2`        | `UsePermit2SignStep`                                                          | Permit2 batch signature                                                      |
+| `steps.execute`        | `{ transaction, execute, executeBatch }`                                      | Mint transaction and atomic batch execution                                  |
+| `currentStep`          | `AddLiquidityStep`                                                            | First incomplete step                                                        |
+| `executeAll`           | `(args: CreatePositionArgs) => Promise<Hex>`                                  | Run all steps                                                                |
+| `executeBatch`         | `(args: CreatePositionArgs) => Promise<SendBatchTransactionAndConfirmResult>` | Run required onchain calls as one atomic EIP-5792 batch                      |
+| `reset`                | `() => void`                                                                  | Reset mutation state                                                         |
 
 #### Usage
 
@@ -259,6 +270,10 @@ const txHash = await create.executeAll({
   recipient: address,
   slippageTolerance: 50, // optional
 });
+
+// Atomic EIP-5792 batch
+const batch = await create.executeBatch({ recipient: address });
+console.log(batch.id, batch.status.status);
 ```
 
 One-sided input works for pools that already have liquidity. For a new pool with zero liquidity, provide both `amount0` and `amount1` so the initial price can be derived.
@@ -312,6 +327,7 @@ Add liquidity to an existing position.
 const increase = usePositionIncreaseLiquidity({ tokenId: "12345" }, { amount0: parseUnits("0.5", 18) });
 
 await increase.executeAll({ recipient: address });
+await increase.executeBatch({ recipient: address }); // atomic EIP-5792 batch when supported
 ```
 
 Pass `amount0` and/or `amount1` in the second `options` argument. The returned value follows the same step pipeline shape as `useCreatePosition`, but without the `pool`, `position`, and `tickRange` helpers.
@@ -396,15 +412,33 @@ if (approval.isRequired) {
 
 #### `useTransaction()`
 
-Transaction lifecycle management (send, wait, status tracking).
+Transaction lifecycle management for single transactions and EIP-5792 atomic call batches.
 
 ```tsx
 const tx = useTransaction();
 const hash = await tx.sendTransaction({ to, data, value });
-const { hash: confirmedHash, receipt } = await tx.sendAndConfirm({ to, data, value });
+const { hash: confirmedHash, receipt } = await tx.sendTransactionAndConfirm({ to, data, value });
 console.log(hash, confirmedHash, receipt.transactionHash);
+
+const submitted = await tx.sendBatchTransaction({
+  calls: [
+    { to: token, data: approveCalldata, value: 0n },
+    { to: universalRouter, data: swapCalldata, value: 0n },
+  ],
+});
+
+const confirmed = await tx.sendBatchTransactionAndConfirm({
+  calls: [
+    { to: token, data: approveCalldata, value: 0n },
+    { to: universalRouter, data: swapCalldata, value: 0n },
+  ],
+});
+console.log(submitted.id, confirmed.id, confirmed.status.status);
+
 // tx.status: "idle" | "pending" | "confirming" | "confirmed" | "error"
 ```
+
+Batch methods check wallet `atomic` capability and send calls with `forceAtomic: true`. They fail before submission when atomic batching is not available.
 
 ---
 
@@ -415,6 +449,7 @@ Workflow hooks with step orchestration (`useSwap`, `useCreatePosition`, `usePosi
 1. **`steps`** — individual lifecycle steps with their own state and actions
 2. **`currentStep`** — the first incomplete required step (for rendering UI)
 3. **`executeAll()`** — chains all remaining steps sequentially
-4. **`reset()`** — resets mutation state without clearing queries
+4. **`executeBatch()`** — batches required onchain calls through EIP-5792 when atomic capability is available
+5. **`reset()`** — resets mutation state without clearing queries
 
-This pattern enables both one-click UX (`executeAll`) and granular step-by-step control.
+This pattern enables sequential one-click UX (`executeAll`), atomic wallet batch UX (`executeBatch`), and granular step-by-step control.

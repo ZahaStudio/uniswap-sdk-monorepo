@@ -20,7 +20,9 @@ export interface UseTransactionReturn {
   status: TransactionStatus;
   error: Error | undefined;
   sendTransaction: (params: NormalizedTransactionRequest) => Promise<Hex>;
-  sendAndConfirm: (params: NormalizedTransactionRequest) => Promise<{ hash: Hex; receipt: TransactionReceipt }>;
+  sendTransactionAndConfirm: (
+    params: NormalizedTransactionRequest,
+  ) => Promise<{ hash: Hex; receipt: TransactionReceipt }>;
   reset: () => void;
 }
 
@@ -69,7 +71,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     [chainId, send],
   );
 
-  const sendAndConfirm = useCallback(
+  const sendTransactionAndConfirm = useCallback(
     async (params: NormalizedTransactionRequest): Promise<{ hash: Hex; receipt: TransactionReceipt }> => {
       if (!publicClient) {
         throw new Error(`No public client available for chain ID ${params.chainId ?? chainId}.`);
@@ -97,7 +99,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     status,
     error,
     sendTransaction,
-    sendAndConfirm,
+    sendTransactionAndConfirm,
     reset,
   };
 }

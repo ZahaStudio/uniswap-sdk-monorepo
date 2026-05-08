@@ -185,7 +185,7 @@ export function useTrading(params: UseTradingParams, options: UseTradingOptions 
         { permit2Disabled },
       );
 
-      const { hash } = await swapTransaction.sendAndConfirm(response.swap);
+      const { hash } = await swapTransaction.sendTransactionAndConfirm(response.swap);
       return hash;
     },
     [connectedAddress, permit.signature, permit2Disabled, quote, sdk, swapTransaction, swapper, urgency],
