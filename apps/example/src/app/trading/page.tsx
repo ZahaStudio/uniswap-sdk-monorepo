@@ -1,7 +1,12 @@
 "use client";
 
+import dynamicImport from "next/dynamic";
+
 import { AppLayout } from "@/components/app-layout";
-import { TradingDemo } from "@/components/trading-demo";
+
+const TradingDemo = dynamicImport(() => import("@/components/trading-demo").then((mod) => mod.TradingDemo), {
+  ssr: false,
+});
 
 const tradingApiKey = process.env.NEXT_PUBLIC_UNISWAP_API_KEY;
 

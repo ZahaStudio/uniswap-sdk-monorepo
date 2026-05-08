@@ -11,11 +11,12 @@ import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@
 import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
 import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
+import { assertSdkInitialized } from "@/utils/assertions";
 
 /**
  * Current step in an add-liquidity pipeline.
  */
-export type AddLiquidityStep = "approval0" | "approval1" | "permit2" | "execute" | "completed";
+export type AddLiquidityStep = "loading" | "approval0" | "approval1" | "permit2" | "execute" | "completed";
 
 /**
  * Context passed to the `buildCalldata` callback.
@@ -110,7 +111,7 @@ export function useAddLiquidityPipeline<TArgs>(
       spender: positionManager,
     },
     {
-      enabled,
+      enabled: enabled && !!currencies,
       chainId,
     },
   );
@@ -119,6 +120,8 @@ export function useAddLiquidityPipeline<TArgs>(
 
   const executeWithPermit = useCallback(
     async (args: TArgs, signedPermit2?: Permit2SignedResult): Promise<Hex> => {
+      assertSdkInitialized(sdk);
+
       const permit2Signed = signedPermit2 ?? permit2Hook.permit2.signed;
       if (permit2Hook.permit2.isRequired && !permit2Signed) {
         throw new Error("Permit2 signature required");
@@ -138,7 +141,7 @@ export function useAddLiquidityPipeline<TArgs>(
 
       return hash;
     },
-    [permit2Hook.permit2, buildCalldata, transaction, positionManager, onSuccess],
+    [sdk, permit2Hook.permit2, buildCalldata, transaction, positionManager, onSuccess],
   );
 
   const execute = useCallback(async (args: TArgs): Promise<Hex> => executeWithPermit(args), [executeWithPermit]);
@@ -152,6 +155,9 @@ export function useAddLiquidityPipeline<TArgs>(
   );
 
   const currentStep: AddLiquidityStep = (() => {
+    if (!enabled || !currencies) {
+      return "loading";
+    }
     if (permit2Hook.currentStep !== "ready") {
       return permit2Hook.currentStep;
     }

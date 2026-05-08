@@ -69,23 +69,22 @@ Most hooks accept an `options` parameter:
 
 ### `useUniswapSDK(options?)`
 
-Access a cached SDK instance for a chain.
+Access an SDK instance for a chain.
 
 ```tsx
-const { sdk, isInitialized, chainId } = useUniswapSDK();
+const { sdk, chainId } = useUniswapSDK();
 // Or for a specific chain:
 const { sdk } = useUniswapSDK({ chainId: 42161 });
 ```
 
 **Returns:** `UseUniswapSDKReturn`
 
-| Field           | Type         | Description                   |
-| --------------- | ------------ | ----------------------------- |
-| `sdk`           | `UniswapSDK` | The SDK instance              |
-| `isInitialized` | `boolean`    | `true` when the hook returns  |
-| `chainId`       | `number`     | Effective chain ID being used |
+| Field     | Type         | Description                   |
+| --------- | ------------ | ----------------------------- |
+| `sdk`     | `UniswapSDK` | The SDK instance              |
+| `chainId` | `number`     | Effective chain ID being used |
 
-SDK instances are cached per chain — calling with the same `chainId` returns the same instance.
+SDK instances are cached by the nearest `UniswapSDKProvider` using only `chainId`. The first wagmi public client observed for a chain is used until provider config changes or the provider unmounts.
 If `UniswapSDKProvider` is missing or wagmi cannot provide a public client for the chain, the hook throws instead of returning an uninitialized SDK.
 
 ---

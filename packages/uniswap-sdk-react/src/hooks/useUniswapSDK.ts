@@ -2,7 +2,8 @@
 
 import { useContext, useMemo } from "react";
 
-import { UniswapSDK } from "@zahastudio/uniswap-sdk";
+import type { UniswapSDK } from "@zahastudio/uniswap-sdk";
+
 import { useChainId, usePublicClient } from "wagmi";
 
 import { UniswapSDKContext } from "../provider/UniswapSDKProvider";
@@ -13,8 +14,6 @@ import { UniswapSDKContext } from "../provider/UniswapSDKProvider";
 export interface UseUniswapSDKReturn {
   /** The SDK instance */
   sdk: UniswapSDK;
-  /** Whether the SDK is initialized */
-  isInitialized: boolean;
   /** The effective chain ID being used */
   chainId: number;
 }
@@ -25,8 +24,7 @@ export interface UseUniswapSDKReturn {
 export interface UseUniswapSDKOptions {
   /**
    * Chain ID to use. If omitted, uses the currently connected chain.
-   * The SDK instance is cached per chain, so passing the same chainId
-   * across multiple hooks reuses the same instance.
+   * SDK instances are cached by the nearest provider using only this chainId.
    */
   chainId?: number;
 }
@@ -34,20 +32,20 @@ export interface UseUniswapSDKOptions {
 /**
  * Hook to access a Uniswap SDK instance for a specific chain.
  *
- * SDK instances are cached and deduped — calling this hook multiple times
- * with the same chainId (or no chainId) returns the same instance.
+ * SDK instances are cached by the nearest provider using only chainId. The
+ * first public client observed for a chain is used until provider config changes
+ * or the provider unmounts.
  *
  * @param options - Optional configuration for the hook.
- * @returns The SDK context value containing the SDK instance and initialization state.
+ * @returns The SDK context value containing the SDK instance and resolved chain ID.
  * @throws Error if used outside of UniswapSDKProvider
  *
  * @example Using the connected chain (default)
  * ```tsx
  * function MyComponent() {
- *   const { sdk, isInitialized } = useUniswapSDK();
+ *   const { sdk } = useUniswapSDK();
  *
  *   const fetchData = async () => {
- *     if (!sdk) return;
  *     const position = await sdk.getPosition(tokenId);
  *   };
  * }
@@ -59,7 +57,7 @@ export interface UseUniswapSDKOptions {
  *   const mainnet = useUniswapSDK({ chainId: 1 });
  *   const arbitrum = useUniswapSDK({ chainId: 42161 });
  *
- *   // Both are cached — no duplicate instances
+ *   // Calls for the same chain under one provider share an SDK instance.
  * }
  * ```
  */
@@ -79,17 +77,14 @@ export function useUniswapSDK(options: UseUniswapSDKOptions = {}): UseUniswapSDK
       throw new Error(`No public client available for chain ID ${resolvedChainId}`);
     }
 
-    const instance = context.getSdk({
+    return context.getSdk({
       chainId: resolvedChainId,
       publicClient,
     });
-
-    return instance;
   }, [context, resolvedChainId, publicClient]);
 
   return {
     sdk,
-    isInitialized: sdk !== null,
     chainId: resolvedChainId,
   };
 }

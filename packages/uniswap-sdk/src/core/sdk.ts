@@ -2,9 +2,8 @@ import type { Pool, PoolKey } from "@uniswap/v4-sdk";
 
 import { WETH_ADDRESS } from "@uniswap/universal-router-sdk";
 import { getUniswapContracts } from "hookmate";
-import { type Address, type Chain, type Hex, type PublicClient } from "viem";
+import { type Address, type PublicClient } from "viem";
 
-import { createDefaultCache, type CacheAdapter } from "@/helpers/cache";
 import { assertBasisPoints } from "@/helpers/percent";
 import {
   buildAddLiquidityCallData,
@@ -17,8 +16,7 @@ import {
   buildRemoveLiquidityCallData,
   type BuildRemoveLiquidityCallDataArgs,
 } from "@/utils/buildRemoveLiquidityCallData";
-import { buildSwapCallData, type BuildSwapCallDataArgs } from "@/utils/buildSwapCallData";
-import { getChainById } from "@/utils/chains";
+import { buildSwapCallData, type BuildSwapCallDataArgs, type BuildSwapCallDataResult } from "@/utils/buildSwapCallData";
 import { getPool } from "@/utils/getPool";
 import { getPosition, type GetPositionResponse } from "@/utils/getPosition";
 import { getPositionInfo, type GetPositionInfoResponse } from "@/utils/getPositionInfo";
@@ -59,8 +57,6 @@ export interface V4Contracts {
 export interface UniswapSDKOptions {
   /** Optional overrides for contract addresses */
   contracts?: V4Contracts;
-  /** Optional cache adapter */
-  cache?: CacheAdapter;
   /** Default deadline offset in seconds (default: 600 = 10 minutes) */
   defaultDeadline?: number;
   /** Default slippage tolerance in basis points (default: 50 = 0.5%) */
@@ -74,16 +70,28 @@ export interface UniswapSDKOptions {
 export interface UniswapSDKInstance {
   /** Viem public client */
   client: PublicClient;
-  /** Chain */
-  chain: Chain;
+  /** Chain ID */
+  chainId: number;
   /** Contract addresses */
   contracts: V4Contracts;
-  /** Cache adapter */
-  cache: CacheAdapter;
   /** Default deadline offset in seconds */
   defaultDeadline: number;
   /** Default slippage tolerance in basis points */
   defaultSlippageTolerance: number;
+}
+
+function resolveHookmateContracts(chainId: number): V4Contracts {
+  const uniswapContracts = getUniswapContracts(chainId);
+
+  return {
+    poolManager: uniswapContracts.v4.poolManager,
+    positionManager: uniswapContracts.v4.positionManager,
+    quoter: uniswapContracts.v4.quoter,
+    stateView: uniswapContracts.v4.stateView,
+    universalRouter: uniswapContracts.utility.universalRouter,
+    permit2: uniswapContracts.utility.permit2,
+    weth: WETH_ADDRESS(chainId) as Address,
+  };
 }
 
 /**
@@ -96,17 +104,15 @@ export class UniswapSDK {
 
   private constructor(
     client: PublicClient,
-    chain: Chain,
+    chainId: number,
     contracts: V4Contracts,
-    cache: CacheAdapter,
     defaultDeadline: number,
     defaultSlippageTolerance: number,
   ) {
     this.instance = {
       client,
-      chain,
+      chainId,
       contracts,
-      cache,
       defaultDeadline,
       defaultSlippageTolerance,
     };
@@ -118,19 +124,16 @@ export class UniswapSDK {
    * @param client - Viem public client for the target chain
    * @param chainId - Chain ID for the target network. This may intentionally differ from `client.chain?.id`
    * when using a forked RPC client while still targeting the original chain's contract addresses.
-   * @param options - Optional configuration: contracts, cache, defaultDeadline, defaultSlippageTolerance
+   * If `contracts` are provided, hookmate contract resolution is skipped.
+   * @param options - Optional configuration: contracts, defaultDeadline, defaultSlippageTolerance
    */
   public static create(client: PublicClient, chainId: number, options: UniswapSDKOptions = {}): UniswapSDK {
     if (!Number.isInteger(chainId) || chainId <= 0) {
       throw new Error(`Invalid chainId: ${chainId}. Must be a positive integer.`);
     }
 
-    const chain = getChainById(chainId);
-    const uniswapContracts = getUniswapContracts(chainId);
-
     const {
       contracts,
-      cache = createDefaultCache(),
       defaultDeadline = 10 * 60, // 10 minutes
       defaultSlippageTolerance = 50, // 0.5%
     } = options;
@@ -141,19 +144,9 @@ export class UniswapSDK {
 
     assertBasisPoints(defaultSlippageTolerance, "defaultSlippageTolerance");
 
-    const resolvedContracts =
-      contracts ??
-      ({
-        poolManager: uniswapContracts.v4.poolManager,
-        positionManager: uniswapContracts.v4.positionManager,
-        quoter: uniswapContracts.v4.quoter,
-        stateView: uniswapContracts.v4.stateView,
-        universalRouter: uniswapContracts.utility.universalRouter,
-        permit2: uniswapContracts.utility.permit2,
-        weth: WETH_ADDRESS(chainId) as Address,
-      } satisfies V4Contracts);
+    const resolvedContracts = contracts ?? resolveHookmateContracts(chainId);
 
-    return new UniswapSDK(client, chain, resolvedContracts, cache, defaultDeadline, defaultSlippageTolerance);
+    return new UniswapSDK(client, chainId, resolvedContracts, defaultDeadline, defaultSlippageTolerance);
   }
 
   /**
@@ -309,10 +302,10 @@ export class UniswapSDK {
    * compute the transaction deadline.
    *
    * @param args @type {BuildSwapCallDataArgs} - Swap configuration including pool, amounts, and recipient
-   * @returns Promise<Hex> - Encoded Universal Router calldata ready for transaction execution
+   * @returns Promise<BuildSwapCallDataResult> - Calldata and value for the swap transaction
    * @throws Error if swap parameters are invalid or calldata generation fails
    */
-  public async buildSwapCallData(args: BuildSwapCallDataArgs): Promise<Hex> {
+  public async buildSwapCallData(args: BuildSwapCallDataArgs): Promise<BuildSwapCallDataResult> {
     return buildSwapCallData(args, this.instance);
   }
 

@@ -76,9 +76,8 @@ export function usePoolState(params: UsePoolStateParams, options: UseHookOptions
     ),
     queryFn: async (): Promise<UsePoolStateData> => {
       assertSdkInitialized(sdk);
-      const pool = await sdk.getPool(poolKey);
       return {
-        pool,
+        pool: await sdk.getPool(poolKey),
       };
     },
     enabled: enabled && !!sdk,

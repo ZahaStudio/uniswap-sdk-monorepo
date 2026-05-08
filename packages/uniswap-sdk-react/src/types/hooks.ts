@@ -4,8 +4,7 @@
 export interface UseHookOptions {
   /**
    * Chain ID to use. If omitted, uses the currently connected chain.
-   * The SDK instance is cached per chain, so passing the same chainId
-   * across multiple hooks reuses the same instance.
+   * SDK instances are cached by the nearest provider using only this chainId.
    */
   chainId?: number;
 

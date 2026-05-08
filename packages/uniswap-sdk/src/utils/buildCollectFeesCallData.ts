@@ -56,20 +56,15 @@ export async function buildCollectFeesCallData(
   { tokenId, recipient, deadlineDuration }: BuildCollectFeesCallDataArgs,
   instance: UniswapSDKInstance,
 ): Promise<BuildCallDataResult> {
-  const positionData = await getPosition(tokenId, instance);
+  const positionData = await getPosition(tokenId, instance, { allowZeroLiquidity: true });
 
   const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 
-  const { calldata, value } = V4PositionManager.collectCallParameters(positionData.position, {
+  return V4PositionManager.collectCallParameters(positionData.position, {
     tokenId,
     recipient,
     slippageTolerance: percentFromBips(0),
     deadline,
     hookData: "0x",
   });
-
-  return {
-    calldata,
-    value,
-  };
 }

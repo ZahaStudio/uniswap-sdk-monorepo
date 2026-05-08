@@ -96,7 +96,7 @@ const permit2Signature = permitData.buildPermit2BatchDataWithSignature(signature
 
 // Step 3: Get pool and build calldata
 const pool = await sdk.getPool(poolKey);
-const calldata = await sdk.buildSwapCallData({
+const { calldata, value } = await sdk.buildSwapCallData({
   route: [{ pool, hookData: "0x" }], // replace with hook-specific bytes when routing through custom hooks
   exactInput: {
     currency: WETH,
@@ -112,6 +112,7 @@ const hash = await wallet.sendTransaction({
   account,
   to: universalRouter,
   data: calldata,
+  value: BigInt(value),
   chain: mainnet,
 });
 
@@ -126,7 +127,7 @@ When swapping native ETH, skip Permit2 and send `value` with the transaction.
 
 ```ts
 // For a pool with WETH as one of the currencies
-const calldata = await sdk.buildSwapCallData({
+const { calldata, value } = await sdk.buildSwapCallData({
   route: [{ pool }],
   exactInput: {
     currency: WETH,
@@ -141,7 +142,7 @@ const hash = await wallet.sendTransaction({
   account,
   to: universalRouter,
   data: calldata,
-  value: parseEther("1"), // send ETH with the transaction
+  value: BigInt(value), // send ETH with the transaction
   chain: mainnet,
 });
 ```
@@ -355,31 +356,4 @@ console.log(`Tick range: ${info.tickLower} - ${info.tickUpper}`);
 // Core SDK — uncollected fees
 const fees = await sdk.getUncollectedFees("12345");
 console.log(`Fees: ${fees.amount0} token0, ${fees.amount1} token1`);
-```
-
----
-
-## Recipe 10: Custom Cache Adapter (Redis)
-
-```ts
-import Redis from "ioredis";
-import type { CacheAdapter } from "@zahastudio/uniswap-sdk";
-
-const redis = new Redis();
-
-const redisCache: CacheAdapter = {
-  async get<T>(key: string): Promise<T | undefined> {
-    const val = await redis.get(key);
-    return val ? JSON.parse(val) : undefined;
-  },
-  async set<T>(key: string, value: T, ttlMs?: number): Promise<void> {
-    if (ttlMs) {
-      await redis.set(key, JSON.stringify(value), "PX", ttlMs);
-    } else {
-      await redis.set(key, JSON.stringify(value));
-    }
-  },
-};
-
-const sdk = UniswapSDK.create(client, 1, { cache: redisCache });
 ```

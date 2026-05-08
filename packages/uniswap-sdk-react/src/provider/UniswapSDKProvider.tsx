@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, type ReactNode } from "react";
+import { createContext, useCallback, useEffect, useRef, type ReactNode } from "react";
 
 import type { PublicClient } from "viem";
 
@@ -26,13 +26,12 @@ export interface UniswapSDKConfig {
 }
 
 /**
- * Internal context value that holds the shared SDK cache and config.
- * SDK instances are created lazily per chain and cached for deduplication.
+ * Internal context value for creating SDK instances from the provider config.
  */
 export interface UniswapSDKContextValue {
   /** Custom contracts per chain from provider config */
   contracts?: Record<number, V4Contracts>;
-  /** Retrieve or create a cached SDK instance for a chain */
+  /** Create an SDK instance for a chain */
   getSdk: (params: { chainId: number; publicClient: PublicClient }) => UniswapSDK;
 }
 
@@ -43,14 +42,9 @@ export interface UniswapSDKProviderProps {
   config?: UniswapSDKConfig;
 }
 
-const sdkCache = new Map<number, UniswapSDK>();
-
 /**
  * Provider component for the Uniswap SDK.
  * Must be wrapped inside WagmiProvider and QueryClientProvider.
- *
- * Stores a shared SDK instance cache so that multiple calls to `useUniswapSDK`
- * with the same chainId return the same SDK instance.
  *
  * @example
  * ```tsx
@@ -73,21 +67,29 @@ const sdkCache = new Map<number, UniswapSDK>();
  */
 
 export function UniswapSDKProvider({ children, config = {} }: UniswapSDKProviderProps) {
+  const sdkCacheRef = useRef(new Map<number, UniswapSDK>());
+
+  useEffect(() => {
+    sdkCacheRef.current.clear();
+  }, [config.contracts, config.defaultDeadline, config.defaultSlippageTolerance]);
+
   const getSdk = useCallback(
     ({ chainId, publicClient }: { chainId: number; publicClient: PublicClient }) => {
-      const cached = sdkCache.get(chainId);
+      const cached = sdkCacheRef.current.get(chainId);
       if (cached) {
         return cached;
       }
 
-      const instance = UniswapSDK.create(publicClient, chainId, {
-        contracts: config.contracts?.[chainId],
+      const contracts = config.contracts?.[chainId];
+
+      const sdk = UniswapSDK.create(publicClient, chainId, {
+        contracts,
         defaultDeadline: config.defaultDeadline,
         defaultSlippageTolerance: config.defaultSlippageTolerance,
       });
-      sdkCache.set(chainId, instance);
 
-      return instance;
+      sdkCacheRef.current.set(chainId, sdk);
+      return sdk;
     },
     [config.contracts, config.defaultDeadline, config.defaultSlippageTolerance],
   );

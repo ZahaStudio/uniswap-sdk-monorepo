@@ -96,7 +96,7 @@ const signature = await wallet.signTypedData({
 });
 
 const pool = await sdk.getPool(poolKey);
-const calldata = await sdk.buildSwapCallData({
+const { calldata, value } = await sdk.buildSwapCallData({
   route: [{ pool, hookData: "0x" }],
   exactInput: { currency: WETH, amount: 1_000_000_000_000_000_000n },
   minAmountOut: calculateMinimumOutput(exactInputQuote.amountOut, 50),
@@ -110,7 +110,7 @@ Calldata builders do not send transactions. Send the returned calldata to the re
 ### Swap with native ETH through a WETH pool
 
 ```ts
-const calldata = await sdk.buildSwapCallData({
+const { calldata, value } = await sdk.buildSwapCallData({
   route: [{ pool }],
   exactInput: { currency: WETH, amount: 1_000_000_000_000_000_000n },
   minAmountOut: 2_000_000_000n,
@@ -123,7 +123,7 @@ await wallet.sendTransaction({
   chain: mainnet,
   to: sdk.getContractAddress("universalRouter"),
   data: calldata,
-  value: 1_000_000_000_000_000_000n,
+  value: BigInt(value),
 });
 ```
 
@@ -235,11 +235,11 @@ await wallet.sendTransaction({
   chain: mainnet,
   to: sdk.getContractAddress("universalRouter"),
   data: calldata,
-  value: amountIn,
+  value: BigInt(value),
 });
 ```
 
-Native ETH swaps skip Permit2 but must send `value` with the transaction.
+Native ETH swaps skip Permit2 but must send the returned `value` with the transaction.
 
 Source: ZahaStudio/uniswap-sdk-monorepo:docs/recipes.md
 

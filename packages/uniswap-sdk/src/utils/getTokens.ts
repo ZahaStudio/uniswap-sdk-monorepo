@@ -5,6 +5,8 @@ import { erc20Abi, getAddress, zeroAddress } from "viem";
 
 import type { UniswapSDKInstance } from "@/core/sdk";
 
+const tokenCache = new Map<string, Currency>();
+
 /**
  * Arguments for getTokens function
  */
@@ -29,20 +31,20 @@ export async function getTokens<const TAddresses extends readonly [Address, ...A
   instance: UniswapSDKInstance,
 ): Promise<GetTokensResult<TAddresses>> {
   const { addresses } = params;
-  const { client, chain, cache } = instance;
+  const { client, chainId } = instance;
   const resultByAddress = new Map<string, Currency>();
   const missingAddresses: Address[] = [];
   const normalize = (address: Address) => getAddress(address);
-  const cacheTokenKey = (address: Address) => `tokens:${chain.id}:${normalize(address)}`;
+  const cacheTokenKey = (address: Address) => `token:${chainId}:${normalize(address)}`;
 
   for (const address of addresses) {
     if (address === zeroAddress) {
-      const nativeCurrency = Ether.onChain(chain.id);
+      const nativeCurrency = Ether.onChain(chainId);
       resultByAddress.set(normalize(address), nativeCurrency);
-      await cache.set(cacheTokenKey(address), nativeCurrency);
+      tokenCache.set(cacheTokenKey(address), nativeCurrency);
       continue;
     }
-    const cachedCurrency = await cache.get<Currency>(cacheTokenKey(address));
+    const cachedCurrency = tokenCache.get(cacheTokenKey(address));
     if (cachedCurrency) {
       resultByAddress.set(normalize(address), cachedCurrency);
     } else {
@@ -50,8 +52,7 @@ export async function getTokens<const TAddresses extends readonly [Address, ...A
     }
   }
 
-  // return the cached values if we are able to find all addresses in
-  // cache
+  // Return cached values when every address has already been resolved.
   if (missingAddresses.length === 0) {
     return addresses.map((address) => {
       const cachedToken = resultByAddress.get(normalize(address));
@@ -62,13 +63,11 @@ export async function getTokens<const TAddresses extends readonly [Address, ...A
     }) as GetTokensResult<TAddresses>;
   }
 
-  const calls = missingAddresses
-    .filter((address) => address !== zeroAddress) // filter out native currency
-    .flatMap((address) => [
-      { address, abi: erc20Abi, functionName: "symbol" },
-      { address, abi: erc20Abi, functionName: "name" },
-      { address, abi: erc20Abi, functionName: "decimals" },
-    ]);
+  const calls = missingAddresses.flatMap((address) => [
+    { address, abi: erc20Abi, functionName: "symbol" },
+    { address, abi: erc20Abi, functionName: "name" },
+    { address, abi: erc20Abi, functionName: "decimals" },
+  ]);
 
   try {
     const results = await client.multicall({
@@ -83,9 +82,9 @@ export async function getTokens<const TAddresses extends readonly [Address, ...A
       const symbol = results[resultIndex++] as string;
       const name = results[resultIndex++] as string;
       const decimals = results[resultIndex++] as number;
-      const token = new Token(chain.id, address, decimals, symbol, name);
+      const token = new Token(chainId, address, decimals, symbol, name);
       resultByAddress.set(normalize(address), token);
-      await cache.set(cacheTokenKey(address), token);
+      tokenCache.set(cacheTokenKey(address), token);
     }
 
     return addresses.map((address) => {

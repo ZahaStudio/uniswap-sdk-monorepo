@@ -19,7 +19,7 @@ An [example](./apps/example) app is provided in the repo implementing swap, posi
 - **Swap execution** — quote, build calldata, and execute swaps through Universal Router
 - **Liquidity Management** — mint, increase, decrease positions and collect fees
 - **Permit2** — batch token approvals with typed signature generation
-- **Built-in caching** — LRU cache with pluggable adapter interface
+- **Metadata reuse** — lightweight in-memory reuse for token metadata and pool keys
 - **React Hooks** — step-by-step hooks for swaps, positions, approvals, and transactions
 
 ## Quick Start
@@ -97,7 +97,7 @@ Available hooks:
 
 | Hook                             | Purpose                                               |
 | -------------------------------- | ----------------------------------------------------- |
-| `useUniswapSDK()`                | Access cached SDK instances by chain                  |
+| `useUniswapSDK()`                | Access provider-cached SDK instances by chain         |
 | `useSwap()`                      | Full swap workflow (quote, approve, permit2, execute) |
 | `useCreatePosition()`            | Full position creation workflow                       |
 | `usePosition()`                  | Fetch position data by token ID                       |
@@ -150,7 +150,7 @@ Use `TradingSDKProvider` and `useTrading()` for quote, approval, permit, and swa
 ```ts
 // Create an instance
 const sdk = UniswapSDK.create(client, chainId, options?);
-// options: { contracts?, cache?, defaultDeadline? (positive integer seconds), defaultSlippageTolerance? }
+// options: { contracts?, defaultDeadline? (positive integer seconds), defaultSlippageTolerance? }
 
 // Pool & token queries
 await sdk.getPool(poolArgs);                        // Fetch pool state
@@ -164,7 +164,7 @@ await sdk.getPositionInfo(tokenId);                 // Lightweight position meta
 await sdk.getUncollectedFees(tokenId);              // Accrued fee amounts
 
 // Transaction calldata builders (do not send transactions)
-await sdk.buildSwapCallData(swapArgs);              // Universal Router swap calldata (exact in/out)
+await sdk.buildSwapCallData(swapArgs);              // Universal Router swap calldata and native value
 await sdk.buildAddLiquidityCallData(addArgs);       // Position Manager mint calldata
 await sdk.buildRemoveLiquidityCallData(removeArgs); // Position Manager burn calldata
 await sdk.buildCollectFeesCallData(collectArgs);    // Position Manager collect calldata

@@ -156,7 +156,7 @@ async function resolveApprovalRequirement(
  *
  * const signed = await permit2.approveAndSign();
  * if (signed.kind === "batch") {
- *   sdk.buildSwapCallData({ permit2Signature: signed.data });
+ *   const { calldata, value } = await sdk.buildSwapCallData({ permit2Signature: signed.data });
  * }
  * ```
  *
@@ -242,9 +242,10 @@ export function usePermit2(params: UsePermit2Params, options: UsePermit2Options 
       setSignErrorState(undefined);
       setPendingSignKey(inputsKey);
 
-      const batchTokens: Address[] = [];
-      if (token0IsRelevant) batchTokens.push(token0.address);
-      if (token1IsRelevant) batchTokens.push(token1.address);
+      const batchTokens = [
+        token0IsRelevant ? token0.address : undefined,
+        token1IsRelevant ? token1.address : undefined,
+      ].filter((token): token is Address => token !== undefined);
 
       const prepareResult = await sdk.preparePermit2BatchData({
         tokens: batchTokens,

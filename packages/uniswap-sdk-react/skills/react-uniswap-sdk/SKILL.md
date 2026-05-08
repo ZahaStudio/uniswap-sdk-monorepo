@@ -76,7 +76,7 @@ export function PoolReader() {
 }
 ```
 
-SDK instances are cached per chain ID. If the provider is missing or wagmi cannot provide a public client for the chain, `useUniswapSDK` throws instead of returning an uninitialized SDK.
+SDK instances are cached by the nearest provider using only chain ID. The first wagmi public client observed for a chain is used until provider config changes or the provider unmounts. If the provider is missing or wagmi cannot provide a public client for the chain, `useUniswapSDK` throws instead of returning an uninitialized SDK.
 
 ### Run a full swap lifecycle
 

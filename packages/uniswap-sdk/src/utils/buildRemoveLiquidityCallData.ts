@@ -66,15 +66,10 @@ export async function buildRemoveLiquidityCallData(
 
   const deadline = (await getDefaultDeadline(instance, deadlineDuration)).toString();
 
-  const { calldata, value } = V4PositionManager.removeCallParameters(positionData.position, {
+  return V4PositionManager.removeCallParameters(positionData.position, {
     slippageTolerance: percentFromBips(resolvedSlippage),
     deadline,
     liquidityPercentage: percentFromBips(liquidityPercentage),
     tokenId,
   });
-
-  return {
-    calldata,
-    value,
-  };
 }
