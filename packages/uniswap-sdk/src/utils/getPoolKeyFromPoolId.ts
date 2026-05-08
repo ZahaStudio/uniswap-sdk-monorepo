@@ -14,9 +14,9 @@ const poolKeyCache = new Map<string, PoolKey>();
  * @throws Error if pool key cannot be fetched from the contract
  */
 export async function getPoolKeyFromPoolId(poolId: string, instance: UniswapSDKInstance): Promise<PoolKey> {
-  const { client, contracts, chain } = instance;
+  const { client, contracts, chainId } = instance;
   const { positionManager } = contracts;
-  const cachePoolKey = `poolKey:${chain.id}:${poolId.toLowerCase()}`;
+  const cachePoolKey = `poolKey:${chainId}:${poolId.toLowerCase()}`;
   const cached = poolKeyCache.get(cachePoolKey);
   if (cached) {
     return cached;

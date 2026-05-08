@@ -31,15 +31,15 @@ export async function getTokens<const TAddresses extends readonly [Address, ...A
   instance: UniswapSDKInstance,
 ): Promise<GetTokensResult<TAddresses>> {
   const { addresses } = params;
-  const { client, chain } = instance;
+  const { client, chainId } = instance;
   const resultByAddress = new Map<string, Currency>();
   const missingAddresses: Address[] = [];
   const normalize = (address: Address) => getAddress(address);
-  const cacheTokenKey = (address: Address) => `token:${chain.id}:${normalize(address)}`;
+  const cacheTokenKey = (address: Address) => `token:${chainId}:${normalize(address)}`;
 
   for (const address of addresses) {
     if (address === zeroAddress) {
-      const nativeCurrency = Ether.onChain(chain.id);
+      const nativeCurrency = Ether.onChain(chainId);
       resultByAddress.set(normalize(address), nativeCurrency);
       tokenCache.set(cacheTokenKey(address), nativeCurrency);
       continue;
@@ -82,7 +82,7 @@ export async function getTokens<const TAddresses extends readonly [Address, ...A
       const symbol = results[resultIndex++] as string;
       const name = results[resultIndex++] as string;
       const decimals = results[resultIndex++] as number;
-      const token = new Token(chain.id, address, decimals, symbol, name);
+      const token = new Token(chainId, address, decimals, symbol, name);
       resultByAddress.set(normalize(address), token);
       tokenCache.set(cacheTokenKey(address), token);
     }

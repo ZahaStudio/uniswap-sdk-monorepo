@@ -185,7 +185,7 @@ export async function preparePermit2BatchData(
   const { domain, types, values } = AllowanceTransfer.getPermitData(
     permitBatch,
     instance.contracts.permit2,
-    instance.chain.id,
+    instance.chainId,
   ) as {
     domain: PreparePermit2BatchDataResult["toSign"]["domain"];
     types: PermitBatchData["types"];
