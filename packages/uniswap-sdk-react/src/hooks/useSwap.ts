@@ -336,8 +336,11 @@ export function useSwap(
     if (!swapTransaction.isAtomicBatchSupported) {
       throw new Error("Atomic batch support is not available.");
     }
-    const signedPermit2 = permit2.permit2.signed ?? (await permit2.permit2.sign());
-    const approvalCall = await buildRequiredApprovalCall(permit2.approvals[0], inputCurrencyForSteps, permit2Amount);
+
+    const signedPermit2 = requiresPermit2 ? (permit2.permit2.signed ?? (await permit2.permit2.sign())) : undefined;
+    const approvalCall = requiresPermit2
+      ? await buildRequiredApprovalCall(permit2.approvals[0], inputCurrencyForSteps, permit2Amount)
+      : undefined;
     const swapCall = await buildSwapTransactionCall(signedPermit2);
 
     const result = await swapTransaction.sendBatchTransactionAndConfirm({
@@ -349,7 +352,7 @@ export function useSwap(
     }
 
     return result;
-  }, [permit2, inputCurrencyForSteps, permit2Amount, buildSwapTransactionCall, swapTransaction]);
+  }, [requiresPermit2, permit2, inputCurrencyForSteps, permit2Amount, buildSwapTransactionCall, swapTransaction]);
 
   const currentStep: SwapStep = (() => {
     if (!quote || quoteQuery.isLoading || !connectedAddress) {

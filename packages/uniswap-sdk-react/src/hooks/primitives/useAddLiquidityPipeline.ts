@@ -160,7 +160,19 @@ export function useAddLiquidityPipeline<TArgs>(
         throw new Error("Atomic batch support is not available.");
       }
 
-      const permit2Signed = signedPermit2 ?? permit2Hook.permit2.signed ?? (await permit2Hook.permit2.sign());
+      const argsWithAmounts = args as Partial<Record<"amount0" | "amount1", unknown>>;
+      const argsRequirePermit =
+        (tokenAddresses[0].toLowerCase() !== zeroAddress.toLowerCase() &&
+          typeof argsWithAmounts.amount0 === "bigint" &&
+          argsWithAmounts.amount0 > 0n) ||
+        (tokenAddresses[1].toLowerCase() !== zeroAddress.toLowerCase() &&
+          typeof argsWithAmounts.amount1 === "bigint" &&
+          argsWithAmounts.amount1 > 0n);
+
+      let permit2Signed = signedPermit2 ?? permit2Hook.permit2.signed;
+      if (!permit2Signed && (permit2Hook.permit2.isRequired || argsRequirePermit)) {
+        permit2Signed = await permit2Hook.permit2.sign();
+      }
       if (permit2Hook.permit2.isRequired && !permit2Signed) {
         throw new Error("Permit2 signature required");
       }
