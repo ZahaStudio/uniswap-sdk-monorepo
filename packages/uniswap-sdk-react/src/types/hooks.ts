@@ -4,8 +4,8 @@
 export interface UseHookOptions {
   /**
    * Chain ID to use. If omitted, uses the currently connected chain.
-   * The SDK instance is cached per chain, so passing the same chainId
-   * across multiple hooks reuses the same instance.
+   * SDK instances are not shared across components; each hook call keeps its
+   * own instance stable with React useMemo while its inputs are unchanged.
    */
   chainId?: number;
 

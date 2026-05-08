@@ -29,11 +29,11 @@ const sdk = UniswapSDK.create(client, 1); // chainId = 1
 
 #### `UniswapSDKOptions`
 
-| Field                      | Type           | Default                              | Description                        |
-| -------------------------- | -------------- | ------------------------------------ | ---------------------------------- |
-| `contracts`                | `V4Contracts`  | Auto-resolved via hookmate           | Override contract addresses        |
-| `defaultDeadline`          | `number`       | `600` (10 minutes)                   | Default deadline offset in seconds |
-| `defaultSlippageTolerance` | `number`       | `50` (0.5%)                          | Default slippage in basis points   |
+| Field                      | Type          | Default                    | Description                        |
+| -------------------------- | ------------- | -------------------------- | ---------------------------------- |
+| `contracts`                | `V4Contracts` | Auto-resolved via hookmate | Override contract addresses        |
+| `defaultDeadline`          | `number`      | `600` (10 minutes)         | Default deadline offset in seconds |
+| `defaultSlippageTolerance` | `number`      | `50` (0.5%)                | Default slippage in basis points   |
 
 #### `V4Contracts`
 
@@ -156,15 +156,15 @@ const pos = await sdk.getPosition("12345");
 
 **Returns:** `Promise<GetPositionResponse>`
 
-| Field         | Type                | Description                |
-| ------------- | ------------------- | -------------------------- |
+| Field         | Type                        | Description                |
+| ------------- | --------------------------- | -------------------------- |
 | `position`    | `Position` (Uniswap v4 SDK) | Fully initialized position |
 | `pool`        | `Pool` (Uniswap v4 SDK)     | Pool with current state    |
-| `currency0`   | `Currency`          | First token                |
-| `currency1`   | `Currency`          | Second token               |
-| `poolId`      | `0x${string}`       | Pool identifier            |
-| `tokenId`     | `string`            | Position NFT ID            |
-| `currentTick` | `number`            | Current pool tick          |
+| `currency0`   | `Currency`                  | First token                |
+| `currency1`   | `Currency`                  | Second token               |
+| `poolId`      | `0x${string}`               | Pool identifier            |
+| `tokenId`     | `string`                    | Position NFT ID            |
+| `currentTick` | `number`                    | Current pool tick          |
 
 **Throws** if position has zero liquidity.
 
@@ -211,7 +211,7 @@ These methods generate encoded transaction calldata. They do NOT send transactio
 Builds Universal Router calldata for a swap.
 
 ```ts
-const { calldata, value } = await sdk.buildSwapCallData({
+const { calldata: exactInCalldata, value: exactInValue } = await sdk.buildSwapCallData({
   route: [{ pool }], // Pool instance(s) from getPool
   exactInput: {
     currency: "0x...",
@@ -223,9 +223,9 @@ const { calldata, value } = await sdk.buildSwapCallData({
   useNativeToken: false,
   deadlineDuration: 300, // optional: seconds
 });
-// Returns calldata plus native value for the transaction.
+// Returns Universal Router calldata plus native value for the transaction.
 
-const exactOutSwap = await sdk.buildSwapCallData({
+const { calldata: exactOutCalldata, value: exactOutValue } = await sdk.buildSwapCallData({
   route: [{ pool }],
   exactOutput: {
     currency: "0x...",
@@ -250,7 +250,7 @@ const exactOutSwap = await sdk.buildSwapCallData({
 | `deadlineDuration` | `number`                     | No        | Seconds from now (default: SDK `defaultDeadline`)             |
 | `useNativeToken`   | `boolean`                    | No        | Wrap/unwrap the native token for WETH route edges             |
 
-**Returns:** `Promise<Hex>` — encoded `execute()` calldata for Universal Router.
+**Returns:** `Promise<BuildSwapCallDataResult>` — `{ calldata: Hex; value: string }`, where `calldata` is encoded `execute()` calldata for Universal Router and `value` is the native currency value to attach.
 
 When routing through a custom hook, pass the required per-hop `hookData` alongside each pool in `route`. The calldata builder preserves those bytes exactly in the encoded Uniswap v4 path.
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { AppLayout } from "@/components/app-layout";
 import dynamicImport from "next/dynamic";
+
+import { AppLayout } from "@/components/app-layout";
 
 const SwapDemo = dynamicImport(() => import("@/components/swap-demo").then((mod) => mod.SwapDemo), {
   ssr: false,

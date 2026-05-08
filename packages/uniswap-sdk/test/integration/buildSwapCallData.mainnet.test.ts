@@ -21,7 +21,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -41,6 +41,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const [commands, , deadline] = decoded.args as [Hex, Hex[], bigint];
     expect(commands).toBe("0x10");
     expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("0");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 
@@ -51,7 +52,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -72,6 +73,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const [commands, , deadline] = decoded.args as [Hex, Hex[], bigint];
     expect(commands).toBe("0x10");
     expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("0");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 
@@ -82,7 +84,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactOutput: {
         currency: UNICHAIN_TOKENS.ETH,
@@ -102,6 +104,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const [commands, , deadline] = decoded.args as [Hex, Hex[], bigint];
     expect(commands).toBe("0x10");
     expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("0");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 
@@ -112,7 +115,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pools = await Promise.all(UNICHAIN_ETH_TO_WETH_ROUTE.map(({ poolKey }) => sdk.getPool(poolKey)));
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: mapRoute(UNICHAIN_ETH_TO_WETH_ROUTE, (_, index) => ({ pool: pools[index]! })),
       exactInput: {
         currency: UNICHAIN_TOKENS.ETH,
@@ -132,6 +135,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const [commands, , deadline] = decoded.args as [Hex, Hex[], bigint];
     expect(commands).toBe("0x10");
     expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("0");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 
@@ -140,7 +144,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const sdk = UniswapSDK.create(client, unichain.id);
     const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: [{ pool, hookData: "0x1234abcd" }],
       exactInput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -185,6 +189,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
 
     expect(swapParams.path).toHaveLength(1);
     expect(swapParams.path[0]?.hookData).toBe("0x1234abcd");
+    expect(value).toBe("0");
   });
 
   it("adds WRAP_ETH command when useNativeToken is true and input is WETH", async () => {
@@ -194,7 +199,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.WETH,
@@ -216,6 +221,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     expect(commands).toBe("0x0b10");
     expect(inputs).toHaveLength(2);
     expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("1000000");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 
@@ -226,7 +232,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -248,6 +254,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     expect(commands).toBe("0x100c");
     expect(inputs).toHaveLength(2);
     expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("0");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 
@@ -258,7 +265,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: [{ pool }, { pool }],
       exactInput: {
         currency: UNICHAIN_TOKENS.WETH,
@@ -280,6 +287,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     expect(commands).toBe("0x0b100c");
     expect(inputs).toHaveLength(3);
     expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("1000000");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 
@@ -290,7 +298,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
     const pool = await sdk.getPool(UNICHAIN_WETH_POOL_KEY);
 
-    const { calldata } = await sdk.buildSwapCallData({
+    const { calldata, value } = await sdk.buildSwapCallData({
       route: [{ pool }],
       exactOutput: {
         currency: UNICHAIN_TOKENS.USDC,
@@ -312,6 +320,7 @@ describe("buildSwapCallData (unichain rpc)", () => {
     expect(commands).toBe("0x0b100c");
     expect(inputs).toHaveLength(3);
     expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("10000000000000000");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 });

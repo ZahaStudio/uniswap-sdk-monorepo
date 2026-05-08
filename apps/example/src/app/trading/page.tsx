@@ -1,7 +1,8 @@
 "use client";
 
-import { AppLayout } from "@/components/app-layout";
 import dynamicImport from "next/dynamic";
+
+import { AppLayout } from "@/components/app-layout";
 
 const TradingDemo = dynamicImport(() => import("@/components/trading-demo").then((mod) => mod.TradingDemo), {
   ssr: false,

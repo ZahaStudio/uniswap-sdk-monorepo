@@ -97,7 +97,7 @@ Available hooks:
 
 | Hook                             | Purpose                                               |
 | -------------------------------- | ----------------------------------------------------- |
-| `useUniswapSDK()`                | Access cached SDK instances by chain                  |
+| `useUniswapSDK()`                | Access SDK instances by chain                         |
 | `useSwap()`                      | Full swap workflow (quote, approve, permit2, execute) |
 | `useCreatePosition()`            | Full position creation workflow                       |
 | `usePosition()`                  | Fetch position data by token ID                       |
@@ -150,7 +150,7 @@ Use `TradingSDKProvider` and `useTrading()` for quote, approval, permit, and swa
 ```ts
 // Create an instance
 const sdk = UniswapSDK.create(client, chainId, options?);
-// options: { contracts?, cache?, defaultDeadline? (positive integer seconds), defaultSlippageTolerance? }
+// options: { contracts?, defaultDeadline? (positive integer seconds), defaultSlippageTolerance? }
 
 // Pool & token queries
 await sdk.getPool(poolArgs);                        // Fetch pool state

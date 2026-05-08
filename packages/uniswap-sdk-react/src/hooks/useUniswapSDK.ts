@@ -14,8 +14,6 @@ import { UniswapSDKContext } from "../provider/UniswapSDKProvider";
 export interface UseUniswapSDKReturn {
   /** The SDK instance */
   sdk: UniswapSDK;
-  /** Whether the SDK is initialized */
-  isInitialized: boolean;
   /** The effective chain ID being used */
   chainId: number;
 }
@@ -26,8 +24,8 @@ export interface UseUniswapSDKReturn {
 export interface UseUniswapSDKOptions {
   /**
    * Chain ID to use. If omitted, uses the currently connected chain.
-   * The SDK instance is cached per chain, so passing the same chainId
-   * across multiple hooks reuses the same instance.
+   * SDK instances are not shared across components; each hook call keeps its
+   * own instance stable with React useMemo while its inputs are unchanged.
    */
   chainId?: number;
 }
@@ -35,20 +33,20 @@ export interface UseUniswapSDKOptions {
 /**
  * Hook to access a Uniswap SDK instance for a specific chain.
  *
- * SDK instances are cached and deduped — calling this hook multiple times
- * with the same chainId (or no chainId) returns the same instance.
+ * SDK instances are not globally or provider cached. The hook only keeps the
+ * returned instance stable within the calling component while its chainId,
+ * public client, and provider context are unchanged.
  *
  * @param options - Optional configuration for the hook.
- * @returns The SDK context value containing the SDK instance and initialization state.
+ * @returns The SDK context value containing the SDK instance and resolved chain ID.
  * @throws Error if used outside of UniswapSDKProvider
  *
  * @example Using the connected chain (default)
  * ```tsx
  * function MyComponent() {
- *   const { sdk, isInitialized } = useUniswapSDK();
+ *   const { sdk } = useUniswapSDK();
  *
  *   const fetchData = async () => {
- *     if (!sdk) return;
  *     const position = await sdk.getPosition(tokenId);
  *   };
  * }
@@ -60,7 +58,7 @@ export interface UseUniswapSDKOptions {
  *   const mainnet = useUniswapSDK({ chainId: 1 });
  *   const arbitrum = useUniswapSDK({ chainId: 42161 });
  *
- *   // Both are cached — no duplicate instances
+ *   // Each hook call owns its SDK instance.
  * }
  * ```
  */
@@ -88,7 +86,6 @@ export function useUniswapSDK(options: UseUniswapSDKOptions = {}): UseUniswapSDK
 
   return {
     sdk,
-    isInitialized: true,
     chainId: resolvedChainId,
   };
 }

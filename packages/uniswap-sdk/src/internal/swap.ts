@@ -71,7 +71,7 @@ export function routeWithPoolsToSwapRoute(route: SwapRouteWithPools): SwapRoute 
 
 export function resolveSwapCurrencyMeta(args: ResolveSwapCurrencyMetaArgs): SwapCurrencyMeta {
   const { route, useNativeToken, wethAddress } = args;
-  const nativeAddress = zeroAddress.toLowerCase();
+  const nativeAddress = zeroAddress;
   const normalizedWethAddress = wethAddress.toLowerCase();
   const firstHopPoolKey = route[0].poolKey;
   const lastHopPoolKey = route[route.length - 1]!.poolKey;
