@@ -158,25 +158,45 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   });
 
   const callsStatus = callsStatusQuery.data;
+  const hasActiveBatch = pendingBatchId !== undefined;
+  const hasActiveTransaction = txHash !== undefined && !hasActiveBatch;
   const atomicBatchSupported = isAtomicBatchSupported(capabilities.data, chainId) ?? false;
   const error =
-    send.error ?? receiptQuery.error ?? sendCalls.error ?? callsStatusQuery.error ?? capabilities.error ?? undefined;
+    send.error ??
+    sendCalls.error ??
+    (hasActiveTransaction ? receiptQuery.error : undefined) ??
+    (hasActiveBatch ? callsStatusQuery.error : undefined) ??
+    capabilities.error ??
+    undefined;
 
   const status: TransactionStatus = (() => {
-    if (error || callsStatus?.status === "failure") return "error";
+    if (error || (hasActiveBatch && callsStatus?.status === "failure")) return "error";
     if (send.isPending || sendCalls.isPending) return "pending";
-    if (receiptQuery.isSuccess || callsStatus?.status === "success") return "confirmed";
-    if ((txHash && receiptQuery.isLoading) || (pendingBatchId && (callsStatusQuery.isLoading || !callsStatus))) {
+    if (hasActiveTransaction && receiptQuery.isSuccess) return "confirmed";
+    if (hasActiveBatch && callsStatus?.status === "success") return "confirmed";
+    if (
+      (hasActiveTransaction && receiptQuery.isLoading) ||
+      (hasActiveBatch && (callsStatusQuery.isLoading || !callsStatus))
+    ) {
       return "confirming";
     }
     return "idle";
   })();
+
+  const reset = useCallback(() => {
+    setTxHash(undefined);
+    setPendingBatchId(undefined);
+    send.reset();
+    sendCalls.reset();
+  }, [send, sendCalls]);
 
   const sendTransaction = useCallback(
     async (params: SendTransactionParams): Promise<Hex> => {
       if (!publicClient) {
         throw new Error(`No public client available for chain ID ${chainId}`);
       }
+
+      reset();
 
       const value = params.value ?? 0n;
 
@@ -198,7 +218,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
       setTxHash(hash);
       return hash;
     },
-    [publicClient, connectedAddress, send, chainId],
+    [publicClient, connectedAddress, send, reset, chainId],
   );
 
   const sendTransactionAndConfirm = useCallback(
@@ -235,8 +255,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
         );
       }
 
-      setPendingBatchId(undefined);
-      // sendCalls.reset();
+      reset();
 
       const result = await sendCalls.sendCallsAsync({
         account: connectedAddress,
@@ -250,7 +269,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
       setPendingBatchId(result.id);
       return result;
     },
-    [chainId, connectedAddress, atomicBatchSupported, sendCalls],
+    [chainId, connectedAddress, atomicBatchSupported, reset, sendCalls],
   );
 
   const sendBatchTransactionAndConfirm = useCallback(
@@ -271,13 +290,6 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     },
     [sendBatchTransaction, walletClient, chainId],
   );
-
-  const reset = useCallback(() => {
-    setTxHash(undefined);
-    setPendingBatchId(undefined);
-    send.reset();
-    sendCalls.reset();
-  }, [send, sendCalls]);
 
   return {
     txHash,
