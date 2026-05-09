@@ -5,20 +5,17 @@ import { useCallback, useState } from "react";
 import type { Address, Hex, TransactionReceipt } from "viem";
 import type { GetCallsStatusReturnType, SendCallsReturnType } from "viem/actions";
 
-import {
-  isAtomicBatchSupported as resolveAtomicBatchSupported,
-  type WalletBatchCall,
-  type WalletCapabilities,
-} from "@zahastudio/uniswap-sdk";
+import { isAtomicBatchSupported, type WalletBatchCall, type WalletCapabilities } from "@zahastudio/uniswap-sdk";
 import { AtomicityNotSupportedError } from "viem";
 import {
   useAccount,
   useCapabilities,
   usePublicClient,
   useSendCalls,
-  useSendCallsSync,
   useSendTransaction,
+  useWaitForCallsStatus,
   useWaitForTransactionReceipt,
+  useWalletClient,
 } from "wagmi";
 
 /**
@@ -59,16 +56,9 @@ export interface SendBatchTransactionParams {
   calls: readonly WalletBatchCall[];
   /** Optional EIP-5792 capabilities to pass through to the wallet. */
   capabilities?: WalletCapabilities;
-  /** Optional caller-provided EIP-5792 batch ID. */
-  id?: string;
 }
 
-export interface SendBatchTransactionAndConfirmParams extends SendBatchTransactionParams {
-  /** Timeout in milliseconds while waiting for wallet_getCallsStatus. */
-  timeout?: number;
-  /** Polling interval in milliseconds while waiting for wallet_getCallsStatus. */
-  pollingInterval?: number;
-}
+export type SendBatchTransactionAndConfirmParams = SendBatchTransactionParams;
 
 export type SendBatchTransactionResult = SendCallsReturnType;
 
@@ -134,12 +124,15 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const { confirmations = 1, chainId } = options;
 
   const publicClient = usePublicClient({ chainId });
+  const { data: walletClient } = useWalletClient({ chainId });
   const { address: connectedAddress } = useAccount();
+
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
+  const [pendingBatchId, setPendingBatchId] = useState<string | undefined>(undefined);
 
   const send = useSendTransaction();
   const sendCalls = useSendCalls();
-  const sendCallsSync = useSendCallsSync();
+
   const capabilities = useCapabilities({
     account: connectedAddress,
     chainId,
@@ -157,18 +150,25 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     },
   });
 
-  const callsStatus = sendCallsSync.data;
-  const batchId = callsStatus?.id ?? sendCalls.data?.id;
-  const isAtomicBatchSupported =
-    capabilities.data && chainId !== undefined ? resolveAtomicBatchSupported(capabilities.data, chainId) : false;
+  const callsStatusQuery = useWaitForCallsStatus({
+    id: pendingBatchId,
+    query: {
+      enabled: !!pendingBatchId,
+    },
+  });
+
+  const callsStatus = callsStatusQuery.data;
+  const atomicBatchSupported = isAtomicBatchSupported(capabilities.data, chainId) ?? false;
   const error =
-    send.error ?? receiptQuery.error ?? sendCalls.error ?? sendCallsSync.error ?? capabilities.error ?? undefined;
+    send.error ?? receiptQuery.error ?? sendCalls.error ?? callsStatusQuery.error ?? capabilities.error ?? undefined;
 
   const status: TransactionStatus = (() => {
     if (error || callsStatus?.status === "failure") return "error";
-    if (send.isPending || sendCalls.isPending || sendCallsSync.isPending) return "pending";
+    if (send.isPending || sendCalls.isPending) return "pending";
     if (receiptQuery.isSuccess || callsStatus?.status === "success") return "confirmed";
-    if ((txHash && receiptQuery.isLoading) || (sendCalls.data?.id && !callsStatus)) return "confirming";
+    if ((txHash && receiptQuery.isLoading) || (pendingBatchId && (callsStatusQuery.isLoading || !callsStatus))) {
+      return "confirming";
+    }
     return "idle";
   })();
 
@@ -212,92 +212,80 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
         hash,
         confirmations,
       });
-      return { hash, receipt };
+
+      return {
+        hash,
+        receipt,
+      };
     },
     [sendTransaction, publicClient, confirmations, chainId],
   );
 
   const sendBatchTransaction = useCallback(
-    async ({ calls, capabilities: requestCapabilities, id }: SendBatchTransactionParams) => {
+    async ({ calls, capabilities: requestCapabilities }: SendBatchTransactionParams) => {
       if (!connectedAddress) {
         throw new Error("Wallet not connected");
       }
       if (chainId === undefined) {
         throw new Error("No chain ID available for batched wallet calls");
       }
-      if (!isAtomicBatchSupported) {
+      if (!atomicBatchSupported) {
         throw new AtomicityNotSupportedError(
           new Error(`Wallet atomic batching is not available for chain ${chainId}.`),
         );
       }
 
-      return sendCalls.sendCallsAsync({
+      setPendingBatchId(undefined);
+      // sendCalls.reset();
+
+      const result = await sendCalls.sendCallsAsync({
         account: connectedAddress,
         chainId,
         calls,
         capabilities: requestCapabilities,
         forceAtomic: true,
-        id,
         version: "2.0.0",
       });
+
+      setPendingBatchId(result.id);
+      return result;
     },
-    [chainId, connectedAddress, isAtomicBatchSupported, sendCalls],
+    [chainId, connectedAddress, atomicBatchSupported, sendCalls],
   );
 
   const sendBatchTransactionAndConfirm = useCallback(
-    async ({
-      calls,
-      capabilities: requestCapabilities,
-      id,
-      timeout,
-      pollingInterval,
-    }: SendBatchTransactionAndConfirmParams) => {
-      if (!connectedAddress) {
-        throw new Error("Wallet not connected");
-      }
-      if (chainId === undefined) {
-        throw new Error("No chain ID available for batched wallet calls");
-      }
-      if (!isAtomicBatchSupported) {
-        throw new AtomicityNotSupportedError(
-          new Error(`Wallet atomic batching is not available for chain ${chainId}.`),
-        );
+    async (params: SendBatchTransactionAndConfirmParams) => {
+      if (!walletClient) {
+        throw new Error(`No wallet client available for chain ID ${chainId}`);
       }
 
-      const result = await sendCallsSync.sendCallsSyncAsync({
-        account: connectedAddress,
-        chainId,
-        calls,
-        capabilities: requestCapabilities,
-        forceAtomic: true,
-        id,
-        version: "2.0.0",
-        timeout,
-        pollingInterval,
+      const result = await sendBatchTransaction(params);
+      const status = await walletClient.waitForCallsStatus({
+        id: result.id,
       });
 
       return {
         id: result.id,
-        status: result,
+        status,
       };
     },
-    [chainId, connectedAddress, isAtomicBatchSupported, sendCallsSync],
+    [sendBatchTransaction, walletClient, chainId],
   );
 
   const reset = useCallback(() => {
     setTxHash(undefined);
+    setPendingBatchId(undefined);
     send.reset();
     sendCalls.reset();
-    sendCallsSync.reset();
-  }, [send, sendCalls, sendCallsSync]);
+  }, [send, sendCalls]);
 
   return {
     txHash,
     receipt: receiptQuery.data,
-    batchId,
+    batchId: pendingBatchId,
     callsStatus,
     status,
-    isAtomicBatchSupported,
+    isAtomicBatchSupported: atomicBatchSupported,
     error,
     sendTransaction,
     sendTransactionAndConfirm,

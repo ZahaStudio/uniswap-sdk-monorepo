@@ -9,7 +9,7 @@ type AtomicCapability = NonNullable<ExtractCapabilities<"getCapabilities", "Retu
 /** Call shape used by viem/wagmi wallet call actions. */
 export type WalletBatchCall = Pick<Call, "to" | "data" | "value">;
 
-function getAtomicCapability(capabilities: unknown, chainId: number): AtomicCapability | undefined {
+function getAtomicCapability(capabilities: unknown, chainId?: number): AtomicCapability | undefined {
   if (!isRecord(capabilities)) {
     return undefined;
   }
@@ -19,9 +19,11 @@ function getAtomicCapability(capabilities: unknown, chainId: number): AtomicCapa
     return direct;
   }
 
-  const chainCapabilities = capabilities[toHex(chainId)] ?? capabilities[String(chainId)];
-  if (isRecord(chainCapabilities) && isAtomicCapability(chainCapabilities.atomic)) {
-    return chainCapabilities.atomic;
+  if (chainId) {
+    const chainCapabilities = capabilities[toHex(chainId)] ?? capabilities[String(chainId)];
+    if (isRecord(chainCapabilities) && isAtomicCapability(chainCapabilities.atomic)) {
+      return chainCapabilities.atomic;
+    }
   }
 
   const globalCapabilities = capabilities["0x0"];
@@ -32,7 +34,7 @@ function getAtomicCapability(capabilities: unknown, chainId: number): AtomicCapa
   return undefined;
 }
 
-export function isAtomicBatchSupported(capabilities: unknown, chainId: number): boolean {
+export function isAtomicBatchSupported(capabilities: unknown, chainId?: number): boolean {
   const atomic = getAtomicCapability(capabilities, chainId);
   return atomic?.status === "supported" || atomic?.status === "ready";
 }
