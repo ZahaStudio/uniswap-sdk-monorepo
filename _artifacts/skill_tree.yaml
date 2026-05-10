@@ -57,9 +57,3 @@ skills:
       - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useToken.ts"
       - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useTokenApproval.ts"
       - "ZahaStudio/uniswap-sdk-monorepo:packages/uniswap-sdk-react/src/hooks/primitives/useTransaction.ts"
-coverage:
-  ignored_packages:
-    - name: "packages/trading-sdk"
-      reason: "Experimental Trading SDK is intentionally out of scope for the v4 Intent migration."
-    - name: "packages/trading-sdk-react"
-      reason: "Experimental Trading React SDK is intentionally out of scope for the v4 Intent migration."

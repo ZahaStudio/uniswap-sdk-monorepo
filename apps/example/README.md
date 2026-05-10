@@ -5,7 +5,6 @@
 This app demonstrates how to build real user flows with `@zahastudio/uniswap-sdk-react` on Uniswap v4. This app includes the following demos:
 
 - **Swap**: Quoting, Approval, Permit2 and Swap execution flow
-- **Trading**: Experimental Uniswap Trading API quote, approval, permit and swap flow
 - **Position Management**: Uniswap v4 Position Management via the Position Manager
 - **Create Position**: New Uniswap v4 position creation with Permit2 approvals
 
@@ -43,9 +42,6 @@ From the monorepo root:
 - `NEXT_PUBLIC_MAINNET_RPC_URL` (optional)
   - Overrides the Ethereum Mainnet RPC URL used by the app
   - Useful for running against a local Anvil fork
-- `NEXT_PUBLIC_UNISWAP_API_KEY` (optional)
-  - Enables the experimental Trading SDK demo page
-  - Required to call the Uniswap Trading API from `/trading`
 
 ## Running Anvil (Mainnet Fork)
 
