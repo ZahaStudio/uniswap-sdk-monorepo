@@ -74,9 +74,6 @@ importers:
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.100.9(react@19.2.6)
-      '@zahastudio/trading-sdk-react':
-        specifier: workspace:*
-        version: link:../../packages/trading-sdk-react
       '@zahastudio/uniswap-sdk':
         specifier: workspace:*
         version: link:../../packages/uniswap-sdk
@@ -129,65 +126,6 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-
-  packages/trading-sdk:
-    dependencies:
-      ky:
-        specifier: ^2.0.2
-        version: 2.0.2
-    devDependencies:
-      '@acme/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/acme-tsconfig
-      '@types/node':
-        specifier: ^24.12.2
-        version: 24.12.2
-      tsdown:
-        specifier: 'catalog:'
-        version: 0.21.10(typescript@6.0.3)
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-      viem:
-        specifier: 'catalog:'
-        version: 2.48.8(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@5.0.10)
-
-  packages/trading-sdk-react:
-    dependencies:
-      '@wagmi/core':
-        specifier: '>=2.0.0'
-        version: 2.22.1(@tanstack/query-core@5.100.9)(@types/react@19.2.14)(react@19.2.6)(typescript@6.0.3)(use-sync-external-store@1.4.0(react@19.2.6))(viem@2.48.8(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@5.0.10))
-      '@zahastudio/trading-sdk':
-        specifier: workspace:*
-        version: link:../trading-sdk
-    devDependencies:
-      '@acme/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/acme-tsconfig
-      '@tanstack/react-query':
-        specifier: 'catalog:'
-        version: 5.100.9(react@19.2.6)
-      '@types/react':
-        specifier: ^19.2.14
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.14)
-      react:
-        specifier: ^19.2.6
-        version: 19.2.6
-      tsdown:
-        specifier: 'catalog:'
-        version: 0.21.10(typescript@6.0.3)
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-      viem:
-        specifier: 'catalog:'
-        version: 2.48.8(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@5.0.10)
-      wagmi:
-        specifier: 'catalog:'
-        version: 2.19.5(@tanstack/query-core@5.100.9)(@tanstack/react-query@5.100.9(react@19.2.6))(@types/react@19.2.14)(bufferutil@4.1.0)(react@19.2.6)(typescript@6.0.3)(utf-8-validate@5.0.10)(viem@2.48.8(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@5.0.10))
 
   packages/uniswap-sdk:
     dependencies:
@@ -1611,6 +1549,7 @@ packages:
   '@safe-global/safe-gateway-typescript-sdk@3.23.1':
     resolution: {integrity: sha512-6ORQfwtEJYpalCeVO21L4XXGSdbEMfyp2hEv6cP82afKXSwvse6d3sdelgaPWUxHIsFRkWvHDdzh8IyyKHZKxw==}
     engines: {node: '>=16'}
+    deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
   '@scure/base@1.1.9':
     resolution: {integrity: sha512-8YKhl8GHiNI/pU2VMaofa2Tor7PJRAjwQLBBuilkJ9L5+13yVbC7JO/wS7piioAvPSwR3JKM1IJ/u4xQzbcXKg==}
@@ -3319,10 +3258,6 @@ packages:
 
   keyvaluestorage-interface@1.0.0:
     resolution: {integrity: sha512-8t6Q3TclQ4uZynJY9IGr2+SsIGwK9JHcO6ootkHCGA0CrQCRy+VkouYNO2xicET6b9al7QKzpebNow+gkpCL8g==}
-
-  ky@2.0.2:
-    resolution: {integrity: sha512-/GmXpo9F9W+f8n4Ivr2iH+7h7wL7jLbLKWkMlpflcCRb6kGjBfTlASEXaZ9qUgNTn4VgS0P2pwxxzQ4EM6Ulgg==}
-    engines: {node: '>=22'}
 
   lightningcss-android-arm64@1.32.0:
     resolution: {integrity: sha512-YK7/ClTt4kAK0vo6w3X+Pnm0D2cf2vPHbhOXdoNti1Ga0al1P4TBZhwjATvjNwLEBCnKvjJc2jQgHXH0NEwlAg==}
@@ -8615,8 +8550,6 @@ snapshots:
       readable-stream: 3.6.2
 
   keyvaluestorage-interface@1.0.0: {}
-
-  ky@2.0.2: {}
 
   lightningcss-android-arm64@1.32.0:
     optional: true

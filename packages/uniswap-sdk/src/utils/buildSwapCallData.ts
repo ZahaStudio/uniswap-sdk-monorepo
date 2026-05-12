@@ -62,7 +62,6 @@ type ExactInputSwapPlan = {
   tradeType: "exactInput";
   amountIn: bigint;
   minAmountOut: bigint;
-  inputAmountForWrap: bigint;
   unwrapAmountMinimum: bigint;
 };
 
@@ -70,7 +69,6 @@ type ExactOutputSwapPlan = {
   tradeType: "exactOutput";
   amountOut: bigint;
   maxAmountIn: bigint;
-  inputAmountForWrap: bigint;
   unwrapAmountMinimum: bigint;
 };
 
@@ -106,6 +104,9 @@ export async function buildSwapCallData(
   const wethAddress = instance.contracts.weth.toLowerCase();
   const wrapInput = !!useNativeToken && inputCurrency.toLowerCase() === wethAddress;
   const unwrapOutput = !!useNativeToken && outputCurrency.toLowerCase() === wethAddress;
+  const inputIsNative = inputCurrency.toLowerCase() === zeroAddress.toLowerCase();
+  const sendsNativeInput = wrapInput || inputIsNative;
+  const inputCurrencyPaymentAmount = getInputCurrencyPaymentAmount(swapPlan);
 
   if (swapPlan.tradeType === "exactOutput") {
     const { path } = resolveSwapRouteExactOutput(outputCurrency, routeWithPoolKeys);
@@ -129,7 +130,10 @@ export async function buildSwapCallData(
     ]);
   }
 
-  v4Planner.addSettle(inputCurrencyObject, !wrapInput);
+  const settleAmount = sendsNativeInput
+    ? (inputCurrencyPaymentAmount.toString() as unknown as Parameters<typeof v4Planner.addSettle>[2])
+    : undefined;
+  v4Planner.addSettle(inputCurrencyObject, !sendsNativeInput, settleAmount);
   v4Planner.addTake(outputCurrencyObject, unwrapOutput ? ROUTER_AS_RECIPIENT : recipient);
 
   const deadline = await getDefaultDeadline(instance, deadlineDuration);
@@ -145,7 +149,7 @@ export async function buildSwapCallData(
   }
 
   if (wrapInput) {
-    routePlanner.addCommand(CommandType.WRAP_ETH, [ROUTER_AS_RECIPIENT, swapPlan.inputAmountForWrap.toString()]);
+    routePlanner.addCommand(CommandType.WRAP_ETH, [ROUTER_AS_RECIPIENT, inputCurrencyPaymentAmount.toString()]);
     finalInputs.push(getLastPlannerInput(routePlanner));
   }
 
@@ -175,8 +179,12 @@ export async function buildSwapCallData(
 
   return {
     calldata,
-    value: wrapInput ? swapPlan.inputAmountForWrap.toString() : "0",
+    value: sendsNativeInput ? inputCurrencyPaymentAmount.toString() : "0",
   };
+}
+
+function getInputCurrencyPaymentAmount(swapPlan: SwapPlan): bigint {
+  return swapPlan.tradeType === "exactInput" ? swapPlan.amountIn : swapPlan.maxAmountIn;
 }
 
 function resolveSwapPlan(params: BuildSwapCallDataArgs): SwapPlan {
@@ -200,7 +208,6 @@ function resolveSwapPlan(params: BuildSwapCallDataArgs): SwapPlan {
       tradeType: "exactOutput",
       amountOut: amount,
       maxAmountIn,
-      inputAmountForWrap: maxAmountIn,
       unwrapAmountMinimum: amount,
     };
   }
@@ -226,7 +233,6 @@ function resolveSwapPlan(params: BuildSwapCallDataArgs): SwapPlan {
     tradeType: "exactInput",
     amountIn: exactInput.amount,
     minAmountOut,
-    inputAmountForWrap: exactInput.amount,
     unwrapAmountMinimum: minAmountOut,
   };
 }

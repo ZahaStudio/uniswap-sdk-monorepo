@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 
+import type { WalletBatchCall } from "@zahastudio/uniswap-sdk";
 import type { Address } from "viem";
 
 import { erc20Abi, encodeFunctionData, maxUint256, zeroAddress } from "viem";
@@ -47,6 +48,8 @@ export interface UseTokenApprovalReturn {
   isRequired: boolean | undefined;
   /** The useTransaction instance managing the approval tx lifecycle */
   transaction: UseTransactionReturn;
+  /** Build the ERC-20 approval call without submitting it. */
+  buildApproveCall: (amount?: bigint) => WalletBatchCall;
   /**
    * Send and confirm an approval transaction.
    * @param amount - Amount to approve (defaults to maxUint256 for unlimited approval)
@@ -118,12 +121,11 @@ export function useTokenApproval(
 
   const transaction = useTransaction({ chainId });
 
-  const approve = useCallback(
-    async (approveAmount?: bigint) => {
+  const buildApproveCall = useCallback(
+    (approveAmount?: bigint): WalletBatchCall => {
       if (isNativeToken) {
         throw new Error("Cannot approve native token");
       }
-      assertWalletConnected(owner);
 
       const data = encodeFunctionData({
         abi: erc20Abi,
@@ -131,22 +133,57 @@ export function useTokenApproval(
         args: [spender, approveAmount ?? maxUint256],
       });
 
-      const { hash } = await transaction.sendAndConfirm({
+      return {
         to: token,
         data,
+        value: 0n,
+      };
+    },
+    [isNativeToken, spender, token],
+  );
+
+  const approve = useCallback(
+    async (approveAmount?: bigint) => {
+      assertWalletConnected(owner);
+      const call = buildApproveCall(approveAmount);
+      if (!call.data) {
+        throw new Error("Approval calldata not available");
+      }
+
+      const { hash } = await transaction.sendTransactionAndConfirm({
+        to: call.to,
+        data: call.data,
       });
 
       await allowance.refetch();
 
       return hash;
     },
-    [isNativeToken, owner, spender, transaction, token, allowance],
+    [owner, buildApproveCall, transaction, allowance],
   );
 
   return {
     allowance,
     isRequired,
     transaction,
+    buildApproveCall,
     approve,
   };
+}
+
+export async function buildRequiredApprovalCall(approval: UseTokenApprovalReturn, token: Address, amount: bigint) {
+  if (token.toLowerCase() === zeroAddress.toLowerCase() || amount <= 0n) {
+    return undefined;
+  }
+
+  let isRequired = approval.isRequired;
+  if (isRequired === undefined) {
+    const { data } = await approval.allowance.refetch();
+    if (data === undefined) {
+      throw new Error(`Awaiting approval status for token ${token}`);
+    }
+    isRequired = data < amount;
+  }
+
+  return isRequired ? approval.buildApproveCall() : undefined;
 }

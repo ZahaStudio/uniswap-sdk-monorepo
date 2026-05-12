@@ -14,6 +14,7 @@ import {
   type SwapMeta,
   type SwapQuoteParams,
   type SwapRoute,
+  type WalletBatchCall,
 } from "@zahastudio/uniswap-sdk";
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
@@ -24,7 +25,12 @@ import type { UseHookOptions } from "@/types/hooks";
 
 import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
 import { useToken } from "@/hooks/primitives/useToken";
-import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
+import { buildRequiredApprovalCall } from "@/hooks/primitives/useTokenApproval";
+import {
+  useTransaction,
+  type SendBatchTransactionAndConfirmResult,
+  type UseTransactionReturn,
+} from "@/hooks/primitives/useTransaction";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { assertSdkInitialized, assertWalletConnected } from "@/utils/assertions";
 import { swapKeys } from "@/utils/queryKeys";
@@ -70,6 +76,7 @@ type QuoteDataByMode<TMode extends SwapMode> = TMode extends "exactOutput" ? Exa
 export interface UseSwapExecuteStep {
   transaction: UseTransactionReturn;
   execute: () => Promise<Hex>;
+  executeBatch: () => Promise<SendBatchTransactionAndConfirmResult>;
 }
 
 export interface UseSwapSteps<TMode extends SwapMode = "exactInput"> {
@@ -86,6 +93,7 @@ export interface UseSwapReturn<TMode extends SwapMode = "exactInput"> {
   meta: SwapMeta;
   currentStep: SwapStep;
   executeAll: () => Promise<Hex>;
+  executeBatch: () => Promise<SendBatchTransactionAndConfirmResult>;
   reset: () => void;
 }
 
@@ -227,8 +235,8 @@ export function useSwap(
   const swapTransaction = useTransaction({ chainId });
   const inputBalance = inputTokenQuery.data?.balance?.raw;
 
-  const swapExecute = useCallback(
-    async (signedPermit2?: Permit2SignedResult): Promise<Hex> => {
+  const buildSwapTransactionCall = useCallback(
+    async (signedPermit2?: Permit2SignedResult): Promise<WalletBatchCall> => {
       assertSdkInitialized(sdk);
       assertWalletConnected(connectedAddress);
 
@@ -288,11 +296,11 @@ export function useSwap(
         });
       }
 
-      return swapTransaction.sendTransaction({
+      return {
         to: universalRouter,
         data: swapCallData.calldata,
         value: BigInt(swapCallData.value),
-      });
+      };
     },
     [
       connectedAddress,
@@ -304,11 +312,47 @@ export function useSwap(
       recipient,
       route,
       sdk,
-      swapTransaction,
       universalRouter,
       useNativeToken,
     ],
   );
+
+  const swapExecute = useCallback(
+    async (signedPermit2?: Permit2SignedResult): Promise<Hex> => {
+      const call = await buildSwapTransactionCall(signedPermit2);
+      if (!call.data) {
+        throw new Error("Swap calldata not available");
+      }
+      return swapTransaction.sendTransaction({
+        to: call.to,
+        data: call.data,
+        value: call.value,
+      });
+    },
+    [buildSwapTransactionCall, swapTransaction],
+  );
+
+  const swapExecuteBatch = useCallback(async (): Promise<SendBatchTransactionAndConfirmResult> => {
+    if (!swapTransaction.isAtomicBatchSupported) {
+      throw new Error("Atomic batch support is not available.");
+    }
+
+    const signedPermit2 = requiresPermit2 ? (permit2.permit2.signed ?? (await permit2.permit2.sign())) : undefined;
+    const approvalCall = requiresPermit2
+      ? await buildRequiredApprovalCall(permit2.approvals[0], inputCurrencyForSteps, permit2Amount)
+      : undefined;
+    const swapCall = await buildSwapTransactionCall(signedPermit2);
+
+    const result = await swapTransaction.sendBatchTransactionAndConfirm({
+      calls: [...[approvalCall].filter((call): call is NonNullable<typeof call> => call !== undefined), swapCall],
+    });
+
+    if (result.status.status === "success" && approvalCall) {
+      void permit2.approvals[0].allowance.refetch();
+    }
+
+    return result;
+  }, [requiresPermit2, permit2, inputCurrencyForSteps, permit2Amount, buildSwapTransactionCall, swapTransaction]);
 
   const currentStep: SwapStep = (() => {
     if (!quote || quoteQuery.isLoading || !connectedAddress) {
@@ -349,11 +393,13 @@ export function useSwap(
       swap: {
         transaction: swapTransaction,
         execute: () => swapExecute(),
+        executeBatch: swapExecuteBatch,
       },
     },
     meta,
     currentStep,
     executeAll,
+    executeBatch: swapExecuteBatch,
     reset,
   };
 }

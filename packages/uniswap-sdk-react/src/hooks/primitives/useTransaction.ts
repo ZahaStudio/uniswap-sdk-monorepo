@@ -3,16 +3,28 @@
 import { useCallback, useState } from "react";
 
 import type { Address, Hex, TransactionReceipt } from "viem";
+import type { GetCallsStatusReturnType, SendCallsReturnType } from "viem/actions";
 
-import { useAccount, usePublicClient, useSendTransaction, useWaitForTransactionReceipt } from "wagmi";
+import { isAtomicBatchSupported, type WalletBatchCall, type WalletCapabilities } from "@zahastudio/uniswap-sdk";
+import { AtomicityNotSupportedError } from "viem";
+import {
+  useAccount,
+  useCapabilities,
+  usePublicClient,
+  useSendCalls,
+  useSendTransaction,
+  useWaitForCallsStatus,
+  useWaitForTransactionReceipt,
+  useWalletClient,
+} from "wagmi";
 
 /**
  * Transaction lifecycle status.
  *
  * - `idle` — No transaction in flight
  * - `pending` — Waiting for user wallet signature
- * - `confirming` — Transaction broadcast, waiting for on-chain confirmation
- * - `confirmed` — Transaction confirmed on-chain
+ * - `confirming` — Transaction or call batch submitted, waiting for confirmation/status
+ * - `confirmed` — Transaction or call batch confirmed
  * - `error` — A step in the lifecycle failed
  */
 export type TransactionStatus = "idle" | "pending" | "confirming" | "confirmed" | "error";
@@ -21,9 +33,9 @@ export type TransactionStatus = "idle" | "pending" | "confirming" | "confirmed" 
  * Configuration options for the useTransaction hook.
  */
 export interface UseTransactionOptions {
-  /** Number of block confirmations to wait for (default: 1) */
+  /** Number of block confirmations to wait for single transactions (default: 1) */
   confirmations?: number;
-  /** Optional chain override applied to all transaction lifecycle calls */
+  /** Optional chain override applied to transaction lifecycle calls */
   chainId?: number;
 }
 
@@ -39,36 +51,62 @@ export interface SendTransactionParams {
   value?: bigint;
 }
 
+export interface SendBatchTransactionParams {
+  /** Ordered calls to submit through wallet_sendCalls. */
+  calls: readonly WalletBatchCall[];
+  /** Optional EIP-5792 capabilities to pass through to the wallet. */
+  capabilities?: WalletCapabilities;
+}
+
+export type SendBatchTransactionAndConfirmParams = SendBatchTransactionParams;
+
+export type SendBatchTransactionResult = SendCallsReturnType;
+
+export interface SendBatchTransactionAndConfirmResult {
+  /** EIP-5792 call batch identifier. */
+  id: string;
+  /** Final status returned by wallet_getCallsStatus. */
+  status: GetCallsStatusReturnType;
+}
+
 /**
  * Return type for the useTransaction hook.
  */
 export interface UseTransactionReturn {
-  /** Current transaction hash (set after broadcast) */
+  /** Current transaction hash (set after single transaction broadcast) */
   txHash: Hex | undefined;
-  /** Receipt for the most recently sent transaction when confirmed */
+  /** Receipt for the most recently sent single transaction when confirmed */
   receipt: TransactionReceipt | undefined;
+  /** Last EIP-5792 call batch identifier */
+  batchId: string | undefined;
+  /** Last wallet_getCallsStatus result returned by sendBatchTransactionAndConfirm */
+  callsStatus: GetCallsStatusReturnType | undefined;
   /** Derived lifecycle status */
   status: TransactionStatus;
-  /** First error from send or receipt */
+  /** Whether the current wallet reports atomic batching as supported or ready. Defaults to false while loading. */
+  isAtomicBatchSupported: boolean;
+  /** First error from send, receipt, capabilities, or call batch status */
   error: Error | undefined;
-  /** Send a transaction. Resolves with the tx hash after broadcast. */
+  /** Send a single transaction. Resolves with the tx hash after broadcast. */
   sendTransaction: (params: SendTransactionParams) => Promise<Hex>;
-  /** Send a transaction and wait for confirmation. */
-  sendAndConfirm: (params: SendTransactionParams) => Promise<{ hash: Hex; receipt: TransactionReceipt }>;
+  /** Send a single transaction and wait for confirmation. */
+  sendTransactionAndConfirm: (params: SendTransactionParams) => Promise<{ hash: Hex; receipt: TransactionReceipt }>;
+  /** Submit an atomic EIP-5792 call batch. Resolves with the batch id after wallet acceptance. */
+  sendBatchTransaction: (params: SendBatchTransactionParams) => Promise<SendBatchTransactionResult>;
+  /** Submit an atomic EIP-5792 call batch and wait for wallet_getCallsStatus. */
+  sendBatchTransactionAndConfirm: (
+    params: SendBatchTransactionAndConfirmParams,
+  ) => Promise<SendBatchTransactionAndConfirmResult>;
   /** Reset all state back to idle */
   reset: () => void;
 }
 
 /**
- * Generic, reusable hook for managing the lifecycle of a single blockchain
- * transaction. Composes wagmi's `useSendTransaction` and
- * `useWaitForTransactionReceipt` into a unified status model.
+ * Generic, reusable hook for managing single-transaction and EIP-5792 call-batch lifecycles.
  *
- * This hook is SDK-agnostic — it knows nothing about Uniswap. It can be used
- * for any transaction pattern: swaps, approvals, position management, etc.
- *
- * All contract interactions should encode their calldata first and use
- * `sendTransaction` for consistent behavior.
+ * Single transaction methods use wagmi's `useSendTransaction` and `useWaitForTransactionReceipt`.
+ * Batch methods use EIP-5792 wallet calls with `forceAtomic: true` after checking the wallet's
+ * atomic capability (`supported` or `ready`).
  *
  * @param options - Optional confirmation config
  * @returns Transaction lifecycle state and action functions
@@ -77,21 +115,31 @@ export interface UseTransactionReturn {
  * ```tsx
  * const tx = useTransaction();
  *
- * // Send a transaction with pre-encoded calldata
  * const hash = await tx.sendTransaction({ to: "0x...", data: "0x...", value: 0n });
- *
- * // Send and await confirmation in one call
- * const { receipt } = await tx.sendAndConfirm({ to: "0x...", data: "0x...", value: 0n });
+ * const { receipt } = await tx.sendTransactionAndConfirm({ to: "0x...", data: "0x...", value: 0n });
+ * const batch = await tx.sendBatchTransactionAndConfirm({ calls: [{ to: "0x...", data: "0x..." }] });
  * ```
  */
 export function useTransaction(options: UseTransactionOptions = {}): UseTransactionReturn {
   const { confirmations = 1, chainId } = options;
 
   const publicClient = usePublicClient({ chainId });
+  const { data: walletClient } = useWalletClient({ chainId });
   const { address: connectedAddress } = useAccount();
+
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
+  const [pendingBatchId, setPendingBatchId] = useState<string | undefined>(undefined);
 
   const send = useSendTransaction();
+  const sendCalls = useSendCalls();
+
+  const capabilities = useCapabilities({
+    account: connectedAddress,
+    chainId,
+    query: {
+      enabled: !!connectedAddress && chainId !== undefined,
+    },
+  });
 
   const receiptQuery = useWaitForTransactionReceipt({
     hash: txHash,
@@ -102,21 +150,53 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
     },
   });
 
-  const error = send.error ?? receiptQuery.error ?? undefined;
+  const callsStatusQuery = useWaitForCallsStatus({
+    id: pendingBatchId,
+    query: {
+      enabled: !!pendingBatchId,
+    },
+  });
+
+  const callsStatus = callsStatusQuery.data;
+  const hasActiveBatch = pendingBatchId !== undefined;
+  const hasActiveTransaction = txHash !== undefined && !hasActiveBatch;
+  const atomicBatchSupported = isAtomicBatchSupported(capabilities.data, chainId) ?? false;
+  const error =
+    send.error ??
+    sendCalls.error ??
+    (hasActiveTransaction ? receiptQuery.error : undefined) ??
+    (hasActiveBatch ? callsStatusQuery.error : undefined) ??
+    capabilities.error ??
+    undefined;
 
   const status: TransactionStatus = (() => {
-    if (error) return "error";
-    if (receiptQuery.isSuccess) return "confirmed";
-    if (txHash && receiptQuery.isLoading) return "confirming";
-    if (send.isPending) return "pending";
+    if (error || (hasActiveBatch && callsStatus?.status === "failure")) return "error";
+    if (send.isPending || sendCalls.isPending) return "pending";
+    if (hasActiveTransaction && receiptQuery.isSuccess) return "confirmed";
+    if (hasActiveBatch && callsStatus?.status === "success") return "confirmed";
+    if (
+      (hasActiveTransaction && receiptQuery.isLoading) ||
+      (hasActiveBatch && (callsStatusQuery.isLoading || !callsStatus))
+    ) {
+      return "confirming";
+    }
     return "idle";
   })();
+
+  const reset = useCallback(() => {
+    setTxHash(undefined);
+    setPendingBatchId(undefined);
+    send.reset();
+    sendCalls.reset();
+  }, [send, sendCalls]);
 
   const sendTransaction = useCallback(
     async (params: SendTransactionParams): Promise<Hex> => {
       if (!publicClient) {
         throw new Error(`No public client available for chain ID ${chainId}`);
       }
+
+      reset();
 
       const value = params.value ?? 0n;
 
@@ -138,10 +218,10 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
       setTxHash(hash);
       return hash;
     },
-    [publicClient, connectedAddress, send, chainId],
+    [publicClient, connectedAddress, send, reset, chainId],
   );
 
-  const sendAndConfirm = useCallback(
+  const sendTransactionAndConfirm = useCallback(
     async (params: SendTransactionParams): Promise<{ hash: Hex; receipt: TransactionReceipt }> => {
       if (!publicClient) {
         throw new Error(`No public client available for chain ID ${chainId}`);
@@ -152,23 +232,77 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
         hash,
         confirmations,
       });
-      return { hash, receipt };
+
+      return {
+        hash,
+        receipt,
+      };
     },
     [sendTransaction, publicClient, confirmations, chainId],
   );
 
-  const reset = useCallback(() => {
-    setTxHash(undefined);
-    send.reset();
-  }, [send]);
+  const sendBatchTransaction = useCallback(
+    async ({ calls, capabilities: requestCapabilities }: SendBatchTransactionParams) => {
+      if (!connectedAddress) {
+        throw new Error("Wallet not connected");
+      }
+      if (chainId === undefined) {
+        throw new Error("No chain ID available for batched wallet calls");
+      }
+      if (!atomicBatchSupported) {
+        throw new AtomicityNotSupportedError(
+          new Error(`Wallet atomic batching is not available for chain ${chainId}.`),
+        );
+      }
+
+      reset();
+
+      const result = await sendCalls.sendCallsAsync({
+        account: connectedAddress,
+        chainId,
+        calls,
+        capabilities: requestCapabilities,
+        forceAtomic: true,
+        version: "2.0.0",
+      });
+
+      setPendingBatchId(result.id);
+      return result;
+    },
+    [chainId, connectedAddress, atomicBatchSupported, reset, sendCalls],
+  );
+
+  const sendBatchTransactionAndConfirm = useCallback(
+    async (params: SendBatchTransactionAndConfirmParams) => {
+      if (!walletClient) {
+        throw new Error(`No wallet client available for chain ID ${chainId}`);
+      }
+
+      const result = await sendBatchTransaction(params);
+      const status = await walletClient.waitForCallsStatus({
+        id: result.id,
+      });
+
+      return {
+        id: result.id,
+        status,
+      };
+    },
+    [sendBatchTransaction, walletClient, chainId],
+  );
 
   return {
     txHash,
     receipt: receiptQuery.data,
+    batchId: pendingBatchId,
+    callsStatus,
     status,
+    isAtomicBatchSupported: atomicBatchSupported,
     error,
     sendTransaction,
-    sendAndConfirm,
+    sendTransactionAndConfirm,
+    sendBatchTransaction,
+    sendBatchTransactionAndConfirm,
     reset,
   };
 }

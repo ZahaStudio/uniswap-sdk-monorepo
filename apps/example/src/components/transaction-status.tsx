@@ -7,9 +7,11 @@ import { cn } from "@/lib/utils";
 interface TransactionStatusProps {
   status: TxStatus;
   txHash?: `0x${string}`;
+  batchId?: string;
+  confirmedLabel?: string;
 }
 
-export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
+export function TransactionStatus({ status, txHash, batchId, confirmedLabel }: TransactionStatusProps) {
   const etherscanUrl = txHash ? `https://otterscan-devnet.metacrypt.org/tx/${txHash}` : undefined;
 
   const config = {
@@ -115,12 +117,13 @@ export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
 
   const c = config[status];
   if (status === "idle") return null;
+  const label = status === "confirmed" && confirmedLabel ? confirmedLabel : c.label;
 
   return (
     <div className={cn("flex items-center gap-3 rounded-xl border border-border-muted p-4", c.bg)}>
       <div className={c.color}>{c.icon}</div>
       <div className="min-w-0 flex-1">
-        <div className={cn("text-xs font-medium", c.color)}>{c.label}</div>
+        <div className={cn("text-xs font-medium", c.color)}>{label}</div>
         {txHash && (
           <a
             href={etherscanUrl}
@@ -130,6 +133,9 @@ export function TransactionStatus({ status, txHash }: TransactionStatusProps) {
           >
             {txHash}
           </a>
+        )}
+        {!txHash && batchId && (
+          <div className="mt-0.5 truncate font-mono text-[10px] text-text-muted">Batch ID: {batchId}</div>
         )}
       </div>
       {etherscanUrl && (

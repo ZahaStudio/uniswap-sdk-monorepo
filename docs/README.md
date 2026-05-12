@@ -23,8 +23,6 @@
 | [Recipes](./recipes.md)       | Complete end-to-end code examples for common tasks                            |
 | [Types Reference](./types.md) | Core SDK types plus the React hook types used throughout these docs           |
 
-These docs focus on the Uniswap v4 SDK packages. The experimental Trading SDK packages live in the same monorepo but are documented in the root `README.md` for now.
-
 ## Key Concepts
 
 ### Uniswap v4 Pool Keys
@@ -69,9 +67,7 @@ Chains are resolved via `hookmate`'s `getSupportedChains()`. Common chain IDs:
 uniswap-sdk-monorepo/
 ├── packages/
 │   ├── uniswap-sdk/          # Core SDK (src/core/, src/utils/, src/helpers/)
-│   ├── uniswap-sdk-react/    # React hooks & provider
-│   ├── trading-sdk/          # Experimental Trading API SDK
-│   └── trading-sdk-react/    # Experimental React hooks & provider
+│   └── uniswap-sdk-react/    # React hooks & provider
 ├── apps/
 │   └── example/              # Next.js demo app
 └── tooling/

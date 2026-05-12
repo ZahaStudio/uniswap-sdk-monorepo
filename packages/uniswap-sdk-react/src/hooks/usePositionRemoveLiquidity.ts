@@ -80,7 +80,7 @@ export function usePositionRemoveLiquidity(
         deadlineDuration: args.deadlineDuration,
       });
 
-      const { hash } = await transaction.sendAndConfirm({
+      const { hash } = await transaction.sendTransactionAndConfirm({
         to: positionManager,
         data: calldata as Hex,
         value: BigInt(value),

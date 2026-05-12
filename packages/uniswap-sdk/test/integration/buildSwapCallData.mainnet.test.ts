@@ -132,10 +132,103 @@ describe("buildSwapCallData (unichain rpc)", () => {
 
     expect(decoded.functionName).toBe("execute");
 
-    const [commands, , deadline] = decoded.args as [Hex, Hex[], bigint];
+    const [commands, inputs, deadline] = decoded.args as [Hex, Hex[], bigint];
+    const [actions, v4Params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], inputs[0]!);
+    const [settleCurrency, settleAmount, payerIsUser] = decodeAbiParameters(
+      [{ type: "address" }, { type: "uint256" }, { type: "bool" }],
+      v4Params[1]!,
+    );
+
     expect(commands).toBe("0x10");
+    expect(actions).toBe("0x070b0e");
+    expect(settleCurrency).toBe(UNICHAIN_TOKENS.ETH);
+    expect(settleAmount).toBe(1_000_000n);
+    expect(payerIsUser).toBe(false);
     expect(deadline).toBe(expectedDeadline);
-    expect(value).toBe("0");
+    expect(value).toBe("1000000");
+    expect(calldata).toMatch(/^0x[0-9a-f]+$/);
+  });
+
+  it("sets native value and settle amount for exact-input swaps with native pool input", async () => {
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
+    const block = await client.getBlock();
+    const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
+    const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
+
+    const { calldata, value } = await sdk.buildSwapCallData({
+      route: [{ pool }],
+      exactInput: {
+        currency: UNICHAIN_TOKENS.ETH,
+        amount: 1_000_000n,
+      },
+      minAmountOut: 0n,
+      recipient: TEST_RECIPIENT,
+    });
+
+    const decoded = decodeFunctionData({
+      abi: utility.UniversalRouterArtifact.abi,
+      data: calldata,
+    });
+
+    expect(decoded.functionName).toBe("execute");
+
+    const [commands, inputs, deadline] = decoded.args as [Hex, Hex[], bigint];
+    const [actions, v4Params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], inputs[0]!);
+    const [settleCurrency, settleAmount, payerIsUser] = decodeAbiParameters(
+      [{ type: "address" }, { type: "uint256" }, { type: "bool" }],
+      v4Params[1]!,
+    );
+
+    expect(commands).toBe("0x10");
+    expect(actions).toBe("0x070b0e");
+    expect(settleCurrency).toBe(UNICHAIN_TOKENS.ETH);
+    expect(settleAmount).toBe(1_000_000n);
+    expect(payerIsUser).toBe(false);
+    expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("1000000");
+    expect(calldata).toMatch(/^0x[0-9a-f]+$/);
+  });
+
+  it("sets native value for exact-output swaps with native pool input", async () => {
+    const client = createPinnedUnichainClient();
+    const sdk = UniswapSDK.create(client, unichain.id);
+    const block = await client.getBlock();
+    const expectedDeadline = block.timestamp + BigInt(sdk.defaultDeadline);
+    const pool = await sdk.getPool(UNICHAIN_POOL_KEY);
+
+    const { calldata, value } = await sdk.buildSwapCallData({
+      route: [{ pool }],
+      exactOutput: {
+        currency: UNICHAIN_TOKENS.USDC,
+        amount: 1_000_000n,
+      },
+      maxAmountIn: 10_000_000_000_000_000n,
+      recipient: TEST_RECIPIENT,
+    });
+
+    const decoded = decodeFunctionData({
+      abi: utility.UniversalRouterArtifact.abi,
+      data: calldata,
+    });
+
+    expect(decoded.functionName).toBe("execute");
+
+    const [commands, inputs, deadline] = decoded.args as [Hex, Hex[], bigint];
+    const [actions, v4Params] = decodeAbiParameters([{ type: "bytes" }, { type: "bytes[]" }], inputs[0]!);
+    const [settleCurrency, settleAmount, payerIsUser] = decodeAbiParameters(
+      [{ type: "address" }, { type: "uint256" }, { type: "bool" }],
+      v4Params[1]!,
+    );
+
+    expect(commands).toBe("0x1004");
+    expect(inputs).toHaveLength(2);
+    expect(actions).toBe("0x090b0e");
+    expect(settleCurrency).toBe(UNICHAIN_TOKENS.ETH);
+    expect(settleAmount).toBe(10_000_000_000_000_000n);
+    expect(payerIsUser).toBe(false);
+    expect(deadline).toBe(expectedDeadline);
+    expect(value).toBe("10000000000000000");
     expect(calldata).toMatch(/^0x[0-9a-f]+$/);
   });
 

@@ -8,8 +8,12 @@ import type { Address, Hex } from "viem";
 import { zeroAddress } from "viem";
 
 import { usePermit2, type Permit2SignedResult, type UsePermit2SignStep } from "@/hooks/primitives/usePermit2";
-import { type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
-import { useTransaction, type UseTransactionReturn } from "@/hooks/primitives/useTransaction";
+import { buildRequiredApprovalCall, type UseTokenApprovalReturn } from "@/hooks/primitives/useTokenApproval";
+import {
+  useTransaction,
+  type SendBatchTransactionAndConfirmResult,
+  type UseTransactionReturn,
+} from "@/hooks/primitives/useTransaction";
 import { useUniswapSDK } from "@/hooks/useUniswapSDK";
 import { assertSdkInitialized } from "@/utils/assertions";
 
@@ -65,12 +69,15 @@ export interface AddLiquidityPipelineReturn<TArgs> {
     execute: {
       transaction: UseTransactionReturn;
       execute: (args: TArgs) => Promise<Hex>;
+      executeBatch: (args: TArgs) => Promise<SendBatchTransactionAndConfirmResult>;
     };
   };
   /** The first incomplete required step */
   currentStep: AddLiquidityStep;
   /** Execute all remaining required steps sequentially. Returns tx hash. */
   executeAll: (args: TArgs) => Promise<Hex>;
+  /** Execute all required onchain calls as one atomic EIP-5792 batch. */
+  executeBatch: (args: TArgs) => Promise<SendBatchTransactionAndConfirmResult>;
   /** Reset all mutation state (approvals, permit2, transaction) */
   reset: () => void;
 }
@@ -131,7 +138,7 @@ export function useAddLiquidityPipeline<TArgs>(
 
       const { calldata, value } = await buildCalldata({ batchPermit, args });
 
-      const { hash } = await transaction.sendAndConfirm({
+      const { hash } = await transaction.sendTransactionAndConfirm({
         to: positionManager,
         data: calldata as Hex,
         value: BigInt(value),
@@ -145,6 +152,83 @@ export function useAddLiquidityPipeline<TArgs>(
   );
 
   const execute = useCallback(async (args: TArgs): Promise<Hex> => executeWithPermit(args), [executeWithPermit]);
+
+  const executeBatchWithPermit = useCallback(
+    async (args: TArgs, signedPermit2?: Permit2SignedResult): Promise<SendBatchTransactionAndConfirmResult> => {
+      assertSdkInitialized(sdk);
+      if (!transaction.isAtomicBatchSupported) {
+        throw new Error("Atomic batch support is not available.");
+      }
+
+      const argsWithAmounts = args as Partial<Record<"amount0" | "amount1", unknown>>;
+      const argsRequirePermit =
+        (tokenAddresses[0].toLowerCase() !== zeroAddress.toLowerCase() &&
+          typeof argsWithAmounts.amount0 === "bigint" &&
+          argsWithAmounts.amount0 > 0n) ||
+        (tokenAddresses[1].toLowerCase() !== zeroAddress.toLowerCase() &&
+          typeof argsWithAmounts.amount1 === "bigint" &&
+          argsWithAmounts.amount1 > 0n);
+
+      let permit2Signed = signedPermit2 ?? permit2Hook.permit2.signed;
+      if (!permit2Signed && (permit2Hook.permit2.isRequired || argsRequirePermit)) {
+        permit2Signed = await permit2Hook.permit2.sign();
+      }
+      if (permit2Hook.permit2.isRequired && !permit2Signed) {
+        throw new Error("Permit2 signature required");
+      }
+
+      const batchPermit = permit2Signed?.kind === "batch" ? permit2Signed.data : undefined;
+      const { calldata, value } = await buildCalldata({ batchPermit, args });
+
+      const approval0Call = await buildRequiredApprovalCall(
+        permit2Hook.approvals[0],
+        tokenAddresses[0],
+        permit2Amounts[0],
+      );
+      const approval1Call = await buildRequiredApprovalCall(
+        permit2Hook.approvals[1],
+        tokenAddresses[1],
+        permit2Amounts[1],
+      );
+
+      const result = await transaction.sendBatchTransactionAndConfirm({
+        calls: [
+          ...[approval0Call, approval1Call].filter((call): call is NonNullable<typeof call> => call !== undefined),
+          {
+            to: positionManager,
+            data: calldata as Hex,
+            value: BigInt(value),
+          },
+        ],
+      });
+
+      if (result.status.status === "success") {
+        void Promise.all([
+          approval0Call ? permit2Hook.approvals[0].allowance.refetch() : undefined,
+          approval1Call ? permit2Hook.approvals[1].allowance.refetch() : undefined,
+        ]);
+        void onSuccess?.();
+      }
+
+      return result;
+    },
+    [
+      sdk,
+      permit2Hook.permit2,
+      permit2Hook.approvals,
+      buildCalldata,
+      tokenAddresses,
+      permit2Amounts,
+      transaction,
+      positionManager,
+      onSuccess,
+    ],
+  );
+
+  const executeBatch = useCallback(
+    async (args: TArgs): Promise<SendBatchTransactionAndConfirmResult> => executeBatchWithPermit(args),
+    [executeBatchWithPermit],
+  );
 
   const executeAll = useCallback(
     async (args: TArgs): Promise<Hex> => {
@@ -180,10 +264,12 @@ export function useAddLiquidityPipeline<TArgs>(
       execute: {
         transaction,
         execute,
+        executeBatch,
       },
     },
     currentStep,
     executeAll,
+    executeBatch,
     reset,
   };
 }

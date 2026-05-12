@@ -8,6 +8,7 @@ import { useCreatePosition, useToken, type AddLiquidityStep } from "@zahastudio/
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
+import { BatchSupportCard } from "@/components/batch-support-card";
 import { ConnectWalletButton } from "@/components/connect-wallet-button";
 import { DetailRow } from "@/components/detail-row";
 import { PoolTab } from "@/components/pool-tab";
@@ -89,7 +90,7 @@ export function CreatePositionDemo() {
     { chainId: 1 },
   );
 
-  const { pool: poolQuery, steps, currentStep, executeAll, reset, position } = create;
+  const { pool: poolQuery, steps, currentStep, executeAll, executeBatch, reset, position } = create;
   const pool = poolQuery.data?.pool;
 
   // Token balance queries
@@ -157,8 +158,12 @@ export function CreatePositionDemo() {
 
   const isExecuteConfirmed = steps.execute.transaction.status === "confirmed";
   const txHash = steps.execute.transaction.txHash;
+  const batchId = steps.execute.transaction.batchId;
+  const batchStatus = steps.execute.transaction.callsStatus?.status;
+  const isAtomicBatchSupported = steps.execute.transaction.isAtomicBatchSupported;
 
   const [executing, setExecuting] = useState(false);
+  const [executionMode, setExecutionMode] = useState<"sequential" | "batch" | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
 
   const handleExecuteAll = useCallback(async () => {
@@ -169,6 +174,7 @@ export function CreatePositionDemo() {
       return;
     }
     setExecuting(true);
+    setExecutionMode("sequential");
     try {
       await executeAll({ recipient: address });
       token0BalQuery.refetch();
@@ -177,9 +183,32 @@ export function CreatePositionDemo() {
       const msg = err instanceof Error ? err.message : String(err);
       if (shouldShowExecutionError(msg)) setTxError(msg);
     } finally {
+      setExecutionMode(null);
       setExecuting(false);
     }
   }, [address, executeAll, insufficientBalanceError, token0BalQuery, token1BalQuery]);
+
+  const handleExecuteBatch = useCallback(async () => {
+    if (!address) return;
+    setTxError(null);
+    if (insufficientBalanceError) {
+      setTxError(insufficientBalanceError);
+      return;
+    }
+    setExecuting(true);
+    setExecutionMode("batch");
+    try {
+      await executeBatch({ recipient: address });
+      token0BalQuery.refetch();
+      token1BalQuery.refetch();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (shouldShowExecutionError(msg)) setTxError(msg);
+    } finally {
+      setExecutionMode(null);
+      setExecuting(false);
+    }
+  }, [address, executeBatch, insufficientBalanceError, token0BalQuery, token1BalQuery]);
 
   const handleRefreshAll = useCallback(() => {
     poolQuery.refetch();
@@ -191,6 +220,7 @@ export function CreatePositionDemo() {
     reset();
     setTxError(null);
     setExecuting(false);
+    setExecutionMode(null);
     setAmount0Input("");
     setAmount1Input("");
     token0BalQuery.refetch();
@@ -198,11 +228,19 @@ export function CreatePositionDemo() {
   }, [reset, token0BalQuery, token1BalQuery]);
 
   const hasAmount = parsedAmount0 > 0n || parsedAmount1 > 0n;
+  const isCreateActionDisabled = executing || !hasAmount || !pool || poolQuery.isLoading || hasInsufficientBalance;
 
   return (
     <div className="flex w-full items-start justify-center gap-6">
       {/* Lifecycle panel (left) */}
       <div className="sticky top-6 hidden w-120 shrink-0 space-y-4 lg:block">
+        <BatchSupportCard
+          isSupported={isAtomicBatchSupported}
+          description="Submit required Permit2 approvals and the position mint as one force-atomic EIP-5792 wallet batch."
+          batchId={batchId}
+          callsStatus={batchStatus}
+        />
+
         {isConnected && hasAmount && pool ? (
           <>
             <AddLiquidityStepIndicator
@@ -215,6 +253,8 @@ export function CreatePositionDemo() {
               <TransactionStatus
                 status={steps.execute.transaction.status}
                 txHash={txHash}
+                batchId={batchId}
+                confirmedLabel="Position created!"
               />
             )}
           </>
@@ -372,21 +412,43 @@ export function CreatePositionDemo() {
                 Create another position
               </button>
             ) : (
-              <button
-                onClick={handleExecuteAll}
-                disabled={executing || !hasAmount || !pool || poolQuery.isLoading || hasInsufficientBalance}
-                className={cn(
-                  "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
-                  "bg-accent text-white hover:bg-accent-hover",
-                  "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-accent",
+              <div className="space-y-2">
+                <button
+                  onClick={handleExecuteAll}
+                  disabled={isCreateActionDisabled}
+                  className={cn(
+                    "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
+                    "bg-accent text-white hover:bg-accent-hover",
+                    "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-accent",
+                  )}
+                >
+                  {executionMode === "sequential"
+                    ? getStepActionLabel(currentStep) + "..."
+                    : !hasAmount
+                      ? "Enter an amount"
+                      : "Create Position"}
+                </button>
+
+                <button
+                  onClick={handleExecuteBatch}
+                  disabled={isCreateActionDisabled || !isAtomicBatchSupported}
+                  className={cn(
+                    "w-full rounded-xl border py-3 text-xs font-semibold transition-all active:scale-[0.98]",
+                    isAtomicBatchSupported
+                      ? "border-accent/40 bg-accent-muted text-accent hover:bg-accent/15"
+                      : "border-border-muted bg-surface-raised text-text-muted",
+                    "disabled:cursor-not-allowed disabled:opacity-40",
+                  )}
+                >
+                  {executionMode === "batch" ? "Submitting batch..." : "Create with atomic batch"}
+                </button>
+
+                {hasAmount && pool && !isAtomicBatchSupported && (
+                  <p className="text-center text-[11px] text-text-muted">
+                    Atomic batching is unavailable for this wallet on Mainnet.
+                  </p>
                 )}
-              >
-                {executing
-                  ? getStepActionLabel(currentStep) + "..."
-                  : !hasAmount
-                    ? "Enter an amount"
-                    : "Create Position"}
-              </button>
+              </div>
             )}
           </div>
         </div>

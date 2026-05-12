@@ -67,9 +67,3 @@ domains:
       - "Manual transaction execution skips quote, approval, and Permit2 sequencing."
       - "Native ETH swaps are treated like ERC-20 swaps."
       - "Create-position hooks receive both amount sides when the caller expected one side to be auto-computed."
-coverage:
-  ignored_packages:
-    - name: "packages/trading-sdk"
-      reason: "Experimental Trading SDK is intentionally out of scope for the v4 Intent migration."
-    - name: "packages/trading-sdk-react"
-      reason: "Experimental Trading React SDK is intentionally out of scope for the v4 Intent migration."

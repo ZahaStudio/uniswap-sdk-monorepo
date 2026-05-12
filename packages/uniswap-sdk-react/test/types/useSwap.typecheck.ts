@@ -1,6 +1,8 @@
 import type { SwapRoute } from "@zahastudio/uniswap-sdk";
 import type { Address, Hex } from "viem";
 
+import type { SendBatchTransactionAndConfirmResult } from "@/hooks/primitives/useTransaction";
+
 import { useSwap, type UseSwapParams } from "@/hooks/useSwap";
 
 type Expect<T extends true> = T;
@@ -51,6 +53,10 @@ type _UseSwapAcceptsHookDataRoute = Expect<Equal<typeof exactInputParamsWithHook
 
 type _UseSwapHasMeta = Expect<Equal<HasKey<typeof exactInputSwap, "meta">, true>>;
 type _UseSwapMetaResolvedIn = Expect<Equal<(typeof exactInputSwap.meta)["resolvedCurrencyIn"], Address>>;
+type _UseSwapHasExecuteBatch = Expect<Equal<HasKey<typeof exactInputSwap, "executeBatch">, true>>;
+type _UseSwapExecuteBatchReturn = Expect<
+  Equal<Awaited<ReturnType<typeof exactInputSwap.executeBatch>>, SendBatchTransactionAndConfirmResult>
+>;
 
 type _ExactInputQuoteHasMin = Expect<Equal<ExactInputQuote["minAmountOut"], bigint>>;
 type _ExactInputQuoteHasNoMax = Expect<Equal<HasKey<ExactInputQuote, "maxAmountIn">, false>>;

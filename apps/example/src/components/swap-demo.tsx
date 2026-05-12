@@ -7,6 +7,7 @@ import { useSwap, useToken, useUniswapSDK, type SwapStep } from "@zahastudio/uni
 import { zeroAddress } from "viem";
 import { useAccount } from "wagmi";
 
+import { BatchSupportCard } from "@/components/batch-support-card";
 import { ConnectWalletButton } from "@/components/connect-wallet-button";
 import { DetailRow } from "@/components/detail-row";
 import { RefreshButton } from "@/components/refresh-button";
@@ -151,7 +152,7 @@ export function SwapDemo() {
     chainId: SWAP_CHAIN_ID,
   });
 
-  const { steps, currentStep, executeAll, reset } = swap;
+  const { steps, currentStep, executeAll, executeBatch, reset } = swap;
   const quoteData = steps.quote.data;
   const quoteLoading = steps.quote.isLoading;
   const quoteError = steps.quote.error;
@@ -162,6 +163,9 @@ export function SwapDemo() {
 
   const isSwapConfirmed = steps.swap.transaction.status === "confirmed";
   const swapTxHash = steps.swap.transaction.txHash;
+  const swapBatchId = steps.swap.transaction.batchId;
+  const swapBatchStatus = steps.swap.transaction.callsStatus?.status;
+  const isAtomicBatchSupported = steps.swap.transaction.isAtomicBatchSupported;
   const maxSpendAmount =
     tradeType === "exactOutput" && isExactOutputQuote
       ? quoteData.maxAmountIn
@@ -229,6 +233,7 @@ export function SwapDemo() {
   const routeLabel = `${activeRoute.length} hop${activeRoute.length === 1 ? "" : "s"} via ${selectedPreset.label}`;
 
   const [executing, setExecuting] = useState(false);
+  const [executionMode, setExecutionMode] = useState<"sequential" | "batch" | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
 
   const handleExecuteStep = useCallback(async () => {
@@ -265,20 +270,42 @@ export function SwapDemo() {
       return;
     }
     setExecuting(true);
+    setExecutionMode("sequential");
     try {
       await executeAll();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       if (shouldShowExecutionError(msg)) setTxError(msg);
     } finally {
+      setExecutionMode(null);
       setExecuting(false);
     }
   }, [executeAll, hasInsufficientBalance, tokenIn.symbol]);
+
+  const handleExecuteBatch = useCallback(async () => {
+    setTxError(null);
+    if (hasInsufficientBalance) {
+      setTxError(`Insufficient ${tokenIn.symbol} balance`);
+      return;
+    }
+    setExecuting(true);
+    setExecutionMode("batch");
+    try {
+      await executeBatch();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (shouldShowExecutionError(msg)) setTxError(msg);
+    } finally {
+      setExecutionMode(null);
+      setExecuting(false);
+    }
+  }, [executeBatch, hasInsufficientBalance, tokenIn.symbol]);
 
   const handleReset = useCallback(() => {
     reset();
     setTxError(null);
     setExecuting(false);
+    setExecutionMode(null);
     tokenInQuery.refetch();
     steps.quote.refetch();
     routePoolsQuery.refetch();
@@ -286,6 +313,8 @@ export function SwapDemo() {
   }, [reset, steps.quote, tokenInQuery, routePoolsQuery, resetRefreshTimer]);
 
   const insufficientBalanceError = hasInsufficientBalance ? `Insufficient ${tokenIn.symbol} balance` : null;
+  const isSwapActionDisabled =
+    executing || !quoteData || quoteLoading || hasInsufficientBalance || amountInput === "" || amountInput === "0";
 
   const handleTradeTypeChange = useCallback((nextTradeType: SwapMode) => {
     setTradeType(nextTradeType);
@@ -311,6 +340,13 @@ export function SwapDemo() {
           </label>
         </div>
 
+        <BatchSupportCard
+          isSupported={isAtomicBatchSupported}
+          description="Submit any required Permit2 approval and the swap as one force-atomic EIP-5792 wallet batch."
+          batchId={swapBatchId}
+          callsStatus={swapBatchStatus}
+        />
+
         {isConnected && quoteData ? (
           <>
             <StepIndicator
@@ -324,6 +360,8 @@ export function SwapDemo() {
               <TransactionStatus
                 status={steps.swap.transaction.status}
                 txHash={swapTxHash}
+                batchId={swapBatchId}
+                confirmedLabel="Swap confirmed!"
               />
             )}
           </>
@@ -574,26 +612,39 @@ export function SwapDemo() {
               <div className="space-y-2">
                 <button
                   onClick={handleExecuteAll}
-                  disabled={
-                    executing ||
-                    !quoteData ||
-                    quoteLoading ||
-                    hasInsufficientBalance ||
-                    amountInput === "" ||
-                    amountInput === "0"
-                  }
+                  disabled={isSwapActionDisabled}
                   className={cn(
                     "glow-accent w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]",
                     "bg-accent text-white hover:bg-accent-hover",
                     "disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none disabled:hover:bg-accent",
                   )}
                 >
-                  {executing
+                  {executionMode === "sequential"
                     ? getStepActionLabel(currentStep) + "..."
                     : !quoteData
                       ? `Enter a ${tradeType === "exactOutput" ? "receive" : "pay"} amount`
                       : "Swap"}
                 </button>
+
+                <button
+                  onClick={handleExecuteBatch}
+                  disabled={isSwapActionDisabled || !isAtomicBatchSupported}
+                  className={cn(
+                    "w-full rounded-xl border py-3 text-xs font-semibold transition-all active:scale-[0.98]",
+                    isAtomicBatchSupported
+                      ? "border-accent/40 bg-accent-muted text-accent hover:bg-accent/15"
+                      : "border-border-muted bg-surface-raised text-text-muted",
+                    "disabled:cursor-not-allowed disabled:opacity-40",
+                  )}
+                >
+                  {executionMode === "batch" ? "Submitting batch..." : "Swap with atomic batch"}
+                </button>
+
+                {quoteData && !isAtomicBatchSupported && (
+                  <p className="text-center text-[11px] text-text-muted">
+                    Atomic batching is unavailable for this wallet on Mainnet.
+                  </p>
+                )}
 
                 {quoteData && !executing && (currentStep === "approval" || currentStep === "permit2") && (
                   <button

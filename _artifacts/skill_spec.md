@@ -13,7 +13,6 @@ This Intent migration covers the stable Uniswap v4 SDK packages only. The skills
 - Keep root `_artifacts` as the monorepo-wide domain map and skill tree source of truth.
 - Keep examples minimal, complete, and grounded in real package imports.
 - Focus on Uniswap v4-specific failure modes that agents are likely to generate incorrectly.
-- Do not document experimental Trading SDK APIs in this migration.
 
 ## Maintenance
 
