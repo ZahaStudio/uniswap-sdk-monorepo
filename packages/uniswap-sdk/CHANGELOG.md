@@ -1,5 +1,19 @@
 # @zahastudio/uniswap-sdk
 
+## 1.0.0
+
+### Major Changes
+
+- [`3da283e`](https://github.com/ZahaStudio/uniswap-sdk-monorepo/commit/3da283eed162f36cab5217349cb3d3e36ac0e0d6) Thanks [@akshatmittal](https://github.com/akshatmittal)! - Stable API Release
+
+### Minor Changes
+
+- [`30345c8`](https://github.com/ZahaStudio/uniswap-sdk-monorepo/commit/30345c877941e683ce37bcf2b8ea356662fff44c) Thanks [@akshatmittal](https://github.com/akshatmittal)! - EIP-5792 Atomic Batch Support
+
+### Patch Changes
+
+- [#37](https://github.com/ZahaStudio/uniswap-sdk-monorepo/pull/37) [`f947bb3`](https://github.com/ZahaStudio/uniswap-sdk-monorepo/commit/f947bb343f1b9f961ed5db07c23b6db315055804) Thanks [@akshatmittal](https://github.com/akshatmittal)! - Fix stable SDK package export metadata and refresh the SDK/Intent documentation so package discovery, examples, and agent guidance match the current public APIs.
+
 ## 0.5.0
 
 ### Minor Changes
