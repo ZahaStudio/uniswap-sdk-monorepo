@@ -38,14 +38,14 @@
     "anvil": "anvil --fork-url https://mainnet.gateway.tenderly.co --chain-id 1 --mnemonic-seed-unsafe 1337 --block-time 4"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "^0.6.0",
+    "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
     "@changesets/config": "^3.1.4",
     "@tanstack/intent": "catalog:",
-    "oxfmt": "^0.46.0",
-    "oxlint": "^1.63.0",
+    "oxfmt": "^0.49.0",
+    "oxlint": "^1.64.0",
     "taze": "^19.11.0",
-    "turbo": "^2.9.9",
+    "turbo": "^2.9.12",
     "typescript": "catalog:"
   },
   "engines": {
