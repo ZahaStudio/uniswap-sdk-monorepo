@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@uniswap/v3-sdk": "^3.30.0",
-    "@uniswap/v4-sdk": "^2.0.0",
+    "@uniswap/v4-sdk": "^2.1.0",
     "@zahastudio/uniswap-sdk": "workspace:*"
   },
   "devDependencies": {
