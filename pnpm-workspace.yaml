@@ -20,6 +20,7 @@ catalog:
   tsdown: ^0.22.0
   typescript: ^6.0.3
   viem: ^2.48.11
+  vite: ^8.0.13
   wagmi: ^2.19.5
 
 overrides:
@@ -33,3 +34,6 @@ overrides:
   "react-native": "-"
   "abitype>zod": "-"
   typescript: "catalog:"
+
+allowBuilds:
+  msw: set this to true or false
