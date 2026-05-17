@@ -1,6 +1,7 @@
 # Spec: Swap UI for `apps/web-start`
 
 ## Assumptions
+
 - This spec covers the swap UI for this monorepo's Uniswap SDK packages: `@zahastudio/uniswap-sdk` and `@zahastudio/uniswap-sdk-react`.
 - The UI should live inside the existing TanStack Start app shell in `apps/web-start`.
 - The implementation should reuse shadcn components wherever they fit instead of building custom primitives.
@@ -8,12 +9,23 @@
 - Core SDK APIs from `@zahastudio/uniswap-sdk` define the data semantics for route, quote, slippage, Permit2, Universal Router calldata, and native token handling.
 - The app currently has no test setup, ESLint, or Prettier configuration, so verification should use build and typecheck unless that changes.
 
+## Decisions
+
+- The swap UI lives at `/swap`; `/` remains a separate dashboard route.
+- Wallet connection uses RainbowKit with default connectors.
+- The initial route catalog uses curated Ethereum mainnet high-liquidity pairs: ETH/USDC, ETH/USDT, ETH/WBTC, USDC/USDT, WBTC/USDC, and WBTC/USDT.
+- Quote and execution lifecycle should use the SDK as directly as possible through `useSwap`.
+- The UI supports both exact-input and exact-output modes.
+- EIP-5792 batch execution is not exposed in the UI.
+
 ## Objective
+
 Build a swap screen in `apps/web-start` that demonstrates and exercises this repo's Uniswap SDK. The UI should let a user choose input/output tokens from supported SDK route definitions, enter an exact-input swap amount, review quote details returned by `useSwap`, step through approval/Permit2/swap execution states, configure slippage, and see clear connection, loading, empty, warning, and error states.
 
 The first implementation should be SDK-first, not mock-first. It may use a small local token/route catalog for available pairs, but quote and transaction lifecycle state should be wired to `useSwap` from `@zahastudio/uniswap-sdk-react`.
 
 ## Tech Stack
+
 - TanStack Start for routing and app shell integration.
 - React 19 with TypeScript.
 - Tailwind CSS v4 through the existing shadcn setup.
@@ -24,6 +36,7 @@ The first implementation should be SDK-first, not mock-first. It may use a small
 - Existing app shell components under `apps/web-start/src/components`.
 
 ## Commands
+
 - Dev server: `pnpm --filter web-start dev`
 - Build: `pnpm --filter web-start build`
 - Typecheck: `pnpm --filter web-start typecheck`
@@ -31,6 +44,7 @@ The first implementation should be SDK-first, not mock-first. It may use a small
 - Add SDK dependencies: `pnpm --filter web-start add @zahastudio/uniswap-sdk-react@workspace:* @zahastudio/uniswap-sdk@workspace:* @tanstack/react-query@catalog: wagmi@catalog: viem@catalog:`
 
 ## Project Structure
+
 - `apps/web-start/src/routes/swap.tsx`  
   Route entry for `/swap`. Keep this thin and delegate to page/components.
 
@@ -62,6 +76,7 @@ The first implementation should be SDK-first, not mock-first. It may use a small
   Wagmi, TanStack Query, and `UniswapSDKProvider` setup if these providers are not already present.
 
 ## shadcn Component Reuse
+
 Use these existing or newly added shadcn components as the default building blocks:
 
 - `Card`: outer swap container and quote detail panels.
@@ -89,6 +104,7 @@ cd apps/web-start && pnpm dlx shadcn@latest add card field input-group badge dia
 ```
 
 ## UX Requirements
+
 - The `/swap` route appears in the app sidebar as `Swap` and is marked active on that route.
 - The swap card has two token amount panels: `You pay` and `You receive`.
 - Token selection opens a searchable list with token symbol, name, icon/fallback, balance, and optional chain badge.
@@ -112,39 +128,40 @@ cd apps/web-start && pnpm dlx shadcn@latest add card field input-group badge dia
 - The UI should expose both one-click `executeAll()` and, when supported by the connected wallet, atomic EIP-5792 `executeBatch()` as a clearly labeled advanced action.
 
 ## State Model
+
 Use simple controlled React state for user input and derive SDK params from it. Do not duplicate SDK lifecycle state into local state.
 
 ```ts
 export type SwapToken = {
-  chainId: number
-  address: string
-  symbol: string
-  name: string
-  decimals: number
-  logoUrl?: string
-  balance?: string
-}
+  chainId: number;
+  address: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  logoUrl?: string;
+  balance?: string;
+};
 
 export type SwapRouteDefinition = {
-  inputCurrency: `0x${string}`
-  outputCurrency: `0x${string}`
+  inputCurrency: `0x${string}`;
+  outputCurrency: `0x${string}`;
   poolKey: {
-    currency0: `0x${string}`
-    currency1: `0x${string}`
-    fee: number
-    tickSpacing: number
-    hooks: `0x${string}`
-  }
-  hookData?: `0x${string}`
-}
+    currency0: `0x${string}`;
+    currency1: `0x${string}`;
+    fee: number;
+    tickSpacing: number;
+    hooks: `0x${string}`;
+  };
+  hookData?: `0x${string}`;
+};
 
 export type SwapFormState = {
-  inputToken: SwapToken | null
-  outputToken: SwapToken | null
-  inputAmount: string
-  slippageBps: number
-  recipient?: string
-}
+  inputToken: SwapToken | null;
+  outputToken: SwapToken | null;
+  inputAmount: string;
+  slippageBps: number;
+  recipient?: string;
+};
 ```
 
 Derived SDK params should follow the React SDK contract:
@@ -165,12 +182,13 @@ const swap = useSwap(
     enabled: canQuote,
     refetchInterval: 12000,
   },
-)
+);
 ```
 
 Quote detail rows should read from `swap.steps.quote.data`. Execution controls should call `swap.steps.approval.approve()`, `swap.steps.permit2.sign()`, `swap.steps.swap.execute()`, `swap.executeAll()`, or `swap.executeBatch()` according to the selected flow.
 
 ## Code Style
+
 Prefer small presentational components with explicit props. Use shadcn composition directly instead of custom wrapper abstractions until duplication is proven.
 
 ```tsx
@@ -183,17 +201,20 @@ Prefer small presentational components with explicit props. Use shadcn compositi
       value={inputAmount}
       onChange={(event) => onInputAmountChange(event.target.value)}
     />
-    <Button type="button" variant="outline" onClick={onSelectInputToken}>
+    <Button
+      type="button"
+      variant="outline"
+      onClick={onSelectInputToken}
+    >
       {inputToken?.symbol ?? "Select token"}
     </Button>
   </InputGroup>
-  <FieldDescription>
-    Balance: {inputToken?.balance ?? "0"}
-  </FieldDescription>
+  <FieldDescription>Balance: {inputToken?.balance ?? "0"}</FieldDescription>
 </Field>
 ```
 
 Conventions:
+
 - Use `@/components/...` and `@/lib/...` aliases.
 - Use semantic Tailwind tokens like `bg-background`, `text-muted-foreground`, `border-border`.
 - Use `gap-*`, not `space-*`.
@@ -203,18 +224,22 @@ Conventions:
 - Use SDK slippage fields from the quote response instead of recalculating minimum output in the component when available.
 
 ## Testing Strategy
+
 No test framework is currently configured in `apps/web-start`.
 
 For the first implementation:
+
 - Type safety is the primary automated check: `pnpm --filter web-start typecheck`.
 - Build verification: `pnpm --filter web-start build`.
 - Manual browser verification should cover desktop and mobile widths, disconnected wallet state, connected wallet state, quote loading, quote error, approval required, Permit2 required, and swap ready states.
 
 If test infrastructure is reintroduced later:
+
 - Component tests should cover token selection, disabled action states, direction switching, and quote detail rendering.
 - Hook tests should cover quote loading, quote error, stale quote, and high price impact states.
 
 ## Boundaries
+
 - Always: use shadcn components for form controls, overlays, alerts, loading states, and navigation primitives when available.
 - Always: use `@zahastudio/uniswap-sdk-react` for quote and execution lifecycle in the React UI.
 - Always: use `@zahastudio/uniswap-sdk` exported types/helpers when building route and amount plumbing.
@@ -231,6 +256,7 @@ If test infrastructure is reintroduced later:
 - Never: hide high-price-impact warnings behind color-only UI.
 
 ## Success Criteria
+
 - `/swap` renders inside the existing app shell.
 - Sidebar navigation includes a `Swap` item with active-state behavior.
 - `apps/web-start` depends on the local workspace SDK packages, not published npm versions.
@@ -245,9 +271,7 @@ If test infrastructure is reintroduced later:
 - `pnpm --filter web-start build` passes.
 
 ## Open Questions
-- Should `/` redirect to `/swap`, or should swap remain a separate sidebar item?
-- Which wagmi connector setup should the demo app use?
-- Which chains and Uniswap v4 pool route definitions should be available by default?
-- Should quote fetching call `useSwap` directly in the route component tree, or should we add a thin app-specific wrapper hook around it?
-- Should the first implementation include only exact-input swaps, or also exact-output swaps?
-- Should EIP-5792 batch execution be shown by default or hidden behind advanced settings?
+
+- Which WalletConnect project ID and mainnet RPC URL should production deployments use?
+- Should the curated route catalog eventually be replaced with live v4 subgraph route discovery?
+- Should price impact be surfaced once the SDK exposes it directly in quote data?

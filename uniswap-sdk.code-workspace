@@ -19,4 +19,14 @@
     "js/ts.tsdk.path": "workspace-root/node_modules/typescript/lib",
     "editor.defaultFormatter": "oxc.oxc-vscode",
   },
+  "launch": {
+    "configurations": [
+      {
+        "type": "chrome",
+        "name": "http://localhost:3000/swap",
+        "request": "launch",
+        "url": "http://localhost:3000/swap",
+      },
+    ],
+  },
 }

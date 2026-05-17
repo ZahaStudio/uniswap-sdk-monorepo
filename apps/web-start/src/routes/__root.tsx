@@ -1,8 +1,10 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
-import { AppShell } from "@/components/app-shell"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 
-import appCss from "../styles.css?url"
+import { AppShell } from "@/components/app-shell";
+import { Web3Provider } from "@/components/providers/web3-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -32,7 +34,8 @@ export const Route = createRootRoute({
     </main>
   ),
   shellComponent: RootDocument,
-})
+  ssr: false,
+});
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -41,11 +44,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <TooltipProvider>
-          <AppShell>{children}</AppShell>
-        </TooltipProvider>
+        <Web3Provider>
+          <TooltipProvider>
+            <AppShell>{children}</AppShell>
+          </TooltipProvider>
+        </Web3Provider>
         <Scripts />
       </body>
     </html>
-  )
+  );
 }

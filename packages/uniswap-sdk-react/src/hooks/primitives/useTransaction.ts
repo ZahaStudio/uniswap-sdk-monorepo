@@ -85,7 +85,7 @@ export interface UseTransactionReturn {
   status: TransactionStatus;
   /** Whether the current wallet reports atomic batching as supported or ready. Defaults to false while loading. */
   isAtomicBatchSupported: boolean;
-  /** First error from send, receipt, capabilities, or call batch status */
+  /** First error from send, receipt, or call batch status */
   error: Error | undefined;
   /** Send a single transaction. Resolves with the tx hash after broadcast. */
   sendTransaction: (params: SendTransactionParams) => Promise<Hex>;
@@ -99,6 +99,18 @@ export interface UseTransactionReturn {
   ) => Promise<SendBatchTransactionAndConfirmResult>;
   /** Reset all state back to idle */
   reset: () => void;
+}
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
+function normalizeTransactionError(error: Error | undefined): Error | undefined {
+  if (!error) return undefined;
+  if (error.message.includes("connector.getChainId is not a function")) {
+    return new Error("Wallet connection is stale. Disconnect and reconnect your wallet, then retry.");
+  }
+  return error;
 }
 
 /**
@@ -124,7 +136,12 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const { confirmations = 1, chainId } = options;
 
   const publicClient = usePublicClient({ chainId });
-  const { data: walletClient } = useWalletClient({ chainId });
+  const walletClientQuery = useWalletClient({
+    chainId,
+    query: {
+      enabled: false,
+    },
+  });
   const { address: connectedAddress } = useAccount();
 
   const [txHash, setTxHash] = useState<Hex | undefined>(undefined);
@@ -161,13 +178,13 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
   const hasActiveBatch = pendingBatchId !== undefined;
   const hasActiveTransaction = txHash !== undefined && !hasActiveBatch;
   const atomicBatchSupported = isAtomicBatchSupported(capabilities.data, chainId) ?? false;
-  const error =
+  const error = normalizeTransactionError(
     send.error ??
-    sendCalls.error ??
-    (hasActiveTransaction ? receiptQuery.error : undefined) ??
-    (hasActiveBatch ? callsStatusQuery.error : undefined) ??
-    capabilities.error ??
-    undefined;
+      sendCalls.error ??
+      (hasActiveTransaction ? receiptQuery.error : undefined) ??
+      (hasActiveBatch ? callsStatusQuery.error : undefined) ??
+      undefined,
+  );
 
   const status: TransactionStatus = (() => {
     if (error || (hasActiveBatch && callsStatus?.status === "failure")) return "error";
@@ -208,15 +225,19 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
       });
       const gasLimit = estimated * 2n;
 
-      const hash = await send.sendTransactionAsync({
-        to: params.to,
-        data: params.data,
-        value,
-        gas: gasLimit,
-        chainId,
-      });
-      setTxHash(hash);
-      return hash;
+      try {
+        const hash = await send.sendTransactionAsync({
+          to: params.to,
+          data: params.data,
+          value,
+          gas: gasLimit,
+          chainId,
+        });
+        setTxHash(hash);
+        return hash;
+      } catch (error) {
+        throw normalizeTransactionError(toError(error));
+      }
     },
     [publicClient, connectedAddress, send, reset, chainId],
   );
@@ -257,23 +278,33 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
 
       reset();
 
-      const result = await sendCalls.sendCallsAsync({
-        account: connectedAddress,
-        chainId,
-        calls,
-        capabilities: requestCapabilities,
-        forceAtomic: true,
-        version: "2.0.0",
-      });
+      try {
+        const result = await sendCalls.sendCallsAsync({
+          account: connectedAddress,
+          chainId,
+          calls,
+          capabilities: requestCapabilities,
+          forceAtomic: true,
+          version: "2.0.0",
+        });
 
-      setPendingBatchId(result.id);
-      return result;
+        setPendingBatchId(result.id);
+        return result;
+      } catch (error) {
+        throw normalizeTransactionError(toError(error));
+      }
     },
     [chainId, connectedAddress, atomicBatchSupported, reset, sendCalls],
   );
 
   const sendBatchTransactionAndConfirm = useCallback(
     async (params: SendBatchTransactionAndConfirmParams) => {
+      const walletClientResult = await walletClientQuery.refetch();
+      if (walletClientResult.error) {
+        throw normalizeTransactionError(walletClientResult.error);
+      }
+      const walletClient = walletClientResult.data;
+
       if (!walletClient) {
         throw new Error(`No wallet client available for chain ID ${chainId}`);
       }
@@ -288,7 +319,7 @@ export function useTransaction(options: UseTransactionOptions = {}): UseTransact
         status,
       };
     },
-    [sendBatchTransaction, walletClient, chainId],
+    [sendBatchTransaction, walletClientQuery, chainId],
   );
 
   return {
